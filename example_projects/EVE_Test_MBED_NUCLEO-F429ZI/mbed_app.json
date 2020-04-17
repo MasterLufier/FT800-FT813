@@ -1,0 +1,10 @@
+{
+    "macros":[],
+    "target_overrides": {
+        "*": {
+            "target.mbed_app_start" : "0x08020000",
+            "target.mbed_app_size" :  "0x00100000"
+        }
+    }
+}
+
