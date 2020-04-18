@@ -262,6 +262,11 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
                 return _ptr;
             }
 
+            void EVE_HAL::setSPIfrequency(EVE_HAL::SPIFrequency frequency)
+            {
+                m_spi.frequency(frequency);
+            }
+
             EVE_HAL::EVE_HAL() : EVE_HAL(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_CS, EVE_PD, EVE_INTRPT){}
 
             EVE_HAL::EVE_HAL(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt) :
@@ -272,9 +277,9 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
             {
                 _pdn_set();
                 _cs_set();
-                ThisThread::sleep_for(50);
+                ThisThread::sleep_for(100);
                 m_spi.format(8, 0);
-                m_spi.frequency();
+                this->setSPIfrequency(F_20M);
                 _ptr = this;
             }
 

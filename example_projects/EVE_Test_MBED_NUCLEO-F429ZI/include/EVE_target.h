@@ -903,9 +903,17 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
     }
 #define DELAY_MS(ms) _eve_delay(ms)
 
-    class EVE_HAL //: public NonCopyable<EVE_HAL>
+    class EVE_HAL
     {
     public:
+        enum SPIFrequency : int32_t
+        {
+            F_1M =      1000000,
+            F_5M =      5000000,
+            F_10M =     10000000,
+            F_20M =     20000000,
+            F_30M =     30000000
+        };
         inline void _cs_set(){m_ssel.write(0);}
         inline void _cs_clear(){m_ssel.write(1);}
         inline void _spi_transmit(uint8_t data){m_spi.write(data);}
@@ -918,6 +926,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
         ~EVE_HAL(){_ptr = nullptr;}
 
+        void setSPIfrequency(SPIFrequency frequency);
     private:
         EVE_HAL();
         EVE_HAL(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt);
