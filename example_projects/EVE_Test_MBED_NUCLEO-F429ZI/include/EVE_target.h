@@ -888,10 +888,58 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
     /*----------------------------------------------------------------------------------------------------------------*/
     /*----------------------------------------------------------------------------------------------------------------*/
 #endif  /* __MBED__*/
-
 #if defined (__MBED__)
 #include <mbed.h>
+    //Use thread waiting or not
+    static inline void _eve_delay(uint32_t ms)
+    {
+#if defined (PIO_FRAMEWORK_MBED_RTOS_PRESENT) \
+            && (MBED_CONF_RTOS_API_PRESENT) \
+            && (MBED_CONF_RTOS_PRESENT)
+        ThisThread::sleep_for(ms);
+#else
+    wait_us(ms*1000);
+#endif
+    }
+#define DELAY_MS(ms) _eve_delay(ms)
 
+    class EVE_HAL //: public NonCopyable<EVE_HAL>
+    {
+    public:
+        inline void _cs_set(){m_ssel.write(0);}
+        inline void _cs_clear(){m_ssel.write(1);}
+        inline void _spi_transmit(uint8_t data){m_spi.write(data);}
+        inline int _spi_receive(uint8_t data){return m_spi.write(data);}
+        inline void _pdn_set(){m_pd.write(0);}
+        inline void _pdn_clear(){m_pd.write(1);}
+
+        static EVE_HAL * instance();
+        static EVE_HAL * instance(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt);
+
+        ~EVE_HAL(){_ptr = nullptr;}
+
+    private:
+        EVE_HAL();
+        EVE_HAL(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt);
+
+        EVE_HAL(const EVE_HAL & other) = delete;
+        EVE_HAL(EVE_HAL&& other) = delete;
+
+        SPI m_spi;
+        DigitalOut m_ssel;
+        DigitalOut m_pd;
+        DigitalIn m_interrupt;
+        static EVE_HAL * _ptr;
+    };
+
+    extern "C" void EVE_cs_set();
+    extern "C" void EVE_cs_clear();
+    extern "C" void spi_transmit(uint8_t data);
+    extern "C" int spi_receive(uint8_t data);
+    extern "C" uint8_t fetch_flash_byte(const uint8_t  * data);
+    extern "C" void EVE_pdn_set();
+    extern "C" void EVE_pdn_clear();
+    extern "C" void spi_transmit_async(uint8_t data);
 #endif/* __MBED__*/
 
 #endif /* EVE_TARGET_H_ */

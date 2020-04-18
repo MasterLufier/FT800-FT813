@@ -7,8 +7,8 @@ include/ft8xx.h
 lib/README
 mbed_app.json
 platformio.ini
-src/EVE_commands.c
-src/EVE_target.c
+src/EVE_commands.cpp
+src/EVE_target.cpp
 src/ft8xx.cpp
 src/main.cpp
 test/README

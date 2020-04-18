@@ -1,5 +1,19 @@
 {
     "macros":[],
+    "config": {
+            "eve_powerdown_pin": {
+                "help": "PowerDown pin for EVE Driver",
+                "macro_name": "EVE_PD",
+                "value": "PB_2",
+                "required": true
+            },
+            "eve_interrupt_in": {
+                "help": "Interrupt Input pin for EVE Driver",
+                "macro_name": "EVE_INTRPT",
+                "value": "PD_15",
+                "required": true
+            }
+    },
     "target_overrides": {
         "*": {
             "target.mbed_app_start" : "0x08020000",

@@ -33,10 +33,9 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 - started to implement DMA support for STM32
 
  */
-
+#if !defined (__MBED__)
 #if !defined (ARDUINO)
 
-  #include "EVE_target.h"
   #include "EVE_commands.h"
 
 	#if defined (__GNUC__)
@@ -243,4 +242,84 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
         #endif
 
 	#endif
+#endif
+
+#endif
+#if defined (__MBED__)
+#include <EVE_target.h>
+            EVE_HAL * EVE_HAL::_ptr = nullptr;
+            EVE_HAL *EVE_HAL::instance()
+            {
+                if(!_ptr)
+                    error("EVE_HAL is not initialized");
+                return _ptr;
+            }
+
+            EVE_HAL *EVE_HAL::instance(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt)
+            {
+                if(!_ptr)
+                    _ptr = new EVE_HAL(mosi, miso, sclk, ssel, pd, interrupt);
+                return _ptr;
+            }
+
+            EVE_HAL::EVE_HAL() : EVE_HAL(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_CS, EVE_PD, EVE_INTRPT){}
+
+            EVE_HAL::EVE_HAL(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt) :
+                  m_spi(mosi, miso, sclk),
+                  m_ssel(ssel),
+                  m_pd(pd),
+                  m_interrupt(interrupt)
+            {
+                _pdn_set();
+                _cs_set();
+                ThisThread::sleep_for(50);
+                m_spi.format(8, 0);
+                m_spi.frequency();
+                _ptr = this;
+            }
+
+            void EVE_cs_set()
+            {
+                EVE_HAL::instance()->_cs_set();
+            }
+
+            void EVE_cs_clear()
+            {
+                EVE_HAL::instance()->_cs_clear();
+            }
+
+            void spi_transmit(uint8_t data)
+            {
+                EVE_HAL::instance()->_spi_transmit(data);
+            }
+
+            int spi_receive(uint8_t data)
+            {
+                return EVE_HAL::instance()->_spi_receive(data);
+            }
+
+            uint8_t fetch_flash_byte(const uint8_t *data)
+            {
+                return *data;
+            }
+
+            void EVE_pdn_set()
+            {
+                return EVE_HAL::instance()->_pdn_set();
+            }
+
+            void EVE_pdn_clear()
+            {
+                return EVE_HAL::instance()->_pdn_clear();
+            }
+
+            void spi_transmit_async(uint8_t data)
+            {
+#if defined (EVE_DMA)
+                //TODO: Implement DMA
+#else
+    EVE_HAL::instance()->_spi_transmit(data);
+#endif
+            }
+
 #endif

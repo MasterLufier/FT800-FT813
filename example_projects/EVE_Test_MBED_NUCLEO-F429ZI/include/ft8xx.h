@@ -3,26 +3,16 @@
 
 #include <EVE_commands.h>
 
+extern Serial pc;
+
 class FT8xx
 {
 public:
-    FT8xx(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt) :
-          m_spi(mosi, miso, sclk),
-          m_ssel(ssel),
-          m_pd(pd),
-          m_interrupt(interrupt)
-    {
-        EVE_cmdWrite(1,0);
-    }
-    void _cs_set()
-    {
-        m_ssel = 1;
-    }
+    FT8xx(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt);
+    ~FT8xx();
 private:
-    SPI m_spi;
-    DigitalOut m_ssel;
-    DigitalOut m_pd;
-    DigitalIn m_interrupt;
+    EVE_HAL * m_hal;
+    uint8_t tft_active = 0;
 };
 
 #endif // FT8XX_H
