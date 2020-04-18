@@ -267,7 +267,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
                 m_spi.frequency(frequency);
             }
 
-            EVE_HAL::EVE_HAL() : EVE_HAL(SPI_MOSI, SPI_MISO, SPI_SCK, SPI_CS, EVE_PD, EVE_INTRPT){}
+            EVE_HAL::EVE_HAL() : EVE_HAL(EVE_SPI_MOSI, EVE_SPI_MISO, EVE_SPI_CLK, EVE_SPI_SSEL, EVE_PD, EVE_INTRPT){}
 
             EVE_HAL::EVE_HAL(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt) :
                   m_spi(mosi, miso, sclk),

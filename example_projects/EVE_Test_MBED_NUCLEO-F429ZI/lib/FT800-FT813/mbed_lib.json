@@ -1,0 +1,41 @@
+{
+    "name": "FT800-FT813",
+    "config": {
+        "spi_mosi": {
+            "help": "SPI MOSI pin for EVE Driver",
+            "macro_name": "EVE_SPI_MOSI",
+            "value": "PF_9",
+            "required": true
+        },
+        "spi_miso": {
+            "help": "SPI MISO pin for EVE Driver",
+            "macro_name": "EVE_SPI_MISO",
+            "value": "PF_8",
+            "required": true
+        },
+        "spi_clk": {
+            "help": "SPI clock pin for EVE Driver",
+            "macro_name": "EVE_SPI_CLK",
+            "value": "PF_7",
+            "required": true
+        },
+        "spi_ssel": {
+            "help": "SPI device select Input pin for EVE Driver",
+            "macro_name": "EVE_SPI_SSEL",
+            "value": "PF_12",
+            "required": true
+        },
+        "powerdown_pin": {
+            "help": "PowerDown pin for EVE Driver",
+            "macro_name": "EVE_PD",
+            "value": "PB_2",
+            "required": true
+        },
+        "interrupt_in": {
+            "help": "Interrupt Input pin for EVE Driver",
+            "macro_name": "EVE_INTRPT",
+            "value": "PD_15",
+            "required": true
+        }
+    }
+}

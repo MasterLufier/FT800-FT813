@@ -929,7 +929,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
         void setSPIfrequency(SPIFrequency frequency);
     private:
         EVE_HAL();
-        EVE_HAL(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt);
+        EVE_HAL(PinName mosi = EVE_SPI_MOSI, PinName miso = EVE_SPI_MISO, PinName sclk = EVE_SPI_CLK, PinName ssel = EVE_SPI_SSEL, PinName pd = EVE_PD, PinName interrupt = EVE_INTRPT);
 
         EVE_HAL(const EVE_HAL & other) = delete;
         EVE_HAL(EVE_HAL&& other) = delete;
