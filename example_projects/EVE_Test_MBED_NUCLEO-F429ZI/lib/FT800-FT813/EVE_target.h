@@ -1,15 +1,17 @@
 /*
 @file    EVE_target.h
 @brief   target specific includes, definitions and functions
-@version 4.0
-@date    2020-04-15
+@version 4.1
+@date    2020-04-19
 @author  Rudolph Riedel
+@author  Mikhail Ivanov
 
 @section LICENSE
 
 MIT License
 
 Copyright (c) 2016-2020 Rudolph Riedel
+Copyright (c) 2020 Mikhail Ivanov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute,
@@ -49,6 +51,8 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 - forgot to add the "#include <Arduino.h>" line I found to be necessary for ESP32/Arduino
 - started to implement DMA support for STM32
 
+4.1
+    - added initial MBED  support
 */
 
 #ifndef EVE_TARGET_H_
@@ -888,6 +892,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
     /*----------------------------------------------------------------------------------------------------------------*/
     /*----------------------------------------------------------------------------------------------------------------*/
 #endif  /* __MBED__*/
+
 #if defined (__MBED__)
 #include <mbed.h>
     //Use thread waiting or not

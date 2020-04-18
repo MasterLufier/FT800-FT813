@@ -1,9 +1,10 @@
 /*
-@file    EVE_commands.c
+@file    EVE_commands.cpp
 @brief   contains FT8xx / BT8xx functions
-@version 4.0
-@date    2020-04-13
+@version 4.1
+@date    2020-04-19
 @author  Rudolph Riedel
+@author  Mikhail Ivanov
 
 @section info
 
@@ -17,6 +18,7 @@ The c-standard is C99.
 MIT License
 
 Copyright (c) 2016-2020 Rudolph Riedel
+Copyright (c) 2020 Mikhail Ivanov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute,
@@ -191,6 +193,8 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 - added function EVE_color_rgb()
 - added a fixed 40ms delay in EVE_init() between ACTIVE and the first reading of 0x7c as a compromise to comply with AN033 V1.2
 
+4.1
+    - added initial MBED  support
 */
 
 #include "EVE.h"

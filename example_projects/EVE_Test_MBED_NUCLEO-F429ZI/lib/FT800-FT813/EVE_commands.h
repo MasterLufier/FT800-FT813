@@ -1,15 +1,17 @@
 /*
 @file    EVE_commands.h
 @brief   contains FT8xx / BT8xx function prototypes
-@version 4.0
-@date    2020-04-13
+@version 4.1
+@date    2020-04-19
 @author  Rudolph Riedel
+@author  Mikhail Ivanov
 
 @section LICENSE
 
 MIT License
 
 Copyright (c) 2016-2020 Rudolph Riedel
+Copyright (c) 2020 Mikhail Ivanov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
 to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute,
@@ -97,6 +99,8 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 - added function EVE_color_rgb()
 - marked EVE_get_touch_tag() as deprecated
 
+4.1
+    - added initial MBED  support
 */
 
 #include "EVE.h"
