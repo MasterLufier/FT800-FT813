@@ -43,7 +43,6 @@ public:
     FT8xx(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt);
     ~FT8xx();
 private:
-    void loadTestGraphic();
     EVE_HAL * m_hal;
     uint8_t tft_active = 0;
 };
