@@ -251,6 +251,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 #endif
 #if defined (__MBED__)
 #include <EVE_target.h>
+
             EVE_HAL * EVE_HAL::_ptr = nullptr;
             EVE_HAL *EVE_HAL::instance()
             {
@@ -259,10 +260,10 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
                 return _ptr;
             }
 
-            EVE_HAL *EVE_HAL::instance(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt)
+            EVE_HAL *EVE_HAL::instance(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd)
             {
                 if(!_ptr)
-                    _ptr = new EVE_HAL(mosi, miso, sclk, ssel, pd, interrupt);
+                    _ptr = new EVE_HAL(mosi, miso, sclk, ssel, pd);
                 return _ptr;
             }
 
@@ -271,13 +272,21 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
                 m_spi.frequency(frequency);
             }
 
-            EVE_HAL::EVE_HAL() : EVE_HAL(EVE_SPI_MOSI, EVE_SPI_MISO, EVE_SPI_CLK, EVE_SPI_SSEL, EVE_PD, EVE_INTRPT){}
+            EVE_HAL::EVE_HAL() :
+                  EVE_HAL(EVE_SPI_MOSI,
+                          EVE_SPI_MISO,
+                          EVE_SPI_CLK,
+                          EVE_SPI_SSEL,
+                          EVE_PD){}
 
-            EVE_HAL::EVE_HAL(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt) :
+            EVE_HAL::EVE_HAL(PinName mosi,
+                             PinName miso,
+                             PinName sclk,
+                             PinName ssel,
+                             PinName pd) :
                   m_spi(mosi, miso, sclk),
                   m_ssel(ssel),
-                  m_pd(pd),
-                  m_interrupt(interrupt)
+                  m_pd(pd)
             {
                 _pdn_set();
                 _cs_set();
@@ -287,6 +296,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
                 _ptr = this;
             }
 
+            //********************************************************************
             void EVE_cs_set()
             {
                 EVE_HAL::instance()->_cs_set();

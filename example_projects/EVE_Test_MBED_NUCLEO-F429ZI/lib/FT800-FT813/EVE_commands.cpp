@@ -1267,6 +1267,14 @@ uint8_t EVE_init(void)
 }
 
 
+void EVE_init_interrupt(uint8_t interrruptMask)
+{
+    //Enable interrupts
+    EVE_memWrite8(REG_INT_EN, 0x1);
+    EVE_memWrite8(REG_INT_MASK, interrruptMask);
+}
+
+
 /*
 These eliminate the overhead of transmitting the command-fifo address with every single command, just wrap a sequence of commands
 with these and the address is only transmitted once at the start of the block.
@@ -3879,3 +3887,4 @@ void EVE_calibrate_manual(uint16_t height)
     EVE_memWrite32(REG_TOUCH_TRANSFORM_E, TransMatrix[4]);
     EVE_memWrite32(REG_TOUCH_TRANSFORM_F, TransMatrix[5]);
 }
+

@@ -102,6 +102,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 #endif
 
 #define EVE_RiTFT43
+//#define EVE_HAS_GT911
 
 
 /* display timing parameters below */

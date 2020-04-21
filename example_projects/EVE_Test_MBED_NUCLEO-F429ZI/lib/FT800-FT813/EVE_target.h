@@ -927,14 +927,23 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
         inline void _pdn_clear(){m_pd.write(1);}
 
         static EVE_HAL * instance();
-        static EVE_HAL * instance(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd, PinName interrupt);
+        static EVE_HAL * instance(PinName mosi,
+                                 PinName miso,
+                                 PinName sclk,
+                                 PinName ssel,
+                                 PinName pd);
 
         ~EVE_HAL(){_ptr = nullptr;}
 
-        void setSPIfrequency(SPIFrequency frequency);
+        void setSPIfrequency(SPIFrequency frequency) ;
+
     private:
         EVE_HAL();
-        EVE_HAL(PinName mosi = EVE_SPI_MOSI, PinName miso = EVE_SPI_MISO, PinName sclk = EVE_SPI_CLK, PinName ssel = EVE_SPI_SSEL, PinName pd = EVE_PD, PinName interrupt = EVE_INTRPT);
+        EVE_HAL(PinName mosi = EVE_SPI_MOSI,
+                PinName miso = EVE_SPI_MISO,
+                PinName sclk = EVE_SPI_CLK,
+                PinName ssel = EVE_SPI_SSEL,
+                PinName pd = EVE_PD);
 
         EVE_HAL(const EVE_HAL & other) = delete;
         EVE_HAL(EVE_HAL&& other) = delete;
@@ -942,7 +951,6 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
         SPI m_spi;
         DigitalOut m_ssel;
         DigitalOut m_pd;
-        DigitalIn m_interrupt;
         static EVE_HAL * _ptr;
     };
 

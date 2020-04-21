@@ -257,5 +257,6 @@ void EVE_calibrate_manual(uint16_t height);
 
 /* startup FT8xx: */
 uint8_t EVE_init(void);
+void EVE_init_interrupt(uint8_t interrruptMask);
 
 #endif /* EVE_COMMANDS_H_ */
