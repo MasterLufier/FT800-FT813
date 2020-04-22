@@ -1,13 +1,14 @@
 #include <mbed.h>
-#include <ft8xx.h>
+#include <ftgui.h>
 
 Serial pc(USBTX, USBRX);
 
-extern void loadTestDL()
+void loadTestDL()
 {
+    EVE_start_cmd_burst();
     EVE_cmd_dl(CMD_DLSTART);
     EVE_cmd_dl(CLEAR(1, 1, 1));
-    EVE_cmd_dl(TAG(0));
+    EVE_cmd_dl(TAG(11));
     EVE_cmd_dl(BEGIN(EVE_BITMAPS)); // start drawing bitmaps
     EVE_cmd_dl(VERTEX2II(220, 110, 31, 'T')); // ascii T in font 31
     EVE_cmd_dl(VERTEX2II(244, 110, 31, 'E')); // ascii E
@@ -16,7 +17,7 @@ extern void loadTestDL()
     EVE_cmd_dl(END());
 
     EVE_cmd_dl(TAG(10));
-    EVE_cmd_dl(COLOR_RGB(160, 22, 22)); // change colour to red
+    EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255))); // change colour to red
     EVE_cmd_dl(POINT_SIZE(320)); // set point size to 20 pixels in radius
     EVE_cmd_dl(BEGIN(EVE_POINTS)); // start drawing points
     EVE_cmd_dl(VERTEX2II(192, 133, 0, 0)); // red point
@@ -26,9 +27,9 @@ extern void loadTestDL()
 
     EVE_cmd_dl(DL_DISPLAY);
     EVE_cmd_dl(CMD_SWAP);
+    EVE_end_cmd_burst();
     EVE_cmd_execute();
 }
-DigitalOut green(LED1);
 
 int main()
 {
@@ -45,42 +46,51 @@ int main()
     //    pc.printf("TOUCH_TRANSFORM_D: %#08x \n", tcResult.touch_d);
     //    pc.printf("TOUCH_TRANSFORM_E: %#08x \n", tcResult.touch_e);
     //    pc.printf("TOUCH_TRANSFORM_F: %#08x \n", tcResult.touch_f);
-    //** load test display list
-    loadTestDL();
-    //
-    m_screen.setBacklight(0);
+    //Set backlight
+    m_screen.setBacklight(100);
 
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
     //**Uncomment any required callbacks
-    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_SWAP: %04x \n", f);}, EVE_INT_SWAP);
-    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_TOUCH: %04x \n", f);}, EVE_INT_TOUCH);
-    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_TAG: %04x \n", f);}, EVE_INT_TAG);
-    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_CONVCOMPLETE: %04x \n", f);}, EVE_INT_CONVCOMPLETE);
-    m_screen.attachToTag([&](uint8_t f){pc.printf("TAG_NUMBER: %04x \n", f);});
+//    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_SWAP: %04x \n", f);}, EVE_INT_SWAP);
+//    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_TOUCH: %04x \n", f);}, EVE_INT_TOUCH);
+//    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_TAG: %04x \n", f);}, EVE_INT_TAG);
+//    m_screen.attach([&](uint8_t f){pc.printf("EVE_INT_CONVCOMPLETE: %04x \n", f);}, EVE_INT_CONVCOMPLETE);
+    //Attach one callback to all Touch_tag events
+//    m_screen.attachToTags([&](uint8_t f){pc.printf("TAG_NUMBER: %04x \n", f);});
+    //Attach callback to specific tag
+    m_screen.attachToTag([&](uint8_t tag){pc.printf("TAG_NUMBER 10: %u \n", tag);}, 10);
+     m_screen.attachToTag([&](uint8_t tag){pc.printf("TAG_NUMBER 11: %u \n", tag);}, 11);
+    //**************
 
 #endif
     while (1) {
-        //Linear
-        m_screen.backlightFade(0, 128, 2000);
+        loadTestDL();
         ThisThread::sleep_for(1000);
-        m_screen.backlightFade(128, 0, 2000);
-        ThisThread::sleep_for(1000);
-        //Quad
-        m_screen.backlightFade(0, 128, 2000, FT8xx::Quad);
-        ThisThread::sleep_for(1000);
-        m_screen.backlightFade(128, 0, 2000, FT8xx::Quad);
-        ThisThread::sleep_for(1000);
-        //Cubic
-        m_screen.backlightFade(0, 128, 2000, FT8xx::Cubic);
-        ThisThread::sleep_for(1000);
-        m_screen.backlightFade(128, 0, 2000, FT8xx::Cubic);
-        ThisThread::sleep_for(1000);
-        //Quart
-        m_screen.backlightFade(0, 128, 2000, FT8xx::Quart);
-        ThisThread::sleep_for(1000);
-        m_screen.backlightFade(128, 0, 2000, FT8xx::Quart);
-        ThisThread::sleep_for(1000);
-        green = !green;
+        //**Example Backlight fade conrol
+        //        //Linear
+        //        m_screen.backlightFade(0, 128, 500);
+        //        ThisThread::sleep_for(1000);
+        //        m_screen.backlightFade(128, 0, 500);
+        //        ThisThread::sleep_for(1000);
+        //        loadTestDL();
+        //        //Quad
+        //        m_screen.backlightFade(0, 128, 500, FT8xx::Quad);
+        //        ThisThread::sleep_for(1000);
+        //        m_screen.backlightFade(128, 0, 500, FT8xx::Quad);
+        //        ThisThread::sleep_for(1000);
+        //        loadTestDL();
+        //        //Cubic
+        //        m_screen.backlightFade(0, 128, 500, FT8xx::Cubic);
+        //        ThisThread::sleep_for(1000);
+        //        m_screen.backlightFade(128, 0, 500, FT8xx::Cubic);
+        //        ThisThread::sleep_for(1000);
+        //        loadTestDL();
+        //        //Quart
+        //        m_screen.backlightFade(0, 128, 500, FT8xx::Quart);
+        //        ThisThread::sleep_for(1000);
+        //        m_screen.backlightFade(128, 0, 500, FT8xx::Quart);
+        //        ThisThread::sleep_for(1000);
+        //*********
     }
     return 0;
 }

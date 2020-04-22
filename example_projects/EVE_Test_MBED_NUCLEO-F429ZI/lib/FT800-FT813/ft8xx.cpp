@@ -277,7 +277,7 @@ void FT8xx::setBacklight(uint8_t value)
 //*********************************************************************************
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
 
-void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType fadeType, uint8_t delay)
+    void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType fadeType, uint8_t delay)
 {
     //Check if fade is not started now
     if(m_fadeBlock == true)
@@ -321,26 +321,35 @@ void FT8xx::interruptFound()
         {
             m_tagNumberCallback(EVE_memRead8(REG_TOUCH_TAG));
         }
+        if(m_tagCallbacksPool.size() != 0)
+        {
+            uint8_t tag = EVE_memRead8(REG_TOUCH_TAG);
+            for(const auto & f : m_tagCallbacksPool)
+            {
+                if(f.tagNumber == tag)
+                    f.callback(tag);
+            }
+        }
     }
 
     if((flag & EVE_INT_SOUND) != 0)
     {
-        pc.printf("EVE_INT_SOUND: %04x \n", flag);
+//        pc.printf("EVE_INT_SOUND: %04x \n", flag);
     }
 
     if((flag & EVE_INT_PLAYBACK) != 0)
     {
-        pc.printf("EVE_INT_PLAYBACK: %04x \n", flag);
+//        pc.printf("EVE_INT_PLAYBACK: %04x \n", flag);
     }
 
     if((flag & EVE_INT_CMDEMPTY) != 0)
     {
-        pc.printf("EVE_INT_CMDEMPTY: %04x \n", flag);
+//        pc.printf("EVE_INT_CMDEMPTY: %04x \n", flag);
     }
 
     if((flag & EVE_INT_CMDFLAG) != 0)
     {
-        pc.printf("EVE_INT_CMDFLAG: %04x \n", flag);
+//        pc.printf("EVE_INT_CMDFLAG: %04x \n", flag);
     }
 
     if((flag & EVE_INT_CONVCOMPLETE) != 0
@@ -370,16 +379,16 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
         m_touchTagCallback = f;
         break;
     case EVE_INT_SOUND:
-        pc.printf("%04x \n", flag);
+//        pc.printf("%04x \n", flag);
         break;
     case EVE_INT_PLAYBACK:
-        pc.printf("%04x \n", flag);
+//        pc.printf("%04x \n", flag);
         break;
     case EVE_INT_CMDEMPTY:
-        pc.printf("%04x \n", flag);
+//        pc.printf("%04x \n", flag);
         break;
     case EVE_INT_CMDFLAG:
-        pc.printf("%04x \n", flag);
+//        pc.printf("%04x \n", flag);
         break;
     case EVE_INT_CONVCOMPLETE:
         m_touchConvCompCallback = f;
@@ -393,7 +402,7 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
     EVE_memWrite8(REG_INT_EN, 0x1);
 }
 
-void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f)
+void FT8xx::attachToTags(mbed::Callback<void(uint8_t)> f)
 {
     uint8_t interruptMask{0};
     if(EVE_memRead8(REG_INT_EN) == 0x1)
@@ -406,6 +415,29 @@ void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f)
     EVE_memWrite8(REG_INT_MASK, interruptMask);
     //enable interrupts
     EVE_memWrite8(REG_INT_EN, 0x1);
+}
+
+void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag)
+{
+    //First calling needed to enable TAG interrupt
+    if(EVE_memRead8(REG_INT_EN) == 0x0)
+    {
+        uint8_t interruptMask = EVE_memRead8(REG_INT_MASK);
+        interruptMask |= EVE_INT_TAG;
+        //set interrupts mask
+        EVE_memWrite8(REG_INT_MASK, interruptMask);
+        //enable interrupts
+        EVE_memWrite8(REG_INT_EN, 0x1);
+    }
+    for(auto & c : m_tagCallbacksPool)
+    {
+        if(c.tagNumber == tag)
+        {
+            c.callback = f;
+            return;
+        }
+    }
+    m_tagCallbacksPool.push_back(TagCallback{tag, f});
 }
 
 void FT8xx::p_backlightFade(BacklightFade bf)
@@ -439,7 +471,7 @@ void FT8xx::p_backlightFade(BacklightFade bf)
         setBacklight(bf.value);
         bf.cycCount += bf.freq;
         m_queue->call_in(bf.freq, this, &FT8xx::p_backlightFade, bf);
-//        printf("%u \n", bf.value);
+        //        printf("%u \n", bf.value);
     }
     else
     {

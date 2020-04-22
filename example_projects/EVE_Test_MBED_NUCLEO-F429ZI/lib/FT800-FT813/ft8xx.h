@@ -34,9 +34,10 @@
 #define FT8XX_H
 
 #include <EVE_commands.h>
-#include <type_traits>
+#include <vector>
+#include <algorithm>
 
-        extern Serial pc;
+extern Serial pc;
 
 class FT8xx : private NonCopyable<FT8xx>
 {
@@ -115,13 +116,25 @@ public:
     inline void attachTouchConversionsCallback(mbed::Callback<void(uint8_t)> f){attach(f, EVE_INT_CONVCOMPLETE);}
 
     /*!
-     * \brief attachToTag. attachet callback to specific tag and pass tag number as parameter
-     * \param f - callback function attached to specific tag (1-254)
+     * \brief attachToTag. attachet callback to all tag. Passing tag number as parameter
+     * \param f - callback function attached to all tags (1-254)
      */
-    void attachToTag(mbed::Callback<void(uint8_t)> f);
+    void attachToTags(mbed::Callback<void(uint8_t)> f);
+
+    void attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag);
+    void deattachFromTag(uint8_t tag)
+    {
+        m_tagCallbacksPool.erase(
+            std::remove_if(m_tagCallbacksPool.begin(),
+                           m_tagCallbacksPool.end(),
+                           [&](const TagCallback & c) {
+                return c.tagNumber == tag;
+            }),
+            m_tagCallbacksPool.end());
+    }
 
 #endif
-//********************************************************************************
+    //********************************************************************************
 
 private:
     EVE_HAL * m_hal;
@@ -139,6 +152,12 @@ private:
         FadeType fadeType;
     };
 
+    struct TagCallback
+    {
+        uint8_t tagNumber;
+        mbed::Callback<void(uint8_t)> callback{nullptr};
+    };
+
     void p_backlightFade(BacklightFade bf);
 
     bool m_fadeBlock{false};
@@ -152,6 +171,7 @@ private:
     mbed::Callback<void(uint8_t)> m_touchConvCompCallback{nullptr};
 
     mbed::Callback<void(uint8_t)> m_tagNumberCallback{nullptr};
+    std::vector<TagCallback> m_tagCallbacksPool;
 #endif
 };
 
