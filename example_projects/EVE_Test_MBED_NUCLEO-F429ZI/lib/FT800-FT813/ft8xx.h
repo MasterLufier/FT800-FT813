@@ -47,6 +47,14 @@ public:
         uint32_t touch_a{}, touch_b{}, touch_c{}, touch_d{}, touch_e{}, touch_f{};
     };
 
+    enum FadeType : uint8_t
+        {
+            Linear,
+            Quad,
+            Cubic,
+            Quart
+        };
+
     FT8xx(PinName mosi,
           PinName miso,
           PinName sclk,
@@ -75,7 +83,24 @@ public:
      */
     const FT8xx::TouchCalibrationResult &touchCalibrate(bool factory = true);
 
+    /*!
+     * \brief setBacklight - set the backlight PWM duty cycle
+     * \param value - value from 0(off) to 128(full)
+     */
+    void setBacklight(uint8_t value);
+//*************************************************************************************
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
+
+    /*!
+     * \brief backlightFade - change screen backlight PWM duty cycle with specific time and easing
+     * \param from - start value. Must be <= 128
+     * \param to - end value. Must be <= 128
+     * \param duration - total time in ms
+     * \param fadeType - type of easing
+     * \param delay - delay between every steps in ms. Decrease this value for smooth or increace for performance
+     */
+    void backlightFade(uint8_t from, uint8_t to, uint32_t duration = 1000, FadeType fadeType = Linear, uint8_t delay = 10);
+
     /*!
      * \brief attach one callback to any number of interrupt flags
      * \param f - callback function void(uint8_t flag) f;
@@ -96,12 +121,27 @@ public:
     void attachToTag(mbed::Callback<void(uint8_t)> f);
 
 #endif
+//********************************************************************************
 
 private:
     EVE_HAL * m_hal;
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
     void interruptFound();
 
+    struct BacklightFade
+    {
+        float cycCount;
+        int32_t duration;
+        int16_t range;
+        uint8_t start;
+        uint8_t value;
+        uint8_t freq;
+        FadeType fadeType;
+    };
+
+    void p_backlightFade(BacklightFade bf);
+
+    bool m_fadeBlock{false};
     InterruptIn m_interrupt;
     Thread * m_eventThread{nullptr};
     EventQueue * m_queue{nullptr};

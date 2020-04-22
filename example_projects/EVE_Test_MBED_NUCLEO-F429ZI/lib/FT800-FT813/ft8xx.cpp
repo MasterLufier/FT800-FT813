@@ -66,7 +66,7 @@
     }
     else
     {
-        m_queue = new EventQueue(5*EVENTS_EVENT_SIZE);
+        m_queue = new EventQueue(6*EVENTS_EVENT_SIZE);
         m_eventThread->start(callback(m_queue, &EventQueue::dispatch_forever));
     }
     m_interrupt.fall(m_queue->event(callback(this, &FT8xx::interruptFound)));
@@ -266,7 +266,36 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
     }
 }
 
+void FT8xx::setBacklight(uint8_t value)
+{
+#if defined (EVE_ADAM101)
+    EVE_memWrite8(REG_PWM_DUTY, 0x80-value);
+#else
+    EVE_memWrite8(REG_PWM_DUTY, value);
+#endif
+}
+//*********************************************************************************
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
+
+void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType fadeType, uint8_t delay)
+{
+    //Check if fade is not started now
+    if(m_fadeBlock == true)
+        return;
+    //block calling fade when already started
+    m_fadeBlock = true;
+
+        BacklightFade bf {0,
+                         static_cast<int32_t>(duration),
+                         static_cast<int16_t>(to-from),
+                         from,
+                         from,
+                         delay,
+                         fadeType,
+                         };
+    p_backlightFade(bf);
+}
+
 void FT8xx::interruptFound()
 {
     uint8_t flag = EVE_memRead8(REG_INT_FLAGS);
@@ -378,4 +407,44 @@ void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f)
     //enable interrupts
     EVE_memWrite8(REG_INT_EN, 0x1);
 }
+
+void FT8xx::p_backlightFade(BacklightFade bf)
+{
+    if(bf.cycCount <= bf.duration)
+    {
+        switch (bf.fadeType)
+        {
+        case Linear:
+            bf.value = static_cast<uint8_t>((bf.range*bf.cycCount)/bf.duration + bf.start);
+            break;
+        case Quad:
+        {
+            float t = bf.cycCount/bf.duration;
+            bf.value = static_cast<uint8_t>(bf.range*t*t + bf.start);
+            break;
+        }
+        case Cubic:
+        {
+            float t = bf.cycCount/bf.duration;
+            bf.value = static_cast<uint8_t>(bf.range*t*t*t + bf.start);
+            break;
+        }
+        case Quart:
+        {
+            float t = bf.cycCount/bf.duration;
+            bf.value = static_cast<uint8_t>(bf.range*t*t*t*t + bf.start);
+            break;
+        }
+        }
+        setBacklight(bf.value);
+        bf.cycCount += bf.freq;
+        m_queue->call_in(bf.freq, this, &FT8xx::p_backlightFade, bf);
+//        printf("%u \n", bf.value);
+    }
+    else
+    {
+        m_fadeBlock = false;
+    }
+}
 #endif
+//*********************************************************************************

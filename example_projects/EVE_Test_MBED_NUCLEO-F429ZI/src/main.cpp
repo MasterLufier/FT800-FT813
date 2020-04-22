@@ -39,14 +39,16 @@ int main()
     FT8xx::TouchCalibrationResult tcResult = m_screen.touchCalibrate(true);
     //** or uncomment next block to start calibrate touchscreen and get calibrate values
     //    FT8xx::TouchCalibrationResult tcResult = m_screen.touchCalibrate(false);
-    pc.printf("TOUCH_TRANSFORM_A: %#010x \n", tcResult.touch_a);
-    pc.printf("TOUCH_TRANSFORM_B: %#010x \n", tcResult.touch_b);
-    pc.printf("TOUCH_TRANSFORM_C: %#010x \n", tcResult.touch_c);
-    pc.printf("TOUCH_TRANSFORM_D: %#010x \n", tcResult.touch_d);
-    pc.printf("TOUCH_TRANSFORM_E: %#010x \n", tcResult.touch_e);
-    pc.printf("TOUCH_TRANSFORM_F: %#010x \n", tcResult.touch_f);
+    //    pc.printf("TOUCH_TRANSFORM_A: %#08x \n", tcResult.touch_a);
+    //    pc.printf("TOUCH_TRANSFORM_B: %#08x \n", tcResult.touch_b);
+    //    pc.printf("TOUCH_TRANSFORM_C: %#08x \n", tcResult.touch_c);
+    //    pc.printf("TOUCH_TRANSFORM_D: %#08x \n", tcResult.touch_d);
+    //    pc.printf("TOUCH_TRANSFORM_E: %#08x \n", tcResult.touch_e);
+    //    pc.printf("TOUCH_TRANSFORM_F: %#08x \n", tcResult.touch_f);
     //** load test display list
     loadTestDL();
+    //
+    m_screen.setBacklight(0);
 
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
     //**Uncomment any required callbacks
@@ -58,6 +60,25 @@ int main()
 
 #endif
     while (1) {
+        //Linear
+        m_screen.backlightFade(0, 128, 2000);
+        ThisThread::sleep_for(1000);
+        m_screen.backlightFade(128, 0, 2000);
+        ThisThread::sleep_for(1000);
+        //Quad
+        m_screen.backlightFade(0, 128, 2000, FT8xx::Quad);
+        ThisThread::sleep_for(1000);
+        m_screen.backlightFade(128, 0, 2000, FT8xx::Quad);
+        ThisThread::sleep_for(1000);
+        //Cubic
+        m_screen.backlightFade(0, 128, 2000, FT8xx::Cubic);
+        ThisThread::sleep_for(1000);
+        m_screen.backlightFade(128, 0, 2000, FT8xx::Cubic);
+        ThisThread::sleep_for(1000);
+        //Quart
+        m_screen.backlightFade(0, 128, 2000, FT8xx::Quart);
+        ThisThread::sleep_for(1000);
+        m_screen.backlightFade(128, 0, 2000, FT8xx::Quart);
         ThisThread::sleep_for(1000);
         green = !green;
     }
