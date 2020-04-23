@@ -1,7 +1,9 @@
 #include <mbed.h>
-#include <ftgui.h>
+#include <ft8xx.h>
 
 Serial pc(USBTX, USBRX);
+#include <stdio.h>
+#include <iostream>
 
 void loadTestDL()
 {
