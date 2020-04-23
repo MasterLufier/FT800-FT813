@@ -1,5 +1,5 @@
 /*
- * @file ftgui.h
+ * @file widget.cpp
  * is part of FTGUI Project
  *
  * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
@@ -22,11 +22,67 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
+#include "widget.h"
 
-#include <ft8xx.h>
-#include <colors.h>
-#include <applicationwindow.h>
+namespace FTGUI
+{
 
-#endif // FTGUI_H
+Widget::Widget(Widget *parent) : m_parent(parent)
+{
+    if(parent)
+    {
+        m_theme = m_parent->m_theme;
+        m_orientation = parent->m_orientation;
+        m_driver = parent->m_driver;
+    }
+}
+
+void Widget::addWidget(Widget *widget)
+{
+    widget->m_parent = this;
+    m_container.emplace(widget->m_name, widget);
+}
+
+const Widget *Widget::getWidget(string name) const
+{
+    auto it = m_container.find(name);
+    return it->second;
+}
+
+void Widget::removeWidget(string name)
+{
+    auto it = m_container.find(name);
+    if(it != m_container.end())
+    {
+        it = m_container.erase(it);
+        delete it->second;
+    }
+}
+
+Widget::~Widget()
+{
+    for(auto & w : m_container)
+        delete w.second;
+}
+
+void Widget::show()
+{
+    m_visible = true;
+}
+
+void Widget::hide()
+{
+    m_visible = false;
+}
+
+bool Widget::visible() const
+{
+    return m_visible;
+}
+
+void Widget::render()
+{
+
+}
+
+}

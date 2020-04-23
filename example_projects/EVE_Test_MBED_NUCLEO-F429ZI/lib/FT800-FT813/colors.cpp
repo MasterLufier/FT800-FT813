@@ -1,5 +1,5 @@
 /*
- * @file ftgui.h
+ * @file pallet.cpp
  * is part of FTGUI Project
  *
  * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
@@ -22,11 +22,6 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
+#include "colors.h"
 
-#include <ft8xx.h>
-#include <colors.h>
-#include <applicationwindow.h>
 
-#endif // FTGUI_H

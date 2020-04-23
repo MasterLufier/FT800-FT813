@@ -55,6 +55,7 @@ public:
             Cubic,
             Quart
         };
+//    FT8xx();
 
     FT8xx(PinName mosi,
           PinName miso,

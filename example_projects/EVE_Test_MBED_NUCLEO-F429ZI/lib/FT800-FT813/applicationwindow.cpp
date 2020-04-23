@@ -1,5 +1,5 @@
 /*
- * @file ftgui.h
+ * @file applicationwindow.cpp
  * is part of FTGUI Project
  *
  * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
@@ -22,11 +22,47 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
+#include "applicationwindow.h"
 
-#include <ft8xx.h>
-#include <colors.h>
-#include <applicationwindow.h>
+namespace FTGUI {
+ApplicationWindow::ApplicationWindow(FT8xx * driver,
+                                     ScreenOrientation screenOrientation,
+                                     Theme * theme) :
+      Widget(nullptr)
+{
+    if(driver)
+        m_driver = driver;
+    else
+        m_driver = new FT8xx(EVE_SPI_MOSI, EVE_SPI_MISO, EVE_SPI_CLK, EVE_SPI_SSEL, EVE_PD, EVE_INTRPT);
+    m_orientation = screenOrientation;
+    if(theme)
+        m_theme = theme;
+    else
+        m_theme = new Theme();
 
-#endif // FTGUI_H
+    //Initialize Touchscreen
+    m_driver->touchCalibrate();
+    m_driver->backlightFade(0,128);
+}
+
+ApplicationWindow::~ApplicationWindow()
+{
+    delete m_theme;
+    delete m_driver;
+}
+
+void ApplicationWindow::show()
+{
+    Widget::show();
+}
+
+void ApplicationWindow::hide()
+{
+    Widget::hide();
+}
+
+void ApplicationWindow::render()
+{
+    Widget::render();
+}
+}

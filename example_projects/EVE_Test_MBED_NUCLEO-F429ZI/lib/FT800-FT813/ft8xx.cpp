@@ -32,6 +32,11 @@
 #include "ft8xx.h"
 
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
+//FT8xx::FT8xx() :
+//      FT8xx(EVE_SPI_MOSI, EVE_SPI_MISO, EVE_SPI_CLK, EVE_SPI_SSEL, EVE_PD, EVE_INTRPT)
+//{
+
+//}
         /*!
  * \brief FT8xx::FT8xx driver for FTDI FT8xx-BT8xx
  */

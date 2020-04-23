@@ -1,5 +1,5 @@
 /*
- * @file ftgui.h
+ * @file applicationwindow.h
  * is part of FTGUI Project
  *
  * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
@@ -22,11 +22,26 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
+#ifndef APPLICATIONWINDOW_H
+#define APPLICATIONWINDOW_H
 
-#include <ft8xx.h>
-#include <colors.h>
-#include <applicationwindow.h>
+#include <widget.h>
 
-#endif // FTGUI_H
+namespace FTGUI {
+class ApplicationWindow : public Widget, private NonCopyable<ApplicationWindow>
+{
+public:
+    ApplicationWindow(FT8xx * driver = nullptr,
+        ScreenOrientation screenOrientation = Horizontal,
+                      Theme * theme = nullptr);
+    ~ApplicationWindow() override;
+
+    void show() override;
+    void hide() override;
+protected:
+    void render() override;
+
+};
+}
+
+#endif // APPLICATIONWINDOW_H

@@ -1,5 +1,5 @@
 /*
- * @file ftgui.h
+ * @file widget.h
  * is part of FTGUI Project
  *
  * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
@@ -22,11 +22,45 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
+#ifndef WIDGET_H
+#define WIDGET_H
 
+#include <map>
 #include <ft8xx.h>
 #include <colors.h>
-#include <applicationwindow.h>
 
-#endif // FTGUI_H
+namespace FTGUI {
+class Widget
+{
+public:
+    Widget(Widget * parent);
+
+    void addWidget(Widget * widget);
+
+    const Widget * getWidget(string name) const;
+
+    void removeWidget(string name);
+
+    virtual ~Widget();
+
+    virtual void show();
+    virtual void hide();
+    bool visible() const;
+
+protected:
+    virtual void render();
+    string m_name;
+
+    Widget * m_parent;
+    Theme * m_theme;
+    FT8xx * m_driver;
+
+    ScreenOrientation m_orientation{};
+    std::map<string, Widget *> m_container;
+    bool m_visible{false};
+
+    uint16_t x{0}, y{0}, z{0}, width{EVE_HSIZE}, height{EVE_VSIZE};
+};
+}
+
+#endif // WIDGET_H

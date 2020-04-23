@@ -5,10 +5,16 @@ lib/FT800-FT813/EVE_commands.h
 lib/FT800-FT813/EVE_config.h
 lib/FT800-FT813/EVE_target.cpp
 lib/FT800-FT813/EVE_target.h
+lib/FT800-FT813/applicationwindow.cpp
+lib/FT800-FT813/applicationwindow.h
+lib/FT800-FT813/colors.cpp
+lib/FT800-FT813/colors.h
 lib/FT800-FT813/ft8xx.cpp
 lib/FT800-FT813/ft8xx.h
 lib/FT800-FT813/ftgui.h
 lib/FT800-FT813/mbed_lib.json
+lib/FT800-FT813/widget.cpp
+lib/FT800-FT813/widget.h
 lib/README
 mbed_app.json
 platformio.ini
