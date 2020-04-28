@@ -487,6 +487,9 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 #define EVE_RAM_ERR_REPORT      0x309800UL /* max 128 bytes null terminated string */
 #define EVE_RAM_FLASH           0x800000UL
 #define EVE_RAM_FLASH_POSTBLOB  0x801000UL
+#define EVE_RAM_PNG_BUFFER_SIZE 0x0F5800UL /* If the loading image is in PNG format, the top 42K bytes from address 0xF5800 of RAM_G will
+be overwritten as temporary data buffer for decoding process.  */
+#define EVE_RAM_G_SAFETY_SIZE   (EVE_RAM_G_SIZE)-EVE_RAM_PNG_BUFFER_SIZE-1
 
 #define EVE_OPT_FLASH  64UL
 #define EVE_OPT_FORMAT 4096UL
