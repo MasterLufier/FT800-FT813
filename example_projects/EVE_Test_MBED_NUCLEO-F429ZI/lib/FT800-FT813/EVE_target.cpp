@@ -251,7 +251,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 #endif
 #if defined (__MBED__)
 #include <EVE_target.h>
-
+#include <stm32f4xx_ll_gpio.h>
             EVE_HAL * EVE_HAL::_ptr = nullptr;
             EVE_HAL *EVE_HAL::instance()
             {
@@ -269,7 +269,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
             void EVE_HAL::setSPIfrequency(EVE_HAL::SPIFrequency frequency)
             {
-                m_spi.frequency(frequency);
+                m_spi.frequency(static_cast<int>(frequency));
             }
 
             EVE_HAL::EVE_HAL() :
@@ -292,7 +292,11 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
                 _cs_set();
                 ThisThread::sleep_for(100);
                 m_spi.format(8, 0);
-                this->setSPIfrequency(F_20M);
+                this->setSPIfrequency(F_1M);
+                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_9, LL_GPIO_SPEED_FREQ_LOW);
+                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_8, LL_GPIO_SPEED_FREQ_LOW);
+                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_7, LL_GPIO_SPEED_FREQ_LOW);
+                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_12, LL_GPIO_SPEED_FREQ_LOW);
                 _ptr = this;
             }
 

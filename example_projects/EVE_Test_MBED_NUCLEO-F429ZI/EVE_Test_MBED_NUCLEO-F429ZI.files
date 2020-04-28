@@ -12,6 +12,8 @@ lib/FT800-FT813/colors.h
 lib/FT800-FT813/ft8xx.cpp
 lib/FT800-FT813/ft8xx.h
 lib/FT800-FT813/ftgui.h
+lib/FT800-FT813/graphics.cpp
+lib/FT800-FT813/graphics.h
 lib/FT800-FT813/mbed_lib.json
 lib/FT800-FT813/widget.cpp
 lib/FT800-FT813/widget.h

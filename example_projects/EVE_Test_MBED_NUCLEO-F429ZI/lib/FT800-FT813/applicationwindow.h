@@ -26,6 +26,7 @@
 #define APPLICATIONWINDOW_H
 
 #include <widget.h>
+#include <graphics.h>
 
 namespace FTGUI {
 class ApplicationWindow : public Widget, private NonCopyable<ApplicationWindow>
@@ -39,8 +40,6 @@ public:
     void show() override;
     void hide() override;
 protected:
-    void render() override;
-
 };
 }
 

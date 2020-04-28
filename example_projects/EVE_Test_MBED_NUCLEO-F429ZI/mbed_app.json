@@ -2,12 +2,14 @@
     "macros":[],
     "target_overrides": {
         "*": {
+            "platform.stdio-baud-rate": 115200,
+            "platform.stdio-convert-newlines": true,
+            "platform.stdio-buffered-serial": true,
+            "mbed-trace.enable": 1,
             "target.mbed_app_start" : "0x08020000",
             "target.mbed_app_size" :  "0x00100000",
-            "mbed-trace.enable": true,
             "platform.all-stats-enabled": true,
             "platform.memory-tracing-enabled": true
         }
     }
 }
-

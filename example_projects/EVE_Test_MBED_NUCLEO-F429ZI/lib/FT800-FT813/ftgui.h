@@ -26,6 +26,7 @@
 #define FTGUI_H
 
 #include <ft8xx.h>
+#include <widget.h>
 #include <colors.h>
 #include <applicationwindow.h>
 

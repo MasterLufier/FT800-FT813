@@ -28,12 +28,17 @@ namespace FTGUI {
 ApplicationWindow::ApplicationWindow(FT8xx * driver,
                                      ScreenOrientation screenOrientation,
                                      Theme * theme) :
-      Widget(nullptr)
+      Widget("ApplicationWindow")
 {
     if(driver)
         m_driver = driver;
     else
-        m_driver = new FT8xx(EVE_SPI_MOSI, EVE_SPI_MISO, EVE_SPI_CLK, EVE_SPI_SSEL, EVE_PD, EVE_INTRPT);
+        m_driver = new FT8xx(EVE_SPI_MOSI,
+                             EVE_SPI_MISO,
+                             EVE_SPI_CLK,
+                             EVE_SPI_SSEL,
+                             EVE_PD,
+                             EVE_INTRPT);
     m_orientation = screenOrientation;
     if(theme)
         m_theme = theme;
@@ -53,16 +58,34 @@ ApplicationWindow::~ApplicationWindow()
 
 void ApplicationWindow::show()
 {
+    //        EVE_start_cmd_burst();
+    EVE_cmd_dl(CMD_DLSTART);
+    EVE_cmd_dl(DL_CLEAR_RGB | m_theme->background().hex());
+    EVE_cmd_dl(CLEAR(1, 1, 1));
+//    EVE_cmd_dl(CMD_SWAP);
+//    EVE_cmd_execute();
     Widget::show();
+    EVE_cmd_dl(DL_DISPLAY);
+    EVE_cmd_dl(CMD_SWAP);
+    //        EVE_end_cmd_burst();
+    EVE_cmd_execute();
+    //EVE_start_cmd_burst();
+    //    EVE_cmd_dl(CMD_DLSTART);
+    //    EVE_cmd_dl(DL_CLEAR_RGB | m_theme->background().hex());
+    //    EVE_cmd_dl(CLEAR(1, 1, 1));
+    //    EVE_cmd_dl(BEGIN(EVE_POINTS));
+    //    for (int i = 0; i < 165; i++) {
+    //        EVE_cmd_dl(DL_COLOR_RGB | (rand() %0x00ffffff));
+    //        EVE_cmd_dl(COLOR_A(rand() %256));
+    //        EVE_cmd_point(rand() %480, rand()%272, rand() %(50));
+    //    }
+    //    EVE_cmd_dl(DL_DISPLAY);
+    //    EVE_cmd_dl(CMD_SWAP);
+    //    EVE_cmd_execute();
 }
 
 void ApplicationWindow::hide()
 {
     Widget::hide();
-}
-
-void ApplicationWindow::render()
-{
-    Widget::render();
 }
 }

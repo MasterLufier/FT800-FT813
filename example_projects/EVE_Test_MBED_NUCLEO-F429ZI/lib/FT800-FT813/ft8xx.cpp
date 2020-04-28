@@ -31,29 +31,65 @@
             */
 #include "ft8xx.h"
 
-#if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
-//FT8xx::FT8xx() :
-//      FT8xx(EVE_SPI_MOSI, EVE_SPI_MISO, EVE_SPI_CLK, EVE_SPI_SSEL, EVE_PD, EVE_INTRPT)
-//{
+FTRamG::FTRamG(uint32_t size)
+{
+    if (size > EVE_RAM_G_SIZE)
+        error("Allocated size must be less than EVE_RAM_G_SIZE");
+    debug_if(
+        size > EVE_RAM_G_SAFETY_SIZE,
+        "Note: If the loading image is in PNG format, the top 42K bytes from address "
+        "0xF5800 of RAM_G will be overwritten as temporary data buffer for decoding "
+        "process. \n\n");
+    m_start = EVE_RAM_G;
+    m_size = m_start + size;
+}
 
-//}
-        /*!
+FTDisplayList *FTRamG::saveDisplayList(string name)
+{
+    auto *list = new FTDisplayList(name, m_currentPosition, EVE_memRead16(REG_CMD_DL));
+    //Check if DL memory have data to store
+    if (list->m_size == 0)
+    {
+        //Try to execute something from CoPro FIFO to DL when user forgot it
+        EVE_cmd_execute();
+        //Check again
+        if ((list->m_size = EVE_memRead16(REG_CMD_DL)) == 0)
+        {
+            debug("Nothing to store. Exit \n");
+            delete list;
+            return nullptr;
+        }
+    }
+    if (list->m_address + list->m_size > m_size)
+    {
+        error("RmG overflow\n");
+    }
+    EVE_cmd_execute();
+    EVE_cmd_memcpy(list->m_address, EVE_RAM_DL, list->m_size);
+    EVE_memWrite16(REG_CMD_DL, 0);
+    m_currentPosition += list->m_size;
+    return list;
+}
+
+#if (MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+/*!
  * \brief FT8xx::FT8xx driver for FTDI FT8xx-BT8xx
  */
-        FT8xx::FT8xx(PinName mosi,
-                     PinName miso,
-                     PinName sclk,
-                     PinName ssel,
-                     PinName pd,
-                     PinName interrupt,
-                     EVE_HAL::SPIFrequency spiFrequency,
-                     bool sharedEventQueue,
-                     uint32_t threadStackSize,
-                     const char *threadName
-                     )
-    : m_interrupt(interrupt),
-    m_eventThread(new Thread(osPriorityNormal, threadStackSize, nullptr, threadName))
+FT8xx::FT8xx(
+    PinName mosi,
+    PinName miso,
+    PinName sclk,
+    PinName ssel,
+    PinName pd,
+    PinName interrupt,
+    EVE_HAL::SPIFrequency spiFrequency,
+    bool sharedEventQueue,
+    uint32_t threadStackSize,
+    const char *threadName)
+    : m_interrupt(interrupt)
+    , m_eventThread(new Thread(osPriorityNormal, threadStackSize, nullptr, threadName))
 {
+
     m_interrupt.mode(PullUp);
     m_hal = EVE_HAL::instance(mosi, miso, sclk, ssel, pd);
     //Initialize Screen
@@ -90,12 +126,14 @@
               )
 {
     EVE_init();
-    m_hal->setSPIfrequency(EVE_HAL::F_20M);
+    m_hal->setSPIfrequency(spiFrequency);
 }
 #endif
 
 FT8xx::~FT8xx()
 {
+    if (m_ramG)
+        delete m_ramG;
     delete m_hal;
 }
 
@@ -339,22 +377,22 @@ void FT8xx::interruptFound()
 
     if((flag & EVE_INT_SOUND) != 0)
     {
-//        pc.printf("EVE_INT_SOUND: %04x \n", flag);
+        //        printf("EVE_INT_SOUND: %04x \n", flag);
     }
 
     if((flag & EVE_INT_PLAYBACK) != 0)
     {
-//        pc.printf("EVE_INT_PLAYBACK: %04x \n", flag);
+        //        printf("EVE_INT_PLAYBACK: %04x \n", flag);
     }
 
     if((flag & EVE_INT_CMDEMPTY) != 0)
     {
-//        pc.printf("EVE_INT_CMDEMPTY: %04x \n", flag);
+        //        printf("EVE_INT_CMDEMPTY: %04x \n", flag);
     }
 
     if((flag & EVE_INT_CMDFLAG) != 0)
     {
-//        pc.printf("EVE_INT_CMDFLAG: %04x \n", flag);
+        //        printf("EVE_INT_CMDFLAG: %04x \n", flag);
     }
 
     if((flag & EVE_INT_CONVCOMPLETE) != 0
@@ -384,16 +422,16 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
         m_touchTagCallback = f;
         break;
     case EVE_INT_SOUND:
-//        pc.printf("%04x \n", flag);
+        //        printf("%04x \n", flag);
         break;
     case EVE_INT_PLAYBACK:
-//        pc.printf("%04x \n", flag);
+        //        printf("%04x \n", flag);
         break;
     case EVE_INT_CMDEMPTY:
-//        pc.printf("%04x \n", flag);
+        //        printf("%04x \n", flag);
         break;
     case EVE_INT_CMDFLAG:
-//        pc.printf("%04x \n", flag);
+        //        printf("%04x \n", flag);
         break;
     case EVE_INT_CONVCOMPLETE:
         m_touchConvCompCallback = f;

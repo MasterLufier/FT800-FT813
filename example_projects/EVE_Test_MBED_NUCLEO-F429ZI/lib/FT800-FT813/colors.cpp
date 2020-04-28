@@ -24,4 +24,15 @@
  */
 #include "colors.h"
 
+namespace FTGUI {
 
+Color Theme::background() const
+{
+    return m_background;
+}
+
+Color Theme::primary() const
+{
+    return m_primary;
+}
+}

@@ -33,7 +33,7 @@ namespace FTGUI {
 class Widget
 {
 public:
-    Widget(Widget * parent);
+    Widget(string name, Widget * parent);
 
     void addWidget(Widget * widget);
 
@@ -47,19 +47,34 @@ public:
     virtual void hide();
     bool visible() const;
 
+    void setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+
+    const string & name() const;
+
+    Theme * theme() const;
+
+    Widget *parent() const;
+    void setParent(Widget *parent);
+
+    FT8xx *driver() const;
+    ScreenOrientation orientation() const;
+
+    void setTheme(Theme *theme);
+
 protected:
-    virtual void render();
+    //Special constructor for root object
+    Widget(string name);
     string m_name;
 
-    Widget * m_parent;
-    Theme * m_theme;
-    FT8xx * m_driver;
+    Widget * m_parent{nullptr};
+    Theme * m_theme{nullptr};
+    FT8xx * m_driver{nullptr};
 
     ScreenOrientation m_orientation{};
     std::map<string, Widget *> m_container;
     bool m_visible{false};
 
-    uint16_t x{0}, y{0}, z{0}, width{EVE_HSIZE}, height{EVE_VSIZE};
+    uint16_t m_x{0}, m_y{0}, m_z{0}, m_width{EVE_HSIZE}, m_height{EVE_VSIZE};
 };
 }
 

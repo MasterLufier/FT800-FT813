@@ -1,4 +1,4 @@
-/**
+/*!
 @file    ft8xx.h
 @brief   EVE - HMI solution library for based on FT-BT8xx chip
 @version 0.1
@@ -6,21 +6,21 @@
 @author  Mikhail Ivanov
 
 @section LICENSE
-
+    
     MIT License
-
+        
         Copyright (c) 2020 Mikhail Ivanov
-
+    
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
                                                               copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-
+    
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
-
+       
        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,41 +33,65 @@
 #ifndef FT8XX_H
 #define FT8XX_H
 
-#include <EVE_commands.h>
-#include <vector>
-#include <algorithm>
+#include <mbed_debug.h>
+#include <mbed_error.h>
 
-extern Serial pc;
+#include <EVE_commands.h>
+#include <algorithm>
+#include <vector>
+
+struct FTDisplayList
+{
+    std::string m_name{};
+    uint32_t m_address{0};
+    uint32_t m_size{0};
+    FTDisplayList(string name, uint32_t address, uint32_t size)
+        : m_name(name)
+        , m_address(address)
+        , m_size(size)
+    {}
+};
+
+class FTRamG
+{
+public:
+    FTRamG(uint32_t size = EVE_RAM_G_SAFETY_SIZE);
+    FTDisplayList *saveDisplayList(std::string name = "Display List");
+
+private:
+    uint32_t m_start{0x0}, m_size{0x0}, m_currentPosition{0x0};
+};
 
 class FT8xx : private NonCopyable<FT8xx>
 {
 public:
+    enum PixelPrecision : uint8_t
+    {
+        Div_1,
+        Div_2,
+        Div_4,
+        Div_8,
+        Div_16
+    };
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
     struct TouchCalibrationResult
     {
         uint32_t touch_a{}, touch_b{}, touch_c{}, touch_d{}, touch_e{}, touch_f{};
     };
 
-    enum FadeType : uint8_t
-        {
-            Linear,
-            Quad,
-            Cubic,
-            Quart
-        };
-//    FT8xx();
+    enum FadeType : uint8_t{Linear, Quad, Cubic, Quart};
 
-    FT8xx(PinName mosi,
-          PinName miso,
-          PinName sclk,
-          PinName ssel,
-          PinName pd,
-          PinName interrupt,
-          EVE_HAL::SPIFrequency spiFrequency = EVE_HAL::F_20M,
-          bool sharedEventQueue = false,
-          uint32_t threadStackSize = (3*512),
-          const char * threadName = "FT8xxThrd"
-          );
+    FT8xx(
+        PinName mosi,
+        PinName miso,
+        PinName sclk,
+        PinName ssel,
+        PinName pd,
+        PinName interrupt,
+        EVE_HAL::SPIFrequency spiFrequency = EVE_HAL::F_20M,
+        bool sharedEventQueue = false,
+        uint32_t threadStackSize = (3 * 512),
+        const char *threadName = "FT8xxThrd");
 #elif
     FT8xx(PinName mosi,
           PinName miso,
@@ -78,6 +102,10 @@ public:
           );
 #endif
     ~FT8xx();
+
+    void ramGInit(uint32_t size = EVE_RAM_G_SAFETY_SIZE) { m_ramG = new FTRamG(size); }
+
+    FTRamG *ramG() const { return m_ramG; }
 
     /*!
      * \brief touchCalibrate - function for calibrate touchscreen
@@ -90,7 +118,7 @@ public:
      * \param value - value from 0(off) to 128(full)
      */
     void setBacklight(uint8_t value);
-//*************************************************************************************
+//**************************************************************************
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
 
     /*!
@@ -101,7 +129,12 @@ public:
      * \param fadeType - type of easing
      * \param delay - delay between every steps in ms. Decrease this value for smooth or increace for performance
      */
-    void backlightFade(uint8_t from, uint8_t to, uint32_t duration = 1000, FadeType fadeType = Linear, uint8_t delay = 10);
+    void backlightFade(
+        uint8_t from,
+        uint8_t to,
+        uint32_t duration = 1000,
+        FadeType fadeType = Linear,
+        uint8_t delay = 10);
 
     /*!
      * \brief attach one callback to any number of interrupt flags
@@ -111,10 +144,13 @@ public:
      */
     void attach(mbed::Callback<void(uint8_t)> f, uint8_t flag);
 
-    inline void attachPageSwapCallback(mbed::Callback<void(uint8_t)> f){attach(f, EVE_INT_SWAP);}
+    inline void attachPageSwapCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_SWAP); }
     inline void attachTouchDetectedCallback(mbed::Callback<void(uint8_t)> f){attach(f, EVE_INT_TOUCH);}
     inline void attachTouchTagCallback(mbed::Callback<void(uint8_t)> f){attach(f, EVE_INT_TAG);}
-    inline void attachTouchConversionsCallback(mbed::Callback<void(uint8_t)> f){attach(f, EVE_INT_CONVCOMPLETE);}
+    inline void attachTouchConversionsCallback(mbed::Callback<void(uint8_t)> f)
+    {
+        attach(f, EVE_INT_CONVCOMPLETE);
+    }
 
     /*!
      * \brief attachToTag. attachet callback to all tag. Passing tag number as parameter
@@ -126,19 +162,49 @@ public:
     void deattachFromTag(uint8_t tag)
     {
         m_tagCallbacksPool.erase(
-            std::remove_if(m_tagCallbacksPool.begin(),
-                           m_tagCallbacksPool.end(),
-                           [&](const TagCallback & c) {
-                return c.tagNumber == tag;
-            }),
+            std::remove_if(
+                m_tagCallbacksPool.begin(),
+                m_tagCallbacksPool.end(),
+                [&](const TagCallback &c) { return c.tagNumber == tag; }),
             m_tagCallbacksPool.end());
     }
 
 #endif
-    //********************************************************************************
+    //**********************************************************************
+    //Drawing functions
+    void drawVertexPointF(float x1,
+                          float y1)
+    {
+        switch (m_pixelPrecision)
+        {
+        case FT8xx::Div_1:
+            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1),
+                                static_cast<uint32_t>(y1)));
+            break;
+        case FT8xx::Div_2:
+            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1*2),
+                                static_cast<uint32_t>(y1*2)));
+            break;
+        case FT8xx::Div_4:
+            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1*4),
+                                static_cast<uint32_t>(y1*4)));
+            break;
+        case FT8xx::Div_8:
+            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1*8),
+                                static_cast<uint32_t>(y1*8)));
+            break;
+        case FT8xx::Div_16:
+            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1*16),
+                                static_cast<uint32_t>(y1*16)));
+            break;
+        }
+    }
 
 private:
-    EVE_HAL * m_hal;
+    EVE_HAL *m_hal{nullptr};
+    FTRamG *m_ramG{nullptr};
+    PixelPrecision m_pixelPrecision{Div_16};
+    
 #if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
     void interruptFound();
 

@@ -913,6 +913,8 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
     public:
         enum SPIFrequency : int32_t
         {
+            F_10K =     10000,
+            F_100K =    100000,
             F_1M =      1000000,
             F_5M =      5000000,
             F_10M =     10000000,

@@ -27,19 +27,29 @@
 namespace FTGUI
 {
 
-Widget::Widget(Widget *parent) : m_parent(parent)
+Widget::Widget(string name, Widget *parent) :
+      m_name(name)
 {
     if(parent)
     {
-        m_theme = m_parent->m_theme;
-        m_orientation = parent->m_orientation;
-        m_driver = parent->m_driver;
+        //if parent is empty
+        if(m_parent == nullptr)
+        {
+            parent->addWidget(this);
+            return;
+        }
+        //if parent is same
+        if(parent == m_parent)
+            return;
+        //if change parent needed
+        m_parent->removeWidget(this->name());
+        parent->addWidget(this);
     }
 }
 
 void Widget::addWidget(Widget *widget)
 {
-    widget->m_parent = this;
+    widget->setParent(this);
     m_container.emplace(widget->m_name, widget);
 }
 
@@ -67,6 +77,10 @@ Widget::~Widget()
 
 void Widget::show()
 {
+    for(const auto & w : m_container)
+    {
+        w.second->show();
+    }
     m_visible = true;
 }
 
@@ -80,9 +94,55 @@ bool Widget::visible() const
     return m_visible;
 }
 
-void Widget::render()
+void Widget::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
 {
+    m_x = x;
+    m_y = y;
+    m_width = width;
+    m_height = height;
+}
 
+const string & Widget::name() const
+{
+    return m_name;
+}
+
+Theme * Widget::theme() const
+{
+    return m_theme;
+}
+
+Widget * Widget::parent() const
+{
+    return m_parent;
+}
+
+void Widget::setParent(Widget * parent)
+{
+    m_parent = parent;
+    m_driver = m_parent->driver();
+    m_orientation = m_parent->orientation();
+    m_theme = m_parent->theme();
+}
+
+FT8xx *Widget::driver() const
+{
+    return m_driver;
+}
+
+ScreenOrientation Widget::orientation() const
+{
+    return m_orientation;
+}
+
+void Widget::setTheme(Theme *theme)
+{
+    m_theme = theme;
+}
+
+Widget::Widget(string name) : m_name(name)
+{
+    m_parent = this;
 }
 
 }
