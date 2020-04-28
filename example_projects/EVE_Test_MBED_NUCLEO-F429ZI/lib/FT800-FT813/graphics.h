@@ -27,55 +27,50 @@
 
 #include <widget.h>
 
-
-namespace FTGUI {
-//class GraphicalObject : public Widget
-//{
-//public:
-//    GraphicalObject(uint16_t x = 0,
-//                    uint16_t y = 0,
-//                    uint16_t width = 0,
-//                    uint16_t height = 0,
-//                    Widget * parent = nullptr) :
-//          Widget(parent)
-//    {
-//         m_x = x;
-//         m_y = y;
-//         m_width = width;
-//         m_height = height;
-//    }
-//};
-
+namespace FTGUI
+{
 class Rectangle : public Widget
 {
 public:
-    Rectangle(string name = "Rect", Widget * parent = nullptr) : Widget(name, parent){}
-    Rectangle(uint16_t x = 0,
-              uint16_t y = 0,
-              uint16_t width = 0,
+    Rectangle(string name = "Rect", Widget * parent = nullptr) :
+        Widget(name, parent) {}
+    Rectangle(uint16_t x      = 0,
+              uint16_t y      = 0,
+              uint16_t width  = 0,
               uint16_t height = 0,
-              string name = "Rect",
+              string   name   = "Rect",
               Widget * parent = nullptr);
 
     virtual void show() override;
-    Color color() const;
-    void setColor(const Color &color);
-    void setColor(uint32_t rgba);
-    void setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
+    Rectangle &  setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height) override;
 
-    Color borderColor() const;
-    void setBorderColor(const Color &borderColor);
-    void setBorderColor(uint32_t rgba);
-    void setBorderColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
+    const Color & color() const;
+    Rectangle &   setColor(const Color & color);
+    Rectangle &   setColor(uint32_t rgb);
+    Rectangle &   setColor(uint8_t r,
+                           uint8_t g,
+                           uint8_t b);
 
-    uint16_t borderWidth() const;
-    void setBorderWidth(const uint16_t &borderWidth);
+    const Color & borderColor() const;
+    Rectangle &   setBorderColor(const Color & borderColor);
+    Rectangle &   setBorderColor(uint32_t rgb);
+    Rectangle &   setBorderColor(uint8_t r,
+                                 uint8_t g,
+                                 uint8_t b);
+
+    Rectangle & setOpacity(uint8_t opacity);
+
+    uint16_t    borderWidth() const;
+    Rectangle & setBorderWidth(uint16_t borderWidth);
+
+    uint16_t    radius() const;
+    Rectangle & setRadius(uint16_t radius);
 
 protected:
-    //    virtual void render() override;
-    Color m_color{m_theme->primary()};
-    Color m_borderColor{m_color};
-    uint16_t m_borderWidth{10}, m_radius{0};
+    //virtual void render() override;
+    Color    m_color{m_theme->primary()};
+    Color    m_borderColor{m_theme->onPrimary()};
+    uint16_t m_borderWidth{0}, m_radius{0};
 };
-}
-#endif // GRAPHICS_H
+}    // namespace FTGUI
+#endif    // GRAPHICS_H

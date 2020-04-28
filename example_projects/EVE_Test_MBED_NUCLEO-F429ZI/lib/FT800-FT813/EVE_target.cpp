@@ -293,10 +293,10 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
                 ThisThread::sleep_for(100);
                 m_spi.format(8, 0);
                 this->setSPIfrequency(F_1M);
-                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_9, LL_GPIO_SPEED_FREQ_LOW);
-                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_8, LL_GPIO_SPEED_FREQ_LOW);
-                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_7, LL_GPIO_SPEED_FREQ_LOW);
-                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_12, LL_GPIO_SPEED_FREQ_LOW);
+                //                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_9, LL_GPIO_SPEED_FREQ_LOW);
+                //                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_8, LL_GPIO_SPEED_FREQ_LOW);
+                //                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_7, LL_GPIO_SPEED_FREQ_LOW);
+                //                LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_12, LL_GPIO_SPEED_FREQ_LOW);
                 _ptr = this;
             }
 

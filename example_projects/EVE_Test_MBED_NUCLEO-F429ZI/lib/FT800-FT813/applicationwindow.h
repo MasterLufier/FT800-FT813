@@ -25,22 +25,22 @@
 #ifndef APPLICATIONWINDOW_H
 #define APPLICATIONWINDOW_H
 
-#include <widget.h>
 #include <graphics.h>
+#include <widget.h>
 
-namespace FTGUI {
+namespace FTGUI
+{
 class ApplicationWindow : public Widget, private NonCopyable<ApplicationWindow>
 {
 public:
-    ApplicationWindow(FT8xx * driver = nullptr,
-        ScreenOrientation screenOrientation = Horizontal,
-                      Theme * theme = nullptr);
+    ApplicationWindow(Theme * theme = nullptr, ScreenOrientation screenOrientation = Horizontal, FT8xx * driver = nullptr);
     ~ApplicationWindow() override;
 
     void show() override;
     void hide() override;
+
 protected:
 };
-}
+}    // namespace FTGUI
 
-#endif // APPLICATIONWINDOW_H
+#endif    // APPLICATIONWINDOW_H

@@ -25,11 +25,12 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
-#include <map>
-#include <ft8xx.h>
 #include <colors.h>
+#include <ft8xx.h>
+#include <map>
 
-namespace FTGUI {
+namespace FTGUI
+{
 class Widget
 {
 public:
@@ -45,21 +46,21 @@ public:
 
     virtual void show();
     virtual void hide();
-    bool visible() const;
+    bool         visible() const;
 
-    void setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+    virtual Widget & setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
 
     const string & name() const;
 
     Theme * theme() const;
 
-    Widget *parent() const;
-    void setParent(Widget *parent);
+    Widget * parent() const;
+    void     setParent(Widget * parent);
 
-    FT8xx *driver() const;
+    FT8xx *           driver() const;
     ScreenOrientation orientation() const;
 
-    void setTheme(Theme *theme);
+    void setTheme(Theme * theme);
 
 protected:
     //Special constructor for root object
@@ -67,15 +68,15 @@ protected:
     string m_name;
 
     Widget * m_parent{nullptr};
-    Theme * m_theme{nullptr};
-    FT8xx * m_driver{nullptr};
+    Theme *  m_theme{nullptr};
+    FT8xx *  m_driver{nullptr};
 
-    ScreenOrientation m_orientation{};
+    ScreenOrientation          m_orientation{};
     std::map<string, Widget *> m_container;
-    bool m_visible{false};
+    bool                       m_visible{false};
 
     uint16_t m_x{0}, m_y{0}, m_z{0}, m_width{EVE_HSIZE}, m_height{EVE_VSIZE};
 };
-}
+}    // namespace FTGUI
 
-#endif // WIDGET_H
+#endif    // WIDGET_H

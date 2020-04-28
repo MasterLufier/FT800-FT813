@@ -24,15 +24,45 @@
  */
 #include "colors.h"
 
-namespace FTGUI {
-
-Color Theme::background() const
+namespace FTGUI
+{
+const Color & Theme::background() const
 {
     return m_background;
 }
 
-Color Theme::primary() const
+const Color & Theme::primary() const
 {
     return m_primary;
 }
+
+const Color & Theme::primaryLight() const
+{
+    return m_primaryLight;
 }
+
+const Color & Theme::primaryDark() const
+{
+    return m_primaryDark;
+}
+
+const Color & Theme::secondary() const
+{
+    return m_secondary;
+}
+
+const Color & Theme::secondaryLight() const
+{
+    return m_secondaryLight;
+}
+
+const Color & Theme::secondaryDark() const
+{
+    return m_secondaryDark;
+}
+
+const Color & Theme::onPrimary() const
+{
+    return m_onPrimary;
+}
+}    // namespace FTGUI
