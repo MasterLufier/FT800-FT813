@@ -483,6 +483,41 @@ void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag)
     m_tagCallbacksPool.push_back(TagCallback{tag, f});
 }
 
+void FT8xx::deattachFromTag(uint8_t tag)
+{
+    m_tagCallbacksPool.erase(
+        std::remove_if(
+            m_tagCallbacksPool.begin(),
+            m_tagCallbacksPool.end(),
+            [&](const TagCallback & c) {
+                return c.tagNumber == tag;
+            }),
+        m_tagCallbacksPool.end());
+}
+
+uint8_t FT8xx::setCallbackToTag(mbed::Callback<void(uint8_t)> f)
+{
+    if(EVE_memRead8(REG_INT_EN) == 0x0)
+    {
+        uint8_t interruptMask = EVE_memRead8(REG_INT_MASK);
+        interruptMask |= EVE_INT_TAG;
+        //set interrupts mask
+        EVE_memWrite8(REG_INT_MASK, interruptMask);
+        //enable interrupts
+        EVE_memWrite8(REG_INT_EN, 0x1);
+    }
+    if(m_tagCallbacksPool.size() > 254)
+    {
+        debug("TagPool is full");
+        return 0;
+    }
+    TagCallback cb{static_cast<uint8_t>(m_tagCallbacksPool.size() + 1),
+                   f};
+    m_tagCallbacksPool.push_back(cb);
+    EVE_cmd_dl(TAG(cb.tagNumber));
+    return cb.tagNumber;
+}
+
 void FT8xx::p_backlightFade(BacklightFade bf)
 {
     if(bf.cycCount <= bf.duration)

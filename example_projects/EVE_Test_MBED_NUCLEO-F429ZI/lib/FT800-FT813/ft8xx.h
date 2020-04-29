@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <mbed_debug.h>
 #include <mbed_error.h>
+#include <vector>
 
 struct FTDisplayList
 {
@@ -128,7 +129,7 @@ class FT8xx : private NonCopyable<FT8xx>
      * \param value - value from 0(off) to 128(full)
      */
     void setBacklight(uint8_t value);
-    //**************************************************************************
+//*************************************************************************************
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 
     /*!
@@ -163,23 +164,32 @@ class FT8xx : private NonCopyable<FT8xx>
     }
 
     /*!
-     * \brief attachToTag. attachet callback to all tag. Passing tag number as parameter
+     * \brief attachToTag. attach callback to all tags. Passing tag number as parameter to callback function.
      * \param f - callback function attached to all tags (1-254)
      */
     void attachToTags(mbed::Callback<void(uint8_t)> f);
     void attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag);
 
-    void deattachFromTag(uint8_t tag)
-    {
-        m_tagCallbacksPool.erase(
-            std::remove_if(
-                m_tagCallbacksPool.begin(),
-                m_tagCallbacksPool.end(),
-                [&](const TagCallback & c) {
-                    return c.tagNumber == tag;
-                }),
-            m_tagCallbacksPool.end());
-    }
+    /*!
+     * \brief attachToTag. Attach calback to specific tag number.
+     * Do not use this method both with setCallbackToTag(mbed::Callback<void(uint8_t)> f)
+     * \param f - callback function will be attached to tag
+     * \param tag - tag number (1-254)
+     */
+    void attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag);
+
+    /*!
+     * \brief deattachFromTag. Remove callback from tag. This function remove all callbacks from tag, if many callbacks attached to one tag.
+     * \param tag - tag number.
+     */
+    void deattachFromTag(uint8_t tag);
+
+    /*!
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag
+     * \param f - callback function will be attached to tag
+     * \return Tag number
+     */
+    uint8_t setCallbackToTag(mbed::Callback<void(uint8_t)> f);
 
 #endif
     //**********************************************************************
