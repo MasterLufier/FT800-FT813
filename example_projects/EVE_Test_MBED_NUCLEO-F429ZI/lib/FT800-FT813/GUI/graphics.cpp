@@ -26,7 +26,16 @@
 
 namespace FTGUI
 {
-Rectangle::Rectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, string name, Widget * parent) :
+Rectangle::Rectangle(string   name,
+                     Widget * parent) :
+    Rectangle(0, 0, 0, 0, name, parent) {}
+
+Rectangle::Rectangle(uint16_t x,
+                     uint16_t y,
+                     uint16_t width,
+                     uint16_t height,
+                     string   name,
+                     Widget * parent) :
     Widget(name, parent)
 {
     m_x      = x;
@@ -37,6 +46,35 @@ Rectangle::Rectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, st
 
 void Rectangle::show()
 {
+    //Draw shadow
+    if(m_z != 0)
+    {
+        EVE_cmd_dl(DL_COLOR_RGB | 0x040404);
+        EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+        EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
+        EVE_cmd_dl(BEGIN(EVE_RECTS));
+        float shadow = (m_color.a() < 48 ? m_color.a() : 48);
+        for(uint8_t i = m_z; i > 0; --i)
+        {
+            EVE_cmd_dl(COLOR_A(static_cast<uint8_t>(shadow / i)));
+            //Draw ambient light shadow
+            m_driver->drawVertexPointF(parent()->x() + m_x + m_radius - i,
+                                       parent()->y() + m_y + m_radius - i);
+            m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_radius + i,
+                                       parent()->y() + m_y + m_height - m_radius + i);
+            //Draw key light shadow
+            m_driver->drawVertexPointF(parent()->x() + m_x + m_radius,
+                                       parent()->y() + m_y + m_radius);
+            m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_radius,
+                                       parent()->y() + m_y + m_height - m_radius + i);
+        }
+        //        EVE_cmd_dl(END());
+        //        EVE_cmd_dl(BEGIN(EVE_RECTS));
+    }
+    else
+    {
+        EVE_cmd_dl(BEGIN(EVE_RECTS));
+    }
     //Draw border if provided
     if(m_borderWidth != 0)
     {
@@ -55,25 +93,21 @@ void Rectangle::show()
                 EVE_cmd_dl(COLOR_A(m_borderColor.a()));
                 EVE_cmd_dl(LINE_WIDTH(8));
             }
-            EVE_cmd_dl(BEGIN(EVE_RECTS));
-            m_driver->drawVertexPointF(m_x, m_y);
-            m_driver->drawVertexPointF(m_x + m_width, m_y + m_height);
+            m_driver->drawVertexPointF(parent()->x() + m_x,
+                                       parent()->y() + m_y);
+            m_driver->drawVertexPointF(parent()->x() + m_x + m_width,
+                                       parent()->y() + m_y + m_height);
         }
         else
         {
             EVE_cmd_dl(COLOR_A(m_borderColor.a()));
             EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
             EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
-            EVE_cmd_dl(BEGIN(EVE_RECTS));
-            m_driver->drawVertexPointF(m_x + m_radius,
-                                       m_y + m_radius);
-            m_driver->drawVertexPointF(m_x + m_width - m_radius,
-                                       m_y + m_height - m_radius);
+            m_driver->drawVertexPointF(parent()->x() + m_x + m_radius,
+                                       parent()->y() + m_y + m_radius);
+            m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_radius,
+                                       parent()->y() + m_y + m_height - m_radius);
         }
-    }
-    else
-    {
-        EVE_cmd_dl(BEGIN(EVE_RECTS));
     }
     //Draw body
     EVE_cmd_dl(DL_COLOR_RGB | (m_color.hex()));
@@ -99,10 +133,11 @@ void Rectangle::show()
         EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
     }
 
-    m_driver->drawVertexPointF(m_x + m_borderWidth + m_radius,
-                               m_y + m_borderWidth + m_radius);
-    m_driver->drawVertexPointF(m_x + m_width - m_borderWidth - m_radius,
-                               m_y + m_height - m_borderWidth - m_radius);
+    m_driver->drawVertexPointF(parent()->x() + m_x + m_borderWidth + m_radius,
+                               parent()->y() + m_y + m_borderWidth + m_radius);
+
+    m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_borderWidth - m_radius,
+                               parent()->y() + m_y + m_height - m_borderWidth - m_radius);
 
     EVE_cmd_dl(END());
 
@@ -112,6 +147,36 @@ void Rectangle::show()
 Rectangle & Rectangle::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
 {
     Widget::setGeometry(x, y, width, height);
+    return *this;
+}
+
+Rectangle & Rectangle::setX(uint16_t x)
+{
+    Widget::setX(x);
+    return *this;
+}
+
+Rectangle & Rectangle::setY(uint16_t y)
+{
+    Widget::setY(y);
+    return *this;
+}
+
+Rectangle & Rectangle::setZ(uint16_t z)
+{
+    Widget::setZ(z);
+    return *this;
+}
+
+Rectangle & Rectangle::setWidth(uint16_t width)
+{
+    Widget::setWidth(width);
+    return *this;
+}
+
+Rectangle & Rectangle::setHeight(uint16_t height)
+{
+    Widget::setHeight(height);
     return *this;
 }
 

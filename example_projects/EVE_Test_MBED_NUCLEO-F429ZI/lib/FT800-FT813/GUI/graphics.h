@@ -32,8 +32,9 @@ namespace FTGUI
 class Rectangle : public Widget
 {
 public:
-    Rectangle(string name = "Rect", Widget * parent = nullptr) :
-        Widget(name, parent) {}
+    Rectangle(string   name   = "Rect",
+              Widget * parent = nullptr);
+
     Rectangle(uint16_t x      = 0,
               uint16_t y      = 0,
               uint16_t width  = 0,
@@ -43,6 +44,16 @@ public:
 
     virtual void show() override;
     Rectangle &  setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height) override;
+    Rectangle &  setX(uint16_t x) override;
+    ;
+    Rectangle & setY(uint16_t y) override;
+    ;
+    Rectangle & setZ(uint16_t z) override;
+    ;
+    Rectangle & setWidth(uint16_t width) override;
+    ;
+    Rectangle & setHeight(uint16_t height) override;
+    ;
 
     const Color & color() const;
     Rectangle &   setColor(const Color & color);

@@ -88,6 +88,14 @@ void Widget::hide()
     m_visible = false;
 }
 
+void Widget::update()
+{
+    if(m_parent != this)
+        m_parent->update();
+    else
+        show();
+}
+
 bool Widget::visible() const
 {
     return m_visible;
@@ -99,6 +107,8 @@ Widget & Widget::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t he
     m_y      = y;
     m_width  = width;
     m_height = height;
+    if(m_visible == true)
+        update();
     return *this;
 }
 
@@ -144,6 +154,61 @@ Widget::Widget(string name) :
     m_name(name)
 {
     m_parent = this;
+}
+
+Widget & Widget::setHeight(uint16_t height)
+{
+    m_height = height;
+    return *this;
+}
+
+Widget & Widget::setWidth(uint16_t width)
+{
+    m_width = width;
+    return *this;
+}
+
+Widget & Widget::setY(uint16_t y)
+{
+    m_y = y;
+    return *this;
+}
+
+Widget & Widget::setX(uint16_t x)
+{
+    m_x = x;
+    return *this;
+}
+
+Widget & Widget::setZ(uint16_t z)
+{
+    m_z = z;
+    return *this;
+}
+
+uint16_t Widget::z() const
+{
+    return m_z;
+}
+
+uint16_t Widget::x() const
+{
+    return m_x;
+}
+
+uint16_t Widget::y() const
+{
+    return m_y;
+}
+
+uint16_t Widget::height() const
+{
+    return m_height;
+}
+
+uint16_t Widget::width() const
+{
+    return m_width;
 }
 
 }    // namespace FTGUI

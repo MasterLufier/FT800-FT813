@@ -46,7 +46,9 @@ public:
 
     virtual void show();
     virtual void hide();
-    bool         visible() const;
+    virtual void update();
+
+    bool visible() const;
 
     virtual Widget & setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
 
@@ -62,6 +64,19 @@ public:
 
     void setTheme(Theme * theme);
 
+    uint16_t width() const;
+    uint16_t height() const;
+
+    uint16_t y() const;
+    uint16_t x() const;
+    uint16_t z() const;
+
+    virtual Widget & setZ(uint16_t z);
+    virtual Widget & setX(uint16_t x);
+    virtual Widget & setY(uint16_t y);
+    virtual Widget & setWidth(uint16_t width);
+    virtual Widget & setHeight(uint16_t height);
+
 protected:
     //Special constructor for root object
     Widget(string name);
@@ -75,7 +90,11 @@ protected:
     std::map<string, Widget *> m_container;
     bool                       m_visible{false};
 
-    uint16_t m_x{0}, m_y{0}, m_z{0}, m_width{EVE_HSIZE}, m_height{EVE_VSIZE};
+    uint16_t m_x{0},
+        m_y{0},
+        m_z{0},
+        m_width{EVE_HSIZE},
+        m_height{EVE_VSIZE};
 };
 }    // namespace FTGUI
 

@@ -27,7 +27,7 @@ int main()
     FTGUI::ApplicationWindow a(new FTGUI::Dark);
 
     FTGUI::Rectangle r("r", &a);
-    FTGUI::Rectangle r2("r2", &a);
+    FTGUI::Rectangle r2("r2", &r);
     FTGUI::Rectangle r3("r3", &a);
 
     FTGUI::Rectangle r4("r4", &a);
@@ -37,26 +37,24 @@ int main()
     r.setGeometry(0, 0, 100, 90)
         .setRadius(10);
 
-    r2.setGeometry(90, 0, 100, 90)
-        .setOpacity(0xcc)
+    r2.setGeometry(10, 10, 50, 50)
+        .setZ(5)
         .setBorderWidth(1)
-        .setRadius(5);
+        .setRadius(0);
 
-    r3.setGeometry(120, 0, 100, 90)
-        .setOpacity(0xcc)
+    r3.setGeometry(300, 0, 100, 90)
         .setBorderWidth(10)
         .setRadius(5);
 
     r4.setGeometry(0, 150, 100, 90)
         .setBorderWidth(1);
 
-    r5.setGeometry(90, 150, 100, 90)
+    r5.setGeometry(150, 150, 100, 90)
         .setColor(a.theme()->primaryDark())
         .setBorderColor(0x00FFFFFF)
         .setBorderWidth(1);
 
-    r6.setGeometry(120, 150, 100, 90)
-        .setOpacity(120)
+    r6.setGeometry(300, 150, 100, 90)
         .setBorderWidth(5)
         .setRadius(10);
 
@@ -65,7 +63,14 @@ int main()
 #endif
     while(1)
     {
-        ThisThread::sleep_for(1000);
+        ThisThread::sleep_for(100);
+        //Framerate test
+        //        r.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
+        //        r2.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
+        //        r3.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
+        //        r4.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
+        //        r5.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
+        //        r6.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
         //**Example Backlight fade conrol
         //        //Linear
         //        m_screen.backlightFade(0, 128, 500);
