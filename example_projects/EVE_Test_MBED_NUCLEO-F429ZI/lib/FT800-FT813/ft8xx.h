@@ -33,22 +33,19 @@
 #ifndef FT8XX_H
 #define FT8XX_H
 
-#include <mbed_debug.h>
-#include <mbed_error.h>
-
 #include <EVE_commands.h>
 #include <algorithm>
+#include <mbed_debug.h>
+#include <mbed_error.h>
 #include <vector>
 
 struct FTDisplayList
 {
     std::string m_name{};
-    uint32_t m_address{0};
-    uint32_t m_size{0};
-    FTDisplayList(string name, uint32_t address, uint32_t size)
-        : m_name(name)
-        , m_address(address)
-        , m_size(size)
+    uint32_t    m_address{0};
+    uint32_t    m_size{0};
+    FTDisplayList(string name, uint32_t address, uint32_t size) :
+        m_name(name), m_address(address), m_size(size)
     {}
 };
 
@@ -56,7 +53,7 @@ class FTRamG
 {
 public:
     FTRamG(uint32_t size = EVE_RAM_G_SAFETY_SIZE);
-    FTDisplayList *saveDisplayList(std::string name = "Display List");
+    FTDisplayList * saveDisplayList(std::string name = "Display List");
 
 private:
     uint32_t m_start{0x0}, m_size{0x0}, m_currentPosition{0x0};
@@ -65,7 +62,7 @@ private:
 class FT8xx : private NonCopyable<FT8xx>
 {
 public:
-#if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     struct TouchCalibrationResult
     {
         uint32_t touch_a{}, touch_b{}, touch_c{}, touch_d{}, touch_e{}, touch_f{};
@@ -74,36 +71,35 @@ public:
     enum FadeType : uint8_t{Linear, Quad, Cubic, Quart};
 
     FT8xx(
-        PinName mosi,
-        PinName miso,
-        PinName sclk,
-        PinName ssel,
-        PinName pd,
-        PinName interrupt,
-        EVE_HAL::SPIFrequency spiFrequency = EVE_HAL::F_20M,
-        bool sharedEventQueue = false,
-        uint32_t threadStackSize = (3 * 512),
-        const char *threadName = "FT8xxThrd");
+        PinName               mosi,
+        PinName               miso,
+        PinName               sclk,
+        PinName               ssel,
+        PinName               pd,
+        PinName               interrupt,
+        EVE_HAL::SPIFrequency spiFrequency     = EVE_HAL::F_20M,
+        bool                  sharedEventQueue = false,
+        uint32_t              threadStackSize  = (3 * 512),
+        const char *          threadName       = "FT8xxThrd");
 #elif
-    FT8xx(PinName mosi,
-          PinName miso,
-          PinName sclk,
-          PinName ssel,
-          PinName pd,
-          EVE_HAL::SPIFrequency spiFrequency = EVE_HAL::F_20M
-          );
+    FT8xx(PinName               mosi,
+          PinName               miso,
+          PinName               sclk,
+          PinName               ssel,
+          PinName               pd,
+          EVE_HAL::SPIFrequency spiFrequency = EVE_HAL::F_20M);
 #endif
     ~FT8xx();
 
     void ramGInit(uint32_t size = EVE_RAM_G_SAFETY_SIZE) { m_ramG = new FTRamG(size); }
 
-    FTRamG *ramG() const { return m_ramG; }
+    FTRamG * ramG() const { return m_ramG; }
 
     /*!
      * \brief touchCalibrate - function for calibrate touchscreen
      * \param factory - if true - load factory calibration, else - start new calibration
      */
-    const FT8xx::TouchCalibrationResult &touchCalibrate(bool factory = true);
+    const FT8xx::TouchCalibrationResult & touchCalibrate(bool factory = true);
 
     /*!
      * \brief setBacklight - set the backlight PWM duty cycle
@@ -111,7 +107,7 @@ public:
      */
     void setBacklight(uint8_t value);
 //*************************************************************************************
-#if (MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 
     /*!
      * \brief backlightFade - change screen backlight PWM duty cycle with specific time and easing
@@ -122,11 +118,11 @@ public:
      * \param delay - delay between every steps in ms. Decrease this value for smooth or increace for performance
      */
     void backlightFade(
-        uint8_t from,
-        uint8_t to,
+        uint8_t  from,
+        uint8_t  to,
         uint32_t duration = 1000,
         FadeType fadeType = Linear,
-        uint8_t delay = 10);
+        uint8_t  delay    = 10);
 
     /*!
      * \brief attach one callback to any number of interrupt flags
@@ -137,62 +133,72 @@ public:
     void attach(mbed::Callback<void(uint8_t)> f, uint8_t flag);
 
     inline void attachPageSwapCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_SWAP); }
-    inline void attachTouchDetectedCallback(mbed::Callback<void(uint8_t)> f){attach(f, EVE_INT_TOUCH);}
-    inline void attachTouchTagCallback(mbed::Callback<void(uint8_t)> f){attach(f, EVE_INT_TAG);}
+    inline void attachTouchDetectedCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_TOUCH); }
+    inline void attachTouchTagCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_TAG); }
     inline void attachTouchConversionsCallback(mbed::Callback<void(uint8_t)> f)
     {
         attach(f, EVE_INT_CONVCOMPLETE);
     }
 
     /*!
-     * \brief attachToTag. attachet callback to all tag. Passing tag number as parameter
+     * \brief attachToTag. attach callback to all tags. Passing tag number as parameter to callback function.
      * \param f - callback function attached to all tags (1-254)
      */
     void attachToTags(mbed::Callback<void(uint8_t)> f);
 
+    /*!
+     * \brief attachToTag. Attach calback to specific tag number.
+     * Do not use this method both with setCallbackToTag(mbed::Callback<void(uint8_t)> f)
+     * \param f - callback function will be attached to tag
+     * \param tag - tag number (1-254)
+     */
     void attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag);
-    void deattachFromTag(uint8_t tag)
-    {
-        m_tagCallbacksPool.erase(
-            std::remove_if(
-                m_tagCallbacksPool.begin(),
-                m_tagCallbacksPool.end(),
-                [&](const TagCallback &c) { return c.tagNumber == tag; }),
-            m_tagCallbacksPool.end());
-    }
+
+    /*!
+     * \brief deattachFromTag. Remove callback from tag. This function remove all callbacks from tag, if many callbacks attached to one tag.
+     * \param tag - tag number.
+     */
+    void deattachFromTag(uint8_t tag);
+
+    /*!
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag
+     * \param f - callback function will be attached to tag
+     * \return Tag number
+     */
+    uint8_t setCallbackToTag(mbed::Callback<void(uint8_t)> f);
 
 #endif
     //********************************************************************************
 
 private:
-    EVE_HAL *m_hal{nullptr};
-    FTRamG *m_ramG{nullptr};
+    EVE_HAL * m_hal{nullptr};
+    FTRamG *  m_ramG{nullptr};
 
-#if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     void interruptFound();
 
     struct BacklightFade
     {
-        float cycCount;
-        int32_t duration;
-        int16_t range;
-        uint8_t start;
-        uint8_t value;
-        uint8_t freq;
+        float    cycCount;
+        int32_t  duration;
+        int16_t  range;
+        uint8_t  start;
+        uint8_t  value;
+        uint8_t  freq;
         FadeType fadeType;
     };
 
     struct TagCallback
     {
-        uint8_t tagNumber;
+        uint8_t                       tagNumber;
         mbed::Callback<void(uint8_t)> callback{nullptr};
     };
 
     void p_backlightFade(BacklightFade bf);
 
-    bool m_fadeBlock{false};
-    InterruptIn m_interrupt;
-    Thread * m_eventThread{nullptr};
+    bool         m_fadeBlock{false};
+    InterruptIn  m_interrupt;
+    Thread *     m_eventThread{nullptr};
     EventQueue * m_queue{nullptr};
     //Calbacks for interrupt events
     mbed::Callback<void(uint8_t)> m_pageSwapCallback{nullptr};
@@ -201,8 +207,8 @@ private:
     mbed::Callback<void(uint8_t)> m_touchConvCompCallback{nullptr};
 
     mbed::Callback<void(uint8_t)> m_tagNumberCallback{nullptr};
-    std::vector<TagCallback> m_tagCallbacksPool;
+    std::vector<TagCallback>      m_tagCallbacksPool;
 #endif
 };
 
-#endif // FT8XX_H
+#endif    // FT8XX_H

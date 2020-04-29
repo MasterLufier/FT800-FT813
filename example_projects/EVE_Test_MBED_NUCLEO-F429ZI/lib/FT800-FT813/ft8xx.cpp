@@ -33,7 +33,7 @@
 
 FTRamG::FTRamG(uint32_t size)
 {
-    if (size > EVE_RAM_G_SIZE)
+    if(size > EVE_RAM_G_SIZE)
         error("Allocated size must be less than EVE_RAM_G_SIZE");
     debug_if(
         size > EVE_RAM_G_SAFETY_SIZE,
@@ -41,26 +41,26 @@ FTRamG::FTRamG(uint32_t size)
         "0xF5800 of RAM_G will be overwritten as temporary data buffer for decoding "
         "process. \n\n");
     m_start = EVE_RAM_G;
-    m_size = m_start + size;
+    m_size  = m_start + size;
 }
 
-FTDisplayList *FTRamG::saveDisplayList(string name)
+FTDisplayList * FTRamG::saveDisplayList(string name)
 {
-    auto *list = new FTDisplayList(name, m_currentPosition, EVE_memRead16(REG_CMD_DL));
+    auto * list = new FTDisplayList(name, m_currentPosition, EVE_memRead16(REG_CMD_DL));
     //Check if DL memory have data to store
-    if (list->m_size == 0)
+    if(list->m_size == 0)
     {
         //Try to execute something from CoPro FIFO to DL when user forgot it
         EVE_cmd_execute();
         //Check again
-        if ((list->m_size = EVE_memRead16(REG_CMD_DL)) == 0)
+        if((list->m_size = EVE_memRead16(REG_CMD_DL)) == 0)
         {
             debug("Nothing to store. Exit \n");
             delete list;
             return nullptr;
         }
     }
-    if (list->m_address + list->m_size > m_size)
+    if(list->m_address + list->m_size > m_size)
     {
         error("RmG overflow\n");
     }
@@ -71,23 +71,23 @@ FTDisplayList *FTRamG::saveDisplayList(string name)
     return list;
 }
 
-#if (MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 /*!
  * \brief FT8xx::FT8xx driver for FTDI FT8xx-BT8xx
  */
 FT8xx::FT8xx(
-    PinName mosi,
-    PinName miso,
-    PinName sclk,
-    PinName ssel,
-    PinName pd,
-    PinName interrupt,
+    PinName               mosi,
+    PinName               miso,
+    PinName               sclk,
+    PinName               ssel,
+    PinName               pd,
+    PinName               interrupt,
     EVE_HAL::SPIFrequency spiFrequency,
-    bool sharedEventQueue,
-    uint32_t threadStackSize,
-    const char *threadName)
-    : m_interrupt(interrupt)
-    , m_eventThread(new Thread(osPriorityNormal, threadStackSize, nullptr, threadName))
+    bool                  sharedEventQueue,
+    uint32_t              threadStackSize,
+    const char *          threadName) :
+    m_interrupt(interrupt),
+    m_eventThread(new Thread(osPriorityNormal, threadStackSize, nullptr, threadName))
 {
     m_interrupt.mode(PullUp);
     m_hal = EVE_HAL::instance(mosi, miso, sclk, ssel, pd);
@@ -106,23 +106,22 @@ FT8xx::FT8xx(
     }
     else
     {
-        m_queue = new EventQueue(6*EVENTS_EVENT_SIZE);
+        m_queue = new EventQueue(6 * EVENTS_EVENT_SIZE);
         m_eventThread->start(callback(m_queue, &EventQueue::dispatch_forever));
     }
     m_interrupt.fall(m_queue->event(callback(this, &FT8xx::interruptFound)));
     m_hal->setSPIfrequency(spiFrequency);
 }
 #elif
-        /*!
+/*!
  * \brief FT8xx::FT8xx driver for FTDI FT8xx-BT8xx
  */
-        FT8xx(PinName mosi,
-              PinName miso,
-              PinName sclk,
-              PinName ssel,
-              PinName pd,
-              EVE_HAL::SPIFrequency spiFrequency
-              )
+FT8xx(PinName               mosi,
+      PinName               miso,
+      PinName               sclk,
+      PinName               ssel,
+      PinName               pd,
+      EVE_HAL::SPIFrequency spiFrequency)
 {
     EVE_init();
     m_hal->setSPIfrequency(spiFrequency);
@@ -131,7 +130,7 @@ FT8xx::FT8xx(
 
 FT8xx::~FT8xx()
 {
-    if (m_ramG)
+    if(m_ramG)
         delete m_ramG;
     delete m_hal;
 }
@@ -141,7 +140,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
     /* send pre-recorded touch calibration values, depending on the display the code is compiled for */
     if(factory == true)
     {
-#if defined (EVE_CFAF240400C1_030SC)
+#if defined(EVE_CFAF240400C1_030SC)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x0000ed11);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x00001139);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfff76809);
@@ -150,7 +149,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xfffadf2e);
 #endif
 
-#if defined (EVE_CFAF320240F_035T)
+#if defined(EVE_CFAF320240F_035T)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x00005614);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x0000009e);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfff43422);
@@ -159,7 +158,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0x00f8f2ef);
 #endif
 
-#if defined (EVE_CFAF480128A0_039TC)
+#if defined(EVE_CFAF480128A0_039TC)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x00010485);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x0000017f);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfffb0bd3);
@@ -168,7 +167,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0x00069904);
 #endif
 
-#if defined (EVE_CFAF800480E0_050SC)
+#if defined(EVE_CFAF800480E0_050SC)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x000107f9);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0xffffff8c);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfff451ae);
@@ -177,7 +176,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xfffcfaaf);
 #endif
 
-#if defined (EVE_PAF90)
+#if defined(EVE_PAF90)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x00000159);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x0001019c);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfff93625);
@@ -186,7 +185,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0x0000c101);
 #endif
 
-#if defined (EVE_RiTFT43)
+#if defined(EVE_RiTFT43)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x000062cd);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0xfffffe45);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfff45e0a);
@@ -195,7 +194,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xFFFbb870);
 #endif
 
-#if defined (EVE_EVE2_38)
+#if defined(EVE_EVE2_38)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x00007bed);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x000001b0);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfff60aa5);
@@ -204,7 +203,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0x00829c08);
 #endif
 
-#if defined (EVE_EVE2_35G)
+#if defined(EVE_EVE2_35G)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x000109E4);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x000007A6);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xFFEC1EBA);
@@ -213,7 +212,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xFFF469CF);
 #endif
 
-#if defined (EVE_EVE2_43G)
+#if defined(EVE_EVE2_43G)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x0000a1ff);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x00000680);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xffe54cc2);
@@ -222,7 +221,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xfffe628d);
 #endif
 
-#if defined (EVE_EVE2_50G)
+#if defined(EVE_EVE2_50G)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x000109E4);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x000007A6);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xFFEC1EBA);
@@ -231,7 +230,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xFFF469CF);
 #endif
 
-#if defined (EVE_EVE2_70G)
+#if defined(EVE_EVE2_70G)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x000105BC);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0xFFFFFA8A);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0x00004670);
@@ -240,7 +239,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xFFFF14C8);
 #endif
 
-#if defined (EVE_NHD_35)
+#if defined(EVE_NHD_35)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x0000f78b);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x00000427);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfffcedf8);
@@ -249,7 +248,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0x0009279e);
 #endif
 
-#if defined (EVE_RVT70)
+#if defined(EVE_RVT70)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x000074df);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x000000e6);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xfffd5474);
@@ -258,7 +257,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 0xffe9a63c);
 #endif
 
-#if defined (EVE_FT811CB_HY50HD)
+#if defined(EVE_FT811CB_HY50HD)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 66353);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 712);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 4293876677);
@@ -267,7 +266,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_F, 418276);
 #endif
 
-#if defined (EVE_ADAM101)
+#if defined(EVE_ADAM101)
         EVE_memWrite32(REG_TOUCH_TRANSFORM_A, 0x000101E3);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_B, 0x00000114);
         EVE_memWrite32(REG_TOUCH_TRANSFORM_C, 0xFFF5EEBA);
@@ -291,7 +290,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         EVE_cmd_dl(CMD_DLSTART);
         EVE_cmd_dl(DL_CLEAR_RGB | COLOR_RGB(0, 0, 0));
         EVE_cmd_dl(DL_CLEAR | CLR_COL | CLR_STN | CLR_TAG);
-        EVE_cmd_text((EVE_HSIZE/2), 50, 26, EVE_OPT_CENTER, "Please tap on the dot.");
+        EVE_cmd_text((EVE_HSIZE / 2), 50, 26, EVE_OPT_CENTER, "Please tap on the dot.");
         EVE_cmd_calibrate();
         EVE_cmd_dl(DL_DISPLAY);
         EVE_cmd_dl(CMD_SWAP);
@@ -310,16 +309,16 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
 
 void FT8xx::setBacklight(uint8_t value)
 {
-#if defined (EVE_ADAM101)
-    EVE_memWrite8(REG_PWM_DUTY, 0x80-value);
+#if defined(EVE_ADAM101)
+    EVE_memWrite8(REG_PWM_DUTY, 0x80 - value);
 #else
     EVE_memWrite8(REG_PWM_DUTY, value);
 #endif
 }
 //*********************************************************************************
-#if (MBED_VERSION >= MBED_ENCODE_VERSION(5,8,0)) && MBED_CONF_EVENTS_PRESENT
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 
-    void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType fadeType, uint8_t delay)
+void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType fadeType, uint8_t delay)
 {
     //Check if fade is not started now
     if(m_fadeBlock == true)
@@ -327,14 +326,15 @@ void FT8xx::setBacklight(uint8_t value)
     //block calling fade when already started
     m_fadeBlock = true;
 
-        BacklightFade bf {0,
-                         static_cast<int32_t>(duration),
-                         static_cast<int16_t>(to-from),
-                         from,
-                         from,
-                         delay,
-                         fadeType,
-                         };
+    BacklightFade bf{
+        0,
+        static_cast<int32_t>(duration),
+        static_cast<int16_t>(to - from),
+        from,
+        from,
+        delay,
+        fadeType,
+    };
     p_backlightFade(bf);
 }
 
@@ -342,13 +342,13 @@ void FT8xx::interruptFound()
 {
     uint8_t flag = EVE_memRead8(REG_INT_FLAGS);
     if((flag & EVE_INT_SWAP) != 0
-        && m_pageSwapCallback)
+       && m_pageSwapCallback)
     {
         m_pageSwapCallback(flag);
     }
 
     if((flag & EVE_INT_TOUCH) != 0
-        && m_touchDetectedCallback)
+       && m_touchDetectedCallback)
     {
         m_touchDetectedCallback(flag);
     }
@@ -395,7 +395,7 @@ void FT8xx::interruptFound()
     }
 
     if((flag & EVE_INT_CONVCOMPLETE) != 0
-        && m_touchConvCompCallback)
+       && m_touchConvCompCallback)
     {
         m_touchConvCompCallback(flag);
     }
@@ -410,7 +410,8 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
         interruptMask = EVE_memRead8(REG_INT_MASK);
     }
     interruptMask |= flag;
-    switch (flag) {
+    switch(flag)
+    {
     case EVE_INT_SWAP:
         m_pageSwapCallback = f;
         break;
@@ -482,31 +483,66 @@ void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag)
     m_tagCallbacksPool.push_back(TagCallback{tag, f});
 }
 
+void FT8xx::deattachFromTag(uint8_t tag)
+{
+    m_tagCallbacksPool.erase(
+        std::remove_if(
+            m_tagCallbacksPool.begin(),
+            m_tagCallbacksPool.end(),
+            [&](const TagCallback & c) {
+                return c.tagNumber == tag;
+            }),
+        m_tagCallbacksPool.end());
+}
+
+uint8_t FT8xx::setCallbackToTag(mbed::Callback<void(uint8_t)> f)
+{
+    if(EVE_memRead8(REG_INT_EN) == 0x0)
+    {
+        uint8_t interruptMask = EVE_memRead8(REG_INT_MASK);
+        interruptMask |= EVE_INT_TAG;
+        //set interrupts mask
+        EVE_memWrite8(REG_INT_MASK, interruptMask);
+        //enable interrupts
+        EVE_memWrite8(REG_INT_EN, 0x1);
+    }
+    if(m_tagCallbacksPool.size() > 254)
+    {
+        debug("TagPool is full");
+        return 0;
+    }
+    TagCallback cb{static_cast<uint8_t>(m_tagCallbacksPool.size() + 1),
+                   f};
+    m_tagCallbacksPool.push_back(cb);
+    EVE_cmd_dl(TAG(cb.tagNumber));
+    return cb.tagNumber;
+}
+
 void FT8xx::p_backlightFade(BacklightFade bf)
 {
     if(bf.cycCount <= bf.duration)
     {
-        switch (bf.fadeType)
+        switch(bf.fadeType)
         {
         case Linear:
-            bf.value = static_cast<uint8_t>((bf.range*bf.cycCount)/bf.duration + bf.start);
+            bf.value = static_cast<uint8_t>((bf.range * bf.cycCount) / bf.duration + bf.start);
             break;
         case Quad:
         {
-            float t = bf.cycCount/bf.duration;
-            bf.value = static_cast<uint8_t>(bf.range*t*t + bf.start);
+            float t  = bf.cycCount / bf.duration;
+            bf.value = static_cast<uint8_t>(bf.range * t * t + bf.start);
             break;
         }
         case Cubic:
         {
-            float t = bf.cycCount/bf.duration;
-            bf.value = static_cast<uint8_t>(bf.range*t*t*t + bf.start);
+            float t  = bf.cycCount / bf.duration;
+            bf.value = static_cast<uint8_t>(bf.range * t * t * t + bf.start);
             break;
         }
         case Quart:
         {
-            float t = bf.cycCount/bf.duration;
-            bf.value = static_cast<uint8_t>(bf.range*t*t*t*t + bf.start);
+            float t  = bf.cycCount / bf.duration;
+            bf.value = static_cast<uint8_t>(bf.range * t * t * t * t + bf.start);
             break;
         }
         }
