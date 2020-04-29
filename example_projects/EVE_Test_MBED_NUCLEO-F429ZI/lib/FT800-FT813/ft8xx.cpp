@@ -514,7 +514,6 @@ uint8_t FT8xx::setCallbackToTag(mbed::Callback<void(uint8_t)> f)
     TagCallback cb{static_cast<uint8_t>(m_tagCallbacksPool.size() + 1),
                    f};
     m_tagCallbacksPool.push_back(cb);
-    EVE_cmd_dl(TAG(cb.tagNumber));
     return cb.tagNumber;
 }
 
