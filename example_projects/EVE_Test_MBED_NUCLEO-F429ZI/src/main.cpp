@@ -3,50 +3,100 @@
 #include <mbed_debug.h>
 #include <mbed_error.h>
 
+class A
+{
+public:
+    A(){};
+    void cbWithTag(string name, uint8_t tag)
+    {
+        printf("%s touched %u \n", name.c_str(), tag);
+    }
+    void cbWoTag(string name)
+    {
+        printf("%s touched \n", name.c_str());
+    }
+} a;
+
+void cbWithTag(string name, uint8_t tag)
+{
+    printf("%s touched %u \n", name.c_str(), tag);
+}
+
+void cbWoTag(string name)
+{
+    printf("%s touched \n", name.c_str());
+}
+
 FTDisplayList * loadStaticDL1(FT8xx * screen)
 {
-    //Auto attach callback to next empty tag
-    uint8_t tag = screen->setCallbackToTag([&](uint8_t tag) {
-        printf("TAG_NUMBER: %u \n", tag);
-    });
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+    //Auto attach lambda callback to next empty tag
+    uint8_t tag = screen->setCallbackToTag(&cbWithTag, "DL1");
+    screen->deattachFromTag(tag);
+    tag = screen->setCallbackToTag(&cbWoTag, "DL1");
     EVE_cmd_dl(TAG(tag));
+#endif
     EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
-    EVE_cmd_dl(BEGIN(EVE_BITMAPS));                                           // start drawing bitmaps
-    EVE_cmd_dl(VERTEX2II(220, 170, 31, 'T'));                                 // ascii T in font 31
-    EVE_cmd_dl(VERTEX2II(244, 170, 31, 'E'));                                 // ascii E
-    EVE_cmd_dl(VERTEX2II(270, 170, 31, 'X'));                                 // ascii X
-    EVE_cmd_dl(VERTEX2II(299, 170, 31, 'T'));                                 // ascii T
+
+    EVE_cmd_dl(BEGIN(EVE_BITMAPS));             // start drawing bitmaps
+    EVE_cmd_dl(VERTEX2II(220, 50, 31, 'T'));    // ascii T in font 31
+    EVE_cmd_dl(VERTEX2II(244, 50, 31, 'E'));    // ascii E
+    EVE_cmd_dl(VERTEX2II(270, 50, 31, 'X'));    // ascii X
+    EVE_cmd_dl(VERTEX2II(299, 50, 31, 'T'));    // ascii T
     EVE_cmd_dl(END());
-    EVE_cmd_execute();
-    // Copy this display list to Flash memory for using as static DL
+    EVE_cmd_execute();    // Copy this display list to Flash memory for using as static DL
     return screen->ramG()->saveDisplayList("DL1");
 }
 
 FTDisplayList * loadStaticDL2(FT8xx * screen)
 {
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+    //Auto attach callback to next empty tag
+    uint8_t tag = screen->setCallbackToTag(&a, &A::cbWoTag, "DL2");
+    screen->deattachFromTag(tag);
+    tag = screen->setCallbackToTag(&a, &A::cbWithTag, "DL2");
+    EVE_cmd_dl(TAG(tag));
+#endif
+    EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
+
+    EVE_cmd_dl(BEGIN(EVE_BITMAPS));              // start drawing bitmaps
+    EVE_cmd_dl(VERTEX2II(220, 120, 31, 'T'));    // ascii T in font 31
+    EVE_cmd_dl(VERTEX2II(244, 120, 31, 'E'));    // ascii E
+    EVE_cmd_dl(VERTEX2II(270, 120, 31, 'X'));    // ascii X
+    EVE_cmd_dl(VERTEX2II(299, 120, 31, 'T'));    // ascii T
+    EVE_cmd_dl(END());
+    EVE_cmd_execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->ramG()->saveDisplayList("DL2");
+}
+
+FTDisplayList * loadStaticDL3(FT8xx * screen)
+{
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //Auto attach callback to next empty tag
     uint8_t tag = screen->setCallbackToTag([&](uint8_t tag) {
         printf("TAG_NUMBER: %u \n", tag);
     });
     EVE_cmd_dl(TAG(tag));
+#endif
     EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
-    EVE_cmd_dl(BEGIN(EVE_BITMAPS));                                           // start drawing bitmaps
-    EVE_cmd_dl(VERTEX2II(220, 50, 31, 'T'));                                  // ascii T in font 31
-    EVE_cmd_dl(VERTEX2II(244, 50, 31, 'E'));                                  // ascii E
-    EVE_cmd_dl(VERTEX2II(270, 50, 31, 'X'));                                  // ascii X
-    EVE_cmd_dl(VERTEX2II(299, 50, 31, 'T'));                                  // ascii T
+
+    EVE_cmd_dl(BEGIN(EVE_BITMAPS));              // start drawing bitmaps
+    EVE_cmd_dl(VERTEX2II(220, 180, 31, 'T'));    // ascii T in font 31
+    EVE_cmd_dl(VERTEX2II(244, 180, 31, 'E'));    // ascii E
+    EVE_cmd_dl(VERTEX2II(270, 180, 31, 'X'));    // ascii X
+    EVE_cmd_dl(VERTEX2II(299, 180, 31, 'T'));    // ascii T
     EVE_cmd_dl(END());
-    EVE_cmd_execute();
-    // Copy this display list to Flash memory for using as static DL
-    return screen->ramG()->saveDisplayList("DL2");
+    EVE_cmd_execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->ramG()->saveDisplayList("DL3");
 }
 
 void loadDynamicDL()
 {
     EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
-    EVE_cmd_dl(POINT_SIZE(320));                                              // set point size to 20 pixels in radius
-    EVE_cmd_dl(BEGIN(EVE_POINTS));                                            // start drawing points
-    EVE_cmd_dl(VERTEX2II(192, 133, 0, 0));                                    // red point
+
+    EVE_cmd_dl(POINT_SIZE(320));              // set point size to 20 pixels in radius
+    EVE_cmd_dl(BEGIN(EVE_POINTS));            // start drawing points
+    EVE_cmd_dl(VERTEX2II(192, 133, 0, 0));    // red point
     EVE_cmd_dl(END());
 }
 
@@ -78,24 +128,25 @@ int main()
     //Attach one callback to all Touch_tag events
     //    m_screen.attachToTags([&](uint8_t f){printf("TAG_NUMBER: %04x \n", f);});
     //Manual attach callback to specific tag
-//    m_screen.attachToTag([&](uint8_t tag) {
-//        printf("TAG_NUMBER 10: %u \n", tag);
-//    },
-//                         10);
-//    m_screen.attachToTag([&](uint8_t tag) {
-//        printf("TAG_NUMBER 11: %u \n", tag);
-//    },
-//                         11);
-//    m_screen.attachToTag([&](uint8_t tag) {
-//        printf("TAG_NUMBER 12: %u \n", tag);
-//    },
-//                         12);
-//**************
+    //    m_screen.attachToTag([&](uint8_t tag) {
+    //        printf("TAG_NUMBER 10: %u \n", tag);
+    //    },
+    //                         10);
+    //    m_screen.attachToTag([&](uint8_t tag) {
+    //        printf("TAG_NUMBER 11: %u \n", tag);
+    //    },
+    //                         11);
+    //    m_screen.attachToTag([&](uint8_t tag) {
+    //        printf("TAG_NUMBER 12: %u \n", tag);
+    //    },
+    //                         12);
+    //**************
 #endif
     //Static DL Storage
     std::vector<FTDisplayList *> dlVect;
     dlVect.push_back(loadStaticDL1(&m_screen));
     dlVect.push_back(loadStaticDL2(&m_screen));
+    dlVect.push_back(loadStaticDL3(&m_screen));
 
     while(1)
     {

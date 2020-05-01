@@ -35,8 +35,7 @@
 
 #include <EVE_commands.h>
 #include <algorithm>
-#include <mbed_debug.h>
-#include <mbed_error.h>
+#include <functional>
 #include <vector>
 
 struct FTDisplayList
@@ -167,15 +166,184 @@ public:
      */
     uint8_t setCallbackToTag(mbed::Callback<void(uint8_t)> f);
 
+    /*!
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag. Last argument in function must be uint8_t for pushing tag number
+     * \param obj - pointer to object
+     * \param method - pointer to  member callback function will be attached to tag
+     * \return Tag number
+     */
+    template<typename R,
+             typename T,
+             typename U,
+             typename... Types,
+             typename... Args>
+    typename std::enable_if<!(sizeof...(Types)
+                              == sizeof...(Args)),
+                            uint8_t>::type
+    setCallbackToTag(U * obj,
+                     R (T::*method)(Types...),
+                     Args... args)
+    {
+        //Switch on tag interrupt if this a first call
+        if(m_tagCallbacksPool.size() == 0)
+            enableTagInterrupt();
+
+        //Check tag pool size
+        if(m_tagCallbacksPool.size() > 254)
+        {
+            debug("TagPool is full");
+            return 0;
+        }
+
+        //Wrap callback with different args type
+        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
+            (obj->*method)(args..., tag);
+        });
+
+        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
+            fp->operator()(tag);
+        });
+
+        TagCallback cbs{
+            findFirstEmptyTag(),
+            cb,
+            fp};
+
+        m_tagCallbacksPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
+
+    template<typename R,
+             typename T,
+             typename U,
+             typename... Types,
+             typename... Args>
+    typename std::enable_if<(sizeof...(Types)
+                             == sizeof...(Args)),
+                            uint8_t>::type
+    setCallbackToTag(U * obj,
+                     R (T::*method)(Types...),
+                     Args... args)
+    {
+        //Switch on tag interrupt if this a first call
+        if(m_tagCallbacksPool.size() == 0)
+            enableTagInterrupt();
+
+        //Check tag pool size
+        if(m_tagCallbacksPool.size() > 254)
+        {
+            debug("TagPool is full");
+            return 0;
+        }
+
+        //Wrap callback with different args type
+        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
+            (obj->*method)(args...);
+        });
+
+        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
+            fp->operator()(tag);
+        });
+
+        TagCallback cbs{
+            findFirstEmptyTag(),
+            cb,
+            fp};
+
+        m_tagCallbacksPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
+
+    /*!
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
+     * \param f - pointer to callback function will be attached to tag
+     * \return Tag number
+     */
+    template<typename F,
+             typename... Types,
+             typename... Args>
+    typename std::enable_if<(sizeof...(Types) == sizeof...(Args)), uint8_t>::type
+    setCallbackToTag(F (*f)(Types...),
+                     Args... args)
+    {
+        //Switch on tag interrupt if this a first call
+        if(m_tagCallbacksPool.size() == 0)
+            enableTagInterrupt();
+
+        //Check tag pool size
+        if(m_tagCallbacksPool.size() > 254)
+        {
+            debug("TagPool is full");
+            return 0;
+        }
+        //Wrap callback with different args type
+        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t tag) -> void {
+            (*f)(args...);
+        });
+
+        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
+            fp->operator()(tag);
+        });
+
+        TagCallback cbs{
+            findFirstEmptyTag(),
+            cb,
+            fp};
+
+        m_tagCallbacksPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
+
+    /*!
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
+     * \param f - pointer to callback function will be attached to tag
+     * \return Tag number
+     */
+    template<typename F,
+             typename... Types,
+             typename... Args>
+    typename std::enable_if<!(sizeof...(Types) == sizeof...(Args)), uint8_t>::type
+    setCallbackToTag(F (*f)(Types...),
+                     Args... args)
+    {
+        //Switch on tag interrupt if this a first call
+        if(m_tagCallbacksPool.size() == 0)
+            enableTagInterrupt();
+
+        //Check tag pool size
+        if(m_tagCallbacksPool.size() > 254)
+        {
+            debug("TagPool is full");
+            return 0;
+        }
+        //Wrap callback with different args type
+        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t tag) -> void {
+            (*f)(args..., tag);
+        });
+
+        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
+            fp->operator()(tag);
+        });
+
+        TagCallback cbs{
+            findFirstEmptyTag(),
+            cb,
+            fp};
+
+        m_tagCallbacksPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
 #endif
-    //********************************************************************************
+    //*************************************************************
 
 private:
     EVE_HAL * m_hal{nullptr};
     FTRamG *  m_ramG{nullptr};
 
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
-    void interruptFound();
+    void    enableTagInterrupt();
+    void    interruptFound();
+    uint8_t findFirstEmptyTag();
 
     struct BacklightFade
     {
@@ -190,8 +358,14 @@ private:
 
     struct TagCallback
     {
-        uint8_t                       tagNumber;
-        mbed::Callback<void(uint8_t)> callback{nullptr};
+        uint8_t                        tagNumber;
+        mbed::Callback<void(uint8_t)>  callback{nullptr};
+        std::function<void(uint8_t)> * cbPonter{nullptr};
+
+        bool operator<(const TagCallback & c) const
+        {
+            return (tagNumber < c.tagNumber);
+        }
     };
 
     void p_backlightFade(BacklightFade bf);
