@@ -490,12 +490,54 @@ void FT8xx::deattachFromTag(uint8_t tag)
             m_tagCallbacksPool.begin(),
             m_tagCallbacksPool.end(),
             [&](const TagCallback & c) {
-                return c.tagNumber == tag;
+                if(c.tagNumber == tag)
+                {
+                    delete c.cbPonter;
+                    return true;
+                }
+                return false;
             }),
         m_tagCallbacksPool.end());
 }
 
 uint8_t FT8xx::setCallbackToTag(mbed::Callback<void(uint8_t)> f)
+{
+    //Switch on tag interrupt if this a first call
+    if(m_tagCallbacksPool.size() == 0)
+        enableTagInterrupt();
+
+    //Check tag pool size
+    if(m_tagCallbacksPool.size() > 254)
+    {
+        debug("TagPool is full");
+        return 0;
+    }
+
+    TagCallback cb{findFirstEmptyTag(),
+                   f};
+    m_tagCallbacksPool.push_back(cb);
+    return cb.tagNumber;
+}
+
+uint8_t FT8xx::findFirstEmptyTag()
+{
+    if(m_tagCallbacksPool.empty())
+        return 1;
+
+    std::sort(m_tagCallbacksPool.begin(),
+              m_tagCallbacksPool.end());
+
+    uint8_t next = 1;
+    for(const auto & t : m_tagCallbacksPool)
+    {
+        if(t.tagNumber != next)
+            return next;
+        ++next;
+    }
+    return next;
+}
+
+void FT8xx::enableTagInterrupt()
 {
     if(EVE_memRead8(REG_INT_EN) == 0x0)
     {
@@ -506,15 +548,6 @@ uint8_t FT8xx::setCallbackToTag(mbed::Callback<void(uint8_t)> f)
         //enable interrupts
         EVE_memWrite8(REG_INT_EN, 0x1);
     }
-    if(m_tagCallbacksPool.size() > 254)
-    {
-        debug("TagPool is full");
-        return 0;
-    }
-    TagCallback cb{static_cast<uint8_t>(m_tagCallbacksPool.size() + 1),
-                   f};
-    m_tagCallbacksPool.push_back(cb);
-    return cb.tagNumber;
 }
 
 void FT8xx::p_backlightFade(BacklightFade bf)
