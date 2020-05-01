@@ -27,30 +27,34 @@
 
 #include <colors.h>
 #include <ft8xx.h>
-#include <map>
 
 namespace FTGUI
 {
 class Widget
 {
 public:
-    Widget(string name, Widget * parent);
+    Widget(Widget * parent);
 
     void addWidget(Widget * widget);
 
-    const Widget * getWidget(string name) const;
+    template<typename... Tail>
+    void addWidgets(Widget * widget, Tail... tail)
+    {
+        addWidget(widget);
+        addWidgets(tail...);
+    }
 
-    void removeWidget(string name);
+    void removeWidget(Widget * widget);
 
     virtual ~Widget();
 
     virtual void show();
     virtual void hide();
-    virtual void update();
 
-    bool visible() const;
-
-    virtual Widget & setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+    virtual Widget & setGeometry(uint16_t x,
+                                 uint16_t y,
+                                 uint16_t width,
+                                 uint16_t height);
 
     const string & name() const;
 
@@ -59,7 +63,8 @@ public:
     Widget * parent() const;
     void     setParent(Widget * parent);
 
-    FT8xx *           driver() const;
+    FT8xx * driver() const;
+
     ScreenOrientation orientation() const;
 
     void setTheme(Theme * theme);
@@ -77,18 +82,42 @@ public:
     virtual Widget & setWidth(uint16_t width);
     virtual Widget & setHeight(uint16_t height);
 
+    bool         touchEnable() const;
+    virtual void removeCallback();
+
+    template<typename... Args>
+    void setCallback(Args... args)
+    {
+        m_touchTag    = m_driver->setCallbackToTag(args...);
+        m_touchEnable = true;
+        translateTouchEvent();
+
+        if(m_visible == true)
+            update();
+    }
+
+    uint8_t touchTag() const;
+    void    setTouchTag(const uint8_t & touchTag);
+
+    bool visible() const;
+    void setVisible(bool visible);
+    bool toggleVisible();
+
 protected:
     //Special constructor for root object
-    Widget(string name);
-    string m_name;
+    Widget();
+    virtual void update();
+    virtual void translateTouchEvent();
 
     Widget * m_parent{nullptr};
     Theme *  m_theme{nullptr};
     FT8xx *  m_driver{nullptr};
 
-    ScreenOrientation          m_orientation{};
-    std::map<string, Widget *> m_container;
-    bool                       m_visible{false};
+    ScreenOrientation     m_orientation{};
+    std::vector<Widget *> m_container;
+    bool                  m_visible{false};
+    bool                  m_touchEnable{false};
+    uint8_t               m_touchTag{0};
 
     uint16_t m_x{0},
         m_y{0},

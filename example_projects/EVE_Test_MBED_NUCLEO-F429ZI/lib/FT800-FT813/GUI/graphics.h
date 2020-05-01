@@ -32,14 +32,12 @@ namespace FTGUI
 class Rectangle : public Widget
 {
 public:
-    Rectangle(string   name   = "Rect",
-              Widget * parent = nullptr);
+    Rectangle(Widget * parent = nullptr);
 
     Rectangle(uint16_t x      = 0,
               uint16_t y      = 0,
               uint16_t width  = 0,
               uint16_t height = 0,
-              string   name   = "Rect",
               Widget * parent = nullptr);
 
     virtual void show() override;
@@ -78,10 +76,35 @@ public:
     Rectangle & setRadius(uint16_t radius);
 
 protected:
-    //virtual void render() override;
     Color    m_color{m_theme->primary()};
     Color    m_borderColor{m_theme->onPrimary()};
     uint16_t m_borderWidth{0}, m_radius{0};
+};
+
+class Label : public Widget
+{
+public:
+    Label(std::string label  = "",
+          Widget *    parent = nullptr) :
+        Label(label, 0, 0, 0, 0, parent) {}
+
+    void show() override;
+
+    Color color() const;
+    void  setColor(const Color & color);
+
+    std::string label() const;
+    void        setLabel(const std::string & label);
+
+private:
+    Label(std::string label  = "",
+          uint16_t    x      = 0,
+          uint16_t    y      = 0,
+          uint16_t    width  = 0,
+          uint16_t    height = 0,
+          Widget *    parent = nullptr);
+    std::string m_label{};
+    Color       m_color{m_theme->onPrimary()};
 };
 }    // namespace FTGUI
 #endif    // GRAPHICS_H

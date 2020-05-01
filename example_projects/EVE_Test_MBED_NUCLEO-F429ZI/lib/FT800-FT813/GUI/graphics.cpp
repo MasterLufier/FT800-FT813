@@ -26,17 +26,15 @@
 
 namespace FTGUI
 {
-Rectangle::Rectangle(string   name,
-                     Widget * parent) :
-    Rectangle(0, 0, 0, 0, name, parent) {}
+Rectangle::Rectangle(Widget * parent) :
+    Rectangle(0, 0, 0, 0, parent) {}
 
 Rectangle::Rectangle(uint16_t x,
                      uint16_t y,
                      uint16_t width,
                      uint16_t height,
-                     string   name,
                      Widget * parent) :
-    Widget(name, parent)
+    Widget(parent)
 {
     m_x      = x;
     m_y      = y;
@@ -46,6 +44,8 @@ Rectangle::Rectangle(uint16_t x,
 
 void Rectangle::show()
 {
+    //Add touchTag
+    EVE_cmd_dl(TAG(m_touchTag));
     //Draw shadow
     if(m_z != 0)
     {
@@ -188,18 +188,24 @@ const Color & Rectangle::color() const
 Rectangle & Rectangle::setColor(const Color & color)
 {
     m_color = color;
+    if(m_visible != false)
+        update();
     return *this;
 }
 
 Rectangle & Rectangle::setColor(uint32_t rgb)
 {
     m_color.set(rgb | (m_color.a() << 24));
+    if(m_visible != false)
+        update();
     return *this;
 }
 
 Rectangle & Rectangle::setColor(uint8_t r, uint8_t g, uint8_t b)
 {
     m_color.set(r, g, b, m_color.a());
+    if(m_visible != false)
+        update();
     return *this;
 }
 
@@ -217,12 +223,16 @@ Rectangle & Rectangle::setBorderColor(const Color & borderColor)
 Rectangle & Rectangle::setBorderColor(uint32_t rgb)
 {
     m_borderColor.set(rgb | (m_borderColor.a() << 24));
+    if(m_visible != false)
+        update();
     return *this;
 }
 
 Rectangle & Rectangle::setBorderColor(uint8_t r, uint8_t g, uint8_t b)
 {
     m_borderColor.set(r, g, b, m_borderColor.a());
+    if(m_visible != false)
+        update();
     return *this;
 }
 
@@ -230,6 +240,8 @@ Rectangle & Rectangle::setOpacity(uint8_t opacity)
 {
     m_color.setA(opacity);
     m_borderColor.setA(opacity);
+    if(m_visible != false)
+        update();
     return *this;
 }
 
@@ -241,6 +253,8 @@ uint16_t Rectangle::borderWidth() const
 Rectangle & Rectangle::setBorderWidth(uint16_t borderWidth)
 {
     m_borderWidth = borderWidth;
+    if(m_visible != false)
+        update();
     return *this;
 }
 
@@ -252,6 +266,57 @@ uint16_t Rectangle::radius() const
 Rectangle & Rectangle::setRadius(uint16_t radius)
 {
     m_radius = radius;
+    if(m_visible != false)
+        update();
     return *this;
 }
+
+void Label::show()
+{
+    EVE_cmd_dl(TAG(m_touchTag));
+    EVE_cmd_dl(DL_COLOR_RGB | (m_color.hex()));
+    EVE_cmd_dl(COLOR_A(m_color.a()));
+    EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+    EVE_cmd_text(m_parent->x() + m_x,
+                 m_parent->y() + m_y,
+                 27,
+                 EVE_OPT_CENTER,
+                 m_label.c_str());
+}
+
+Label::Label(string   label,
+             uint16_t x,
+             uint16_t y,
+             uint16_t width,
+             uint16_t height,
+             Widget * parent) :
+    Widget(parent),
+    m_label(label)
+{
+    m_x      = x;
+    m_y      = y;
+    m_width  = width;
+    m_height = height;
+}
+
+std::string Label::label() const
+{
+    return m_label;
+}
+
+void Label::setLabel(const std::string & label)
+{
+    m_label = label;
+}
+
+Color Label::color() const
+{
+    return m_color;
+}
+
+void Label::setColor(const Color & color)
+{
+    m_color = color;
+}
+
 }    // namespace FTGUI

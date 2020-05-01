@@ -54,11 +54,11 @@ struct FTDisplayList
 
 class FTRamG
 {
-  public:
+public:
     FTRamG(uint32_t size = EVE_RAM_G_SAFETY_SIZE);
     FTDisplayList * saveDisplayList(std::string name = "Display List");
 
-  private:
+private:
     uint32_t m_start{0x0},
         m_size{0x0},
         m_currentPosition{0x0};
@@ -66,7 +66,7 @@ class FTRamG
 
 class FT8xx : private NonCopyable<FT8xx>
 {
-  public:
+public:
     enum PixelPrecision : uint8_t
     {
         Div_1,
@@ -167,7 +167,6 @@ class FT8xx : private NonCopyable<FT8xx>
      * \param f - callback function attached to all tags (1-254)
      */
     void attachToTags(mbed::Callback<void(uint8_t)> f);
-    void attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag);
 
     /*!
      * \brief attachToTag. Attach calback to specific tag number.
@@ -388,7 +387,7 @@ class FT8xx : private NonCopyable<FT8xx>
         }
     }
 
-  private:
+private:
     EVE_HAL *      m_hal{nullptr};
     FTRamG *       m_ramG{nullptr};
     PixelPrecision m_pixelPrecision{Div_16};

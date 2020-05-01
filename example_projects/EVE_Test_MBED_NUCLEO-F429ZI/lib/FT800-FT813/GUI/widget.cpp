@@ -26,8 +26,8 @@
 
 namespace FTGUI
 {
-Widget::Widget(string name, Widget * parent) :
-    m_name(name)
+Widget::Widget(Widget * parent) :
+    m_visible(parent->visible())
 {
     if(parent)
     {
@@ -41,7 +41,7 @@ Widget::Widget(string name, Widget * parent) :
         if(parent == m_parent)
             return;
         //if change parent needed
-        m_parent->removeWidget(this->name());
+        m_parent->removeWidget(this);
         parent->addWidget(this);
     }
 }
@@ -49,36 +49,34 @@ Widget::Widget(string name, Widget * parent) :
 void Widget::addWidget(Widget * widget)
 {
     widget->setParent(this);
-    m_container.emplace(widget->m_name, widget);
+    m_container.push_back(widget);
 }
 
-const Widget * Widget::getWidget(string name) const
+void Widget::removeWidget(Widget * widget)
 {
-    auto it = m_container.find(name);
-    return it->second;
-}
-
-void Widget::removeWidget(string name)
-{
-    auto it = m_container.find(name);
-    if(it != m_container.end())
-    {
-        it = m_container.erase(it);
-        delete it->second;
-    }
+    m_container.erase(
+        std::remove(m_container.begin(),
+                    m_container.end(),
+                    widget),
+        m_container.end());
 }
 
 Widget::~Widget()
 {
+    if(m_touchTag != 0)
+        m_driver->deattachFromTag(m_touchTag);
     for(auto & w : m_container)
-        delete w.second;
+    {
+        delete w;
+    }
 }
 
 void Widget::show()
 {
     for(const auto & w : m_container)
     {
-        w.second->show();
+        if(w->visible() != false)
+            w->show();
     }
     m_visible = true;
 }
@@ -86,19 +84,36 @@ void Widget::show()
 void Widget::hide()
 {
     m_visible = false;
+    for(const auto & w : m_container)
+    {
+        w->hide();
+    }
+    update();
 }
 
 void Widget::update()
 {
     if(m_parent != this)
+    {
         m_parent->update();
+    }
     else
-        show();
+    {
+        if(m_visible == true)
+            show();
+        else
+            hide();
+    }
 }
 
-bool Widget::visible() const
+uint8_t Widget::touchTag() const
 {
-    return m_visible;
+    return m_touchTag;
+}
+
+void Widget::setTouchTag(const uint8_t & touchTag)
+{
+    m_touchTag = touchTag;
 }
 
 Widget & Widget::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
@@ -107,14 +122,9 @@ Widget & Widget::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t he
     m_y      = y;
     m_width  = width;
     m_height = height;
-    if(m_visible == true)
+    if(m_visible != false)
         update();
     return *this;
-}
-
-const string & Widget::name() const
-{
-    return m_name;
 }
 
 Theme * Widget::theme() const
@@ -150,39 +160,97 @@ void Widget::setTheme(Theme * theme)
     m_theme = theme;
 }
 
-Widget::Widget(string name) :
-    m_name(name)
+Widget::Widget()
 {
     m_parent = this;
+}
+
+bool Widget::touchEnable() const
+{
+    return m_touchEnable;
+}
+
+void Widget::removeCallback()
+{
+    m_driver->deattachFromTag(m_touchTag);
+    m_touchTag = 0;
+    for(const auto & w : m_container)
+    {
+        w->m_touchTag    = m_touchTag;
+        w->m_touchEnable = false;
+    }
+    m_touchEnable = false;
+}
+
+void Widget::translateTouchEvent()
+{
+    for(const auto & w : m_container)
+    {
+        w->m_touchTag    = m_touchTag;
+        w->m_touchEnable = true;
+        w->translateTouchEvent();
+    }
+}
+
+bool Widget::visible() const
+{
+    return m_visible;
+}
+
+void Widget::setVisible(bool visible)
+{
+    m_visible = visible;
+    for(const auto & w : m_container)
+    {
+        w->setVisible(visible);
+    }
+    //    if(m_visible != false)
+    update();
+}
+
+bool Widget::toggleVisible()
+{
+    setVisible(!m_visible);
+    return m_visible;
 }
 
 Widget & Widget::setHeight(uint16_t height)
 {
     m_height = height;
+    if(m_visible != false)
+        update();
     return *this;
 }
 
 Widget & Widget::setWidth(uint16_t width)
 {
     m_width = width;
+    if(m_visible != false)
+        update();
     return *this;
 }
 
 Widget & Widget::setY(uint16_t y)
 {
     m_y = y;
+    if(m_visible != false)
+        update();
     return *this;
 }
 
 Widget & Widget::setX(uint16_t x)
 {
     m_x = x;
+    if(m_visible != false)
+        update();
     return *this;
 }
 
 Widget & Widget::setZ(uint16_t z)
 {
     m_z = z;
+    if(m_visible != false)
+        update();
     return *this;
 }
 

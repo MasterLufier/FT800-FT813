@@ -19,58 +19,32 @@ int main()
     //Attach one callback to all Touch_tag events
     //    m_screen.attachToTags([&](uint8_t f){printf("TAG_NUMBER: %04x \n", f);});
     //Attach callback to specific tag
-    //    m_screen.attachToTag([&](uint8_t tag){pc.printf("TAG_NUMBER 10: %u \n", tag);}, 10);
-    //     m_screen.attachToTag([&](uint8_t tag){pc.printf("TAG_NUMBER 11: %u \n", tag);}, 11);
+    //    m_screen.attachToTag([&](uint8_t tag){printf("TAG_NUMBER 10: %u \n", tag);}, 10);
+    //     m_screen.attachToTag([&](uint8_t tag){printf("TAG_NUMBER 11: %u \n", tag);}, 11);
     //**************
     //
     //**************
     FTGUI::ApplicationWindow a(new FTGUI::Dark);
 
-    FTGUI::Rectangle r("r", &a);
-    FTGUI::Rectangle r2("r2", &r);
-    FTGUI::Rectangle r3("r3", &a);
+    //    FTGUI::Rectangle r(150, 150, 100, 100, &a);
+    //    r.setState(FTGUI::Active);
 
-    FTGUI::Rectangle r4("r4", &a);
-    FTGUI::Rectangle r5("r5", &a);
-    FTGUI::Rectangle r6("r6", &a);
-
-    r.setGeometry(0, 0, 100, 90)
-        .setRadius(10);
-
-    r2.setGeometry(10, 10, 50, 50)
-        .setZ(5)
-        .setBorderWidth(1)
-        .setRadius(0);
-
-    r3.setGeometry(300, 0, 100, 90)
-        .setBorderWidth(10)
-        .setRadius(5);
-
-    r4.setGeometry(0, 150, 100, 90)
-        .setBorderWidth(1);
-
-    r5.setGeometry(150, 150, 100, 90)
-        .setColor(a.theme()->primaryDark())
-        .setBorderColor(0x00FFFFFF)
-        .setBorderWidth(1);
-
-    r6.setGeometry(300, 150, 100, 90)
-        .setBorderWidth(5)
-        .setRadius(10);
-
+    FTGUI::Button b1("Push Me", &a);
+    ThisThread::sleep_for(1000);
+    b1.setGeometry(10, 10, 80, 40);
     a.show();
-    printf("%u\n", EVE_report_cmdoffset());
+    FTGUI::Label l1("I Love Atom Audio", &a);
+    l1.hide();
+    l1.setX(220);
+    l1.setY(130);
+    b1.setCallback(&l1,
+                   &FTGUI::Label::toggleVisible);
 #endif
+    printf("%u\n", EVE_report_cmdoffset());
     while(1)
     {
         ThisThread::sleep_for(100);
-        //Framerate test
-        //        r.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
-        //        r2.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
-        //        r3.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
-        //        r4.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
-        //        r5.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
-        //        r6.setGeometry(rand() % 300, rand() % 150, r.width(), r.height());
+
         //**Example Backlight fade conrol
         //        //Linear
         //        m_screen.backlightFade(0, 128, 500);

@@ -29,7 +29,7 @@ namespace FTGUI
 ApplicationWindow::ApplicationWindow(Theme *           theme,
                                      ScreenOrientation screenOrientation,
                                      FT8xx *           driver) :
-    Widget("ApplicationWindow")
+    Widget()
 {
     if(driver)
         m_driver = driver;
@@ -53,6 +53,7 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
     m_driver->touchCalibrate();
     //Switch on Backlight
     m_driver->backlightFade(0, 128);
+    //    m_visible = true;
 }
 
 ApplicationWindow::~ApplicationWindow()
@@ -63,6 +64,8 @@ ApplicationWindow::~ApplicationWindow()
 
 void ApplicationWindow::show()
 {
+    if(m_visible != true)
+        setVisible(true);
     EVE_cmd_dl(CMD_DLSTART);
     EVE_cmd_dl(DL_CLEAR_RGB | m_theme->background().hex());
     EVE_cmd_dl(CLEAR(1, 1, 1));

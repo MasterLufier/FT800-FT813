@@ -25,9 +25,10 @@
 #ifndef FTGUI_H
 #define FTGUI_H
 
+#include <applicationwindow.h>
+#include <colors.h>
+#include <control.h>
 #include <ft8xx.h>
 #include <widget.h>
-#include <colors.h>
-#include <applicationwindow.h>
 
-#endif // FTGUI_H
+#endif    // FTGUI_H
