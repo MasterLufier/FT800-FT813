@@ -1,8 +1,8 @@
-/*
- * @file ftgui.h
+/*!
+ * @file stackview.cpp
  * is part of FTGUI Project
  *
- * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
+ * @copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,15 +22,53 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
+#include "stackview.h"
 
-#include <applicationwindow.h>
-#include <colors.h>
-#include <control.h>
-#include <ft8xx.h>
-#include <page.h>
-#include <stackview.h>
-#include <widget.h>
+namespace FTGUI
+{
+StackView::StackView(Widget * parent) :
+    Widget(parent)
+{
+    m_name = "StackView";
+}
 
-#endif    // FTGUI_H
+void StackView::show()
+{
+    uint8_t i = -m_index;
+    for(const auto & w : m_container)
+    {
+        w->setGeometry((i * (m_width + 1)),
+                       0,
+                       m_width,
+                       m_height);
+        ++i;
+    }
+    Widget::show();
+}
+
+void StackView::push()
+{
+    if(m_index < m_container.size() - 1)
+    {
+        m_index++;
+        update();
+    }
+}
+
+void StackView::pop()
+{
+    if(m_index > 0)
+    {
+        m_index--;
+        update();
+    }
+}
+
+void StackView::setIndex(uint8_t index)
+{
+    if(m_index == index)
+        return;
+    m_index = index;
+    update();
+}
+}    // namespace FTGUI

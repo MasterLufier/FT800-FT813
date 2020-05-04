@@ -1,5 +1,5 @@
 /*
- * @file ftgui.h
+ * @file stackview.h
  * is part of FTGUI Project
  *
  * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
@@ -22,15 +22,26 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
-
-#include <applicationwindow.h>
-#include <colors.h>
-#include <control.h>
-#include <ft8xx.h>
-#include <page.h>
-#include <stackview.h>
+#ifndef STACKVIEW_H
+#define STACKVIEW_H
 #include <widget.h>
 
-#endif    // FTGUI_H
+namespace FTGUI
+{
+class StackView : public Widget
+{
+public:
+    StackView(Widget * parent);
+
+    void show() override;
+
+    void push();
+    void pop();
+    void setIndex(uint8_t index);
+
+private:
+    uint8_t m_index{0};
+};
+}    // namespace FTGUI
+
+#endif    // STACKVIEW_H

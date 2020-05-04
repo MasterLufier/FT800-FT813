@@ -1,5 +1,5 @@
 /*
- * @file ftgui.h
+ * @file page.h
  * is part of FTGUI Project
  *
  * Copyright (c) 2020 Mikhail Ivanov <masluf@gmail.com>
@@ -22,15 +22,30 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-#ifndef FTGUI_H
-#define FTGUI_H
+#ifndef PAGE_H
+#define PAGE_H
 
-#include <applicationwindow.h>
-#include <colors.h>
-#include <control.h>
-#include <ft8xx.h>
-#include <page.h>
-#include <stackview.h>
-#include <widget.h>
+#include <graphics.h>
 
-#endif    // FTGUI_H
+namespace FTGUI
+{
+class Page : public Widget
+{
+public:
+    Page(Widget * parent = nullptr);
+    Page & setGeometry(int32_t  x,
+                       int32_t  y,
+                       uint16_t width,
+                       uint16_t height) override;
+
+    Widget * contentItem() const;
+    //    void     show() override;
+
+protected:
+    uint8_t     m_padding{5};
+    uint8_t     m_margins{3};
+    Rectangle * m_background{nullptr};
+    Widget *    m_contentItem{nullptr};
+};
+}    // namespace FTGUI
+#endif    // PAGE_H
