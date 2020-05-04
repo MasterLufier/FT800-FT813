@@ -34,9 +34,13 @@ Rectangle::Rectangle(uint16_t x,
                      uint16_t width,
                      uint16_t height,
                      Widget * parent) :
-    Widget(parent)
+    Widget(x,
+           y,
+           width,
+           height,
+           parent)
 {
-    m_x      = x;
+    m_name = "Rectangle";
     m_y      = y;
     m_width  = width;
     m_height = height;
@@ -44,6 +48,8 @@ Rectangle::Rectangle(uint16_t x,
 
 void Rectangle::show()
 {
+    if(checkPositionInScreen() == false)
+        return;
     //Add touchTag
     EVE_cmd_dl(TAG(m_touchTag));
     //Draw shadow
@@ -58,15 +64,15 @@ void Rectangle::show()
         {
             EVE_cmd_dl(COLOR_A(static_cast<uint8_t>(shadow / i)));
             //Draw ambient light shadow
-            m_driver->drawVertexPointF(parent()->x() + m_x + m_radius - i,
-                                       parent()->y() + m_y + m_radius - i);
-            m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_radius + i,
-                                       parent()->y() + m_y + m_height - m_radius + i);
+            m_driver->drawVertexPointF(absX() + m_radius - i,
+                                       absY() + m_radius - i);
+            m_driver->drawVertexPointF(absX() + m_width - m_radius + i - 1,
+                                       absY() + m_height - m_radius + i - 1);
             //Draw key light shadow
-            m_driver->drawVertexPointF(parent()->x() + m_x + m_radius,
-                                       parent()->y() + m_y + m_radius);
-            m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_radius,
-                                       parent()->y() + m_y + m_height - m_radius + i);
+            m_driver->drawVertexPointF(absX() + m_radius,
+                                       absY() + m_radius);
+            m_driver->drawVertexPointF(absX() + m_width - m_radius - 1,
+                                       absY() + m_height - m_radius + i - 1);
         }
         //        EVE_cmd_dl(END());
         //        EVE_cmd_dl(BEGIN(EVE_RECTS));
@@ -93,20 +99,20 @@ void Rectangle::show()
                 EVE_cmd_dl(COLOR_A(m_borderColor.a()));
                 EVE_cmd_dl(LINE_WIDTH(8));
             }
-            m_driver->drawVertexPointF(parent()->x() + m_x,
-                                       parent()->y() + m_y);
-            m_driver->drawVertexPointF(parent()->x() + m_x + m_width,
-                                       parent()->y() + m_y + m_height);
+            m_driver->drawVertexPointF(absX(),
+                                       absY());
+            m_driver->drawVertexPointF(absX() + m_width - 1,
+                                       absY() + m_height - 1);
         }
         else
         {
             EVE_cmd_dl(COLOR_A(m_borderColor.a()));
             EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
             EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
-            m_driver->drawVertexPointF(parent()->x() + m_x + m_radius,
-                                       parent()->y() + m_y + m_radius);
-            m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_radius,
-                                       parent()->y() + m_y + m_height - m_radius);
+            m_driver->drawVertexPointF(absX() + m_radius,
+                                       absY() + m_radius);
+            m_driver->drawVertexPointF(absX() + m_width - m_radius - 1,
+                                       absY() + m_height - m_radius - 1);
         }
     }
     //Draw body
@@ -133,30 +139,30 @@ void Rectangle::show()
         EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
     }
 
-    m_driver->drawVertexPointF(parent()->x() + m_x + m_borderWidth + m_radius,
-                               parent()->y() + m_y + m_borderWidth + m_radius);
+    m_driver->drawVertexPointF(absX() + m_borderWidth + m_radius,
+                               absY() + m_borderWidth + m_radius);
 
-    m_driver->drawVertexPointF(parent()->x() + m_x + m_width - m_borderWidth - m_radius,
-                               parent()->y() + m_y + m_height - m_borderWidth - m_radius);
+    m_driver->drawVertexPointF(absX() + m_width - m_borderWidth - m_radius - 1,
+                               absY() + m_height - m_borderWidth - m_radius - 1);
 
     EVE_cmd_dl(END());
 
     Widget::show();
 }
 
-Rectangle & Rectangle::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+Rectangle & Rectangle::setGeometry(int32_t x, int32_t y, uint16_t width, uint16_t height)
 {
     Widget::setGeometry(x, y, width, height);
     return *this;
 }
 
-Rectangle & Rectangle::setX(uint16_t x)
+Rectangle & Rectangle::setX(int32_t x)
 {
     Widget::setX(x);
     return *this;
 }
 
-Rectangle & Rectangle::setY(uint16_t y)
+Rectangle & Rectangle::setY(int32_t y)
 {
     Widget::setY(y);
     return *this;
@@ -284,29 +290,49 @@ void Label::show()
                  m_label.c_str());
 }
 
-Label::Label(string   label,
-             uint16_t x,
-             uint16_t y,
+Label::Label(string   text,
+             int32_t  x,
+             int32_t  y,
              uint16_t width,
              uint16_t height,
              Widget * parent) :
     Widget(parent),
-    m_label(label)
+    m_text(text)
 {
-    m_x      = x;
-    m_y      = y;
-    m_width  = width;
-    m_height = height;
+    m_name = "Label";
+    m_x    = x;
+    m_y    = y;
+    if(width == 0 && text.length() != 0)
+    {
+        for(const auto & c : text)
+        {
+            m_width += m_font.charWidth(c);
+        }
+    }
+    else
+    {
+        m_width = width;
+    }
+
+    if(height == 0)
+    {
+        m_height = m_font.fontHeight();
+    }
+    else
+    {
+        m_height = height;
+    }
 }
 
 std::string Label::label() const
+std::string Label::text() const
 {
-    return m_label;
+    return m_text;
 }
 
-void Label::setLabel(const std::string & label)
+void Label::setText(const std::string & label)
 {
-    m_label = label;
+    m_text = label;
 }
 
 Color Label::color() const

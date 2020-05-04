@@ -35,6 +35,12 @@ class Widget
 public:
     Widget(Widget * parent);
 
+    Widget(int32_t  x,
+           int32_t  y,
+           uint16_t width,
+           uint16_t height,
+           Widget * parent);
+
     void addWidget(Widget * widget);
 
     template<typename... Tail>
@@ -51,8 +57,8 @@ public:
     virtual void show();
     virtual void hide();
 
-    virtual Widget & setGeometry(uint16_t x,
-                                 uint16_t y,
+    virtual Widget & setGeometry(int32_t  x,
+                                 int32_t  y,
                                  uint16_t width,
                                  uint16_t height);
 
@@ -72,13 +78,13 @@ public:
     uint16_t width() const;
     uint16_t height() const;
 
-    uint16_t y() const;
-    uint16_t x() const;
+    int32_t  y() const;
+    int32_t  x() const;
     uint16_t z() const;
 
     virtual Widget & setZ(uint16_t z);
-    virtual Widget & setX(uint16_t x);
-    virtual Widget & setY(uint16_t y);
+    virtual Widget & setX(int32_t x);
+    virtual Widget & setY(int32_t y);
     virtual Widget & setWidth(uint16_t width);
     virtual Widget & setHeight(uint16_t height);
 
@@ -103,11 +109,13 @@ public:
     void setVisible(bool visible);
     bool toggleVisible();
 
+    int32_t absX() const;
+    int32_t absY() const;
+
 protected:
-    //Special constructor for root object
-    Widget();
     virtual void update();
     virtual void translateTouchEvent();
+    bool         checkPositionInScreen();
 
     Widget * m_parent{nullptr};
     Theme *  m_theme{nullptr};
@@ -119,11 +127,13 @@ protected:
     bool                  m_touchEnable{false};
     uint8_t               m_touchTag{0};
 
-    uint16_t m_x{0},
-        m_y{0},
-        m_z{0},
-        m_width{EVE_HSIZE},
-        m_height{EVE_VSIZE};
+    string m_name{"Widget"};
+
+    int32_t m_x{0},
+        m_y{0};
+    uint16_t m_z{0},
+        m_width{0},
+        m_height{0};
 };
 }    // namespace FTGUI
 

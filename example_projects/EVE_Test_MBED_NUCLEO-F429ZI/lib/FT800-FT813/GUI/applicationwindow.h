@@ -30,16 +30,20 @@
 
 namespace FTGUI
 {
-class ApplicationWindow : public Widget, private NonCopyable<ApplicationWindow>
+class ApplicationWindow : public Widget,
+                          private NonCopyable<ApplicationWindow>
 {
 public:
-    ApplicationWindow(Theme * theme = nullptr, ScreenOrientation screenOrientation = Horizontal, FT8xx * driver = nullptr);
+    ApplicationWindow(Theme *           theme             = nullptr,
+                      ScreenOrientation screenOrientation = Horizontal,
+                      FT8xx *           driver            = nullptr);
     ~ApplicationWindow() override;
 
     void show() override;
     void hide() override;
 
 protected:
+    bool m_renderLock{false};
 };
 }    // namespace FTGUI
 

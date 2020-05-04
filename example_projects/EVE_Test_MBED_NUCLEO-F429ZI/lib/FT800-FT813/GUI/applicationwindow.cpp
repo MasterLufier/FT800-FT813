@@ -29,8 +29,9 @@ namespace FTGUI
 ApplicationWindow::ApplicationWindow(Theme *           theme,
                                      ScreenOrientation screenOrientation,
                                      FT8xx *           driver) :
-    Widget()
+    Widget(0, 0, EVE_HSIZE, EVE_VSIZE, this)
 {
+    m_name = "ApplicationWidow";
     if(driver)
         m_driver = driver;
     else
@@ -53,7 +54,6 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
     m_driver->touchCalibrate();
     //Switch on Backlight
     m_driver->backlightFade(0, 128);
-    //    m_visible = true;
 }
 
 ApplicationWindow::~ApplicationWindow()
@@ -64,6 +64,11 @@ ApplicationWindow::~ApplicationWindow()
 
 void ApplicationWindow::show()
 {
+    if(m_renderLock == false)
+        m_renderLock = true;
+    else
+        return;
+
     if(m_visible != true)
         setVisible(true);
     EVE_cmd_dl(CMD_DLSTART);
@@ -73,6 +78,7 @@ void ApplicationWindow::show()
     EVE_cmd_dl(DL_DISPLAY);
     EVE_cmd_dl(CMD_SWAP);
     EVE_cmd_execute();
+    m_renderLock = false;
 }
 
 void ApplicationWindow::hide()

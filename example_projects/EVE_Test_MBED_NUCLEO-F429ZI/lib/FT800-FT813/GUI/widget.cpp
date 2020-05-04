@@ -27,8 +27,22 @@
 namespace FTGUI
 {
 Widget::Widget(Widget * parent) :
-    m_visible(parent->visible())
+    Widget(0, 0, 0, 0, parent)
 {
+}
+
+Widget::Widget(int32_t  x,
+               int32_t  y,
+               uint16_t width,
+               uint16_t height,
+               Widget * parent) :
+    m_visible(parent != this ? parent->visible() : false)
+{
+    m_x      = x;
+    m_y      = y;
+    m_width  = width;
+    m_height = height;
+
     if(parent)
     {
         //if parent is empty
@@ -49,6 +63,9 @@ Widget::Widget(Widget * parent) :
 void Widget::addWidget(Widget * widget)
 {
     widget->setParent(this);
+    //Prevent adding self to child
+    if(widget == this)
+        return;
     m_container.push_back(widget);
 }
 
@@ -73,11 +90,14 @@ Widget::~Widget()
 
 void Widget::show()
 {
+    if(checkPositionInScreen() == false)
+        return;
     for(const auto & w : m_container)
     {
         if(w->visible() != false)
             w->show();
     }
+    //    debug("%s : %i, %i, %u, %u \n", m_name.c_str(), m_x, m_y, m_width, m_height);
     m_visible = true;
 }
 
@@ -116,7 +136,10 @@ void Widget::setTouchTag(const uint8_t & touchTag)
     m_touchTag = touchTag;
 }
 
-Widget & Widget::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+Widget & Widget::setGeometry(int32_t  x,
+                             int32_t  y,
+                             uint16_t width,
+                             uint16_t height)
 {
     m_x      = x;
     m_y      = y;
@@ -160,11 +183,6 @@ void Widget::setTheme(Theme * theme)
     m_theme = theme;
 }
 
-Widget::Widget()
-{
-    m_parent = this;
-}
-
 bool Widget::touchEnable() const
 {
     return m_touchEnable;
@@ -192,6 +210,39 @@ void Widget::translateTouchEvent()
     }
 }
 
+bool Widget::checkPositionInScreen()
+{
+    //Check is widget is in screen
+    if(absX() > EVE_HSIZE
+       || absY() > EVE_VSIZE
+       || absX() + width() < 0
+       || absY() + height() < 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+int32_t Widget::absX() const
+{
+    int32_t x = m_x;
+    if(m_parent != this && m_parent)
+    {
+        x += m_parent->absX();
+    }
+    return x;
+}
+
+int32_t Widget::absY() const
+{
+    int32_t y = m_y;
+    if(m_parent != this && m_parent)
+    {
+        y += m_parent->absY();
+    }
+    return y;
+}
+
 bool Widget::visible() const
 {
     return m_visible;
@@ -204,7 +255,6 @@ void Widget::setVisible(bool visible)
     {
         w->setVisible(visible);
     }
-    //    if(m_visible != false)
     update();
 }
 
@@ -230,7 +280,7 @@ Widget & Widget::setWidth(uint16_t width)
     return *this;
 }
 
-Widget & Widget::setY(uint16_t y)
+Widget & Widget::setY(int32_t y)
 {
     m_y = y;
     if(m_visible != false)
@@ -238,7 +288,7 @@ Widget & Widget::setY(uint16_t y)
     return *this;
 }
 
-Widget & Widget::setX(uint16_t x)
+Widget & Widget::setX(int32_t x)
 {
     m_x = x;
     if(m_visible != false)
@@ -259,12 +309,12 @@ uint16_t Widget::z() const
     return m_z;
 }
 
-uint16_t Widget::x() const
+int32_t Widget::x() const
 {
     return m_x;
 }
 
-uint16_t Widget::y() const
+int32_t Widget::y() const
 {
     return m_y;
 }

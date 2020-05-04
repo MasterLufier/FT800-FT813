@@ -40,16 +40,16 @@ public:
               uint16_t height = 0,
               Widget * parent = nullptr);
 
-    virtual void show() override;
-    Rectangle &  setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height) override;
-    Rectangle &  setX(uint16_t x) override;
-    ;
-    Rectangle & setY(uint16_t y) override;
-    ;
-    Rectangle & setZ(uint16_t z) override;
-    ;
-    Rectangle & setWidth(uint16_t width) override;
-    ;
+    virtual void        show() override;
+    virtual Rectangle & setGeometry(int32_t  x,
+                                    int32_t  y,
+                                    uint16_t width,
+                                    uint16_t height) override;
+    virtual Rectangle & setX(int32_t x) override;
+    virtual Rectangle & setY(int32_t y) override;
+    virtual Rectangle & setZ(uint16_t z) override;
+    virtual Rectangle & setWidth(uint16_t width) override;
+    virtual Rectangle & setHeight(uint16_t height) override;
     Rectangle & setHeight(uint16_t height) override;
     ;
 
@@ -85,21 +85,22 @@ class Label : public Widget
 {
 public:
     Label(std::string label  = "",
+    Label(std::string text   = "",
           Widget *    parent = nullptr) :
-        Label(label, 0, 0, 0, 0, parent) {}
+        Label(text, 0, 0, 0, 0, parent) {}
 
     void show() override;
 
     Color color() const;
     void  setColor(const Color & color);
 
-    std::string label() const;
-    void        setLabel(const std::string & label);
+    std::string text() const;
+    void        setText(const std::string & label);
 
 private:
     Label(std::string label  = "",
-          uint16_t    x      = 0,
-          uint16_t    y      = 0,
+          int32_t     x      = 0,
+          int32_t     y      = 0,
           uint16_t    width  = 0,
           uint16_t    height = 0,
           Widget *    parent = nullptr);

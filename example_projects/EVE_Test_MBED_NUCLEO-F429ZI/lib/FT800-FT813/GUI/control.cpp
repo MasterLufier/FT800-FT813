@@ -5,24 +5,27 @@ namespace FTGUI
 Button::Button(string label, Widget * parent) :
     Widget(parent)
 {
+    m_name       = "Button";
     m_background = new Rectangle(this);
     m_label      = new Label(label, this);
-}
-
-Widget & Button::setGeometry(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
-{
-    Widget::setGeometry(x, y, width, height);
+    m_label->setHorizontalAlignment(Label::HCenter);
+    m_label->setVerticalAlignment(Label::VCenter);
 
     m_background->setColor(m_theme->primary());
     m_label->setColor(m_theme->onPrimary());
-    m_label->setGeometry(Widget::x() + m_width / 2,
-                         Widget::y() + m_height / 2,
-                         Widget::width(),
-                         Widget::height());
-    m_background->setGeometry(Widget::x(),
-                              Widget::y(),
-                              Widget::width(),
-                              Widget::height());
+}
+
+Widget & Button::setGeometry(int32_t x, int32_t y, uint16_t width, uint16_t height)
+{
+    m_label->setGeometry(width / 2 - 1,
+                         height / 2 - 1,
+                         width,
+                         height);
+    m_background->setGeometry(0,
+                              0,
+                              width,
+                              height);
+    Widget::setGeometry(x, y, width, height);
 }
 
 void Button::show()
@@ -32,13 +35,7 @@ void Button::show()
 
 void Button::setLabel(string text)
 {
-    m_label->setLabel(text);
+    m_label->setText(text);
 }
-
-//Button & Button::setCallback(mbed::Callback<void(uint8_t)> f)
-//{
-//    Widget::setCallback(f);
-//    return *this;
-//}
 
 }    // namespace FTGUI
