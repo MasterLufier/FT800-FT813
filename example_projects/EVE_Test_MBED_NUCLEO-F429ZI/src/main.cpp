@@ -24,21 +24,33 @@ int main()
     //**************
     //
     //**************
-    FTGUI::ApplicationWindow a(new FTGUI::Dark);
+    auto a = new FTGUI::ApplicationWindow(new FTGUI::Dark);
 
     //    FTGUI::Rectangle r(150, 150, 100, 100, &a);
     //    r.setState(FTGUI::Active);
 
-    FTGUI::Button b1("Push Me", &a);
-    ThisThread::sleep_for(1000);
-    b1.setGeometry(10, 10, 80, 40);
-    a.show();
-    FTGUI::Label l1("I Love Atom Audio", &a);
-    l1.hide();
-    l1.setX(220);
-    l1.setY(130);
-    b1.setCallback(&l1,
-                   &FTGUI::Label::toggleVisible);
+    FTGUI::Button b1("<<", a);
+    FTGUI::Button b2(">>", a);
+
+    b1.setGeometry(0, 0, 80, 40);
+    b2.setGeometry(400, 0, 80, 40);
+
+    FTGUI::StackView layout(a);
+    layout.setGeometry(0, 40, a->width(), a->height() - 40);
+
+    FTGUI::Page r1(&layout);
+    FTGUI::Page r2(&layout);
+
+    FTGUI::Label l1("Reaaaally, reaaaaaally, loooooooooong looooooooong teeeeeext.", r1.contentItem());
+
+    FTGUI::Label l2("I Love Atom Audio more!", r2.contentItem());
+
+    b1.setCallback(&layout,
+                   &FTGUI::StackView::pop);
+
+    b2.setCallback(&layout,
+                   &FTGUI::StackView::push);
+    a->show();
 #endif
     printf("%u\n", EVE_report_cmdoffset());
     while(1)

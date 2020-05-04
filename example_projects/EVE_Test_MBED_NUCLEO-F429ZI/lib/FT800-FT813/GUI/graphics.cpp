@@ -41,9 +41,6 @@ Rectangle::Rectangle(uint16_t x,
            parent)
 {
     m_name = "Rectangle";
-    m_y      = y;
-    m_width  = width;
-    m_height = height;
 }
 
 void Rectangle::show()
@@ -279,15 +276,56 @@ Rectangle & Rectangle::setRadius(uint16_t radius)
 
 void Label::show()
 {
+    if(checkPositionInScreen() == false)
+        return;
     EVE_cmd_dl(TAG(m_touchTag));
     EVE_cmd_dl(DL_COLOR_RGB | (m_color.hex()));
     EVE_cmd_dl(COLOR_A(m_color.a()));
     EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
-    EVE_cmd_text(m_parent->x() + m_x,
-                 m_parent->y() + m_y,
-                 27,
-                 EVE_OPT_CENTER,
-                 m_label.c_str());
+    //TODO: Add font scaling to target size
+    //    EVE_cmd_dl(CMD_LOADIDENTITY);
+    //    EVE_cmd_scale(65536 / 2, 65536 / 2);
+    //    EVE_cmd_dl(CMD_SETMATRIX);
+    if(m_fillWidth == true)
+    {
+        EVE_cmd_dl(CMD_FILLWIDTH | m_width);
+        if(m_verticalAlignment == Bottom)
+        {
+            EVE_cmd_text(absX(),
+                         absY() - m_font.fontHeight(),
+                         m_font.fontNumber(),
+                         EVE_OPT_FILL,
+                         m_text.c_str());
+        }
+        else
+        {
+            EVE_cmd_text(absX(),
+                         absY(),
+                         m_font.fontNumber(),
+                         m_verticalAlignment | m_horizontalAlignment,
+                         m_text.c_str());
+        }
+    }
+    else
+    {
+        if(m_verticalAlignment == Bottom)
+        {
+            EVE_cmd_text(absX(),
+                         absY() - m_font.fontHeight(),
+                         m_font.fontNumber(),
+                         Top | m_horizontalAlignment,
+                         m_text.c_str());
+        }
+        else
+        {
+            EVE_cmd_text(absX(),
+                         absY(),
+                         m_font.fontNumber(),
+                         m_verticalAlignment | m_horizontalAlignment,
+                         m_text.c_str());
+        }
+    }
+    Widget::show();
 }
 
 Label::Label(string   text,
@@ -324,7 +362,36 @@ Label::Label(string   text,
     }
 }
 
-std::string Label::label() const
+Label::VAlignment Label::verticalAlignment() const
+{
+    return m_verticalAlignment;
+}
+
+void Label::setVerticalAlignment(const VAlignment & verticalAlignment)
+{
+    m_verticalAlignment = verticalAlignment;
+}
+
+Label::HAlignment Label::horizontalAlignment() const
+{
+    return m_horizontalAlignment;
+}
+
+void Label::setHorizontalAlignment(const HAlignment & horizontalAlignment)
+{
+    m_horizontalAlignment = horizontalAlignment;
+}
+
+bool Label::fillWidth() const
+{
+    return m_fillWidth;
+}
+
+void Label::setFillWidth(bool fillWidth)
+{
+    m_fillWidth = fillWidth;
+}
+
 std::string Label::text() const
 {
     return m_text;
@@ -343,6 +410,11 @@ Color Label::color() const
 void Label::setColor(const Color & color)
 {
     m_color = color;
+}
+
+uint8_t LFont::fontNumber() const
+{
+    return m_fontNumber;
 }
 
 }    // namespace FTGUI
