@@ -61,6 +61,26 @@ private:
 class FT8xx : private NonCopyable<FT8xx>
 {
 public:
+    enum PixelPrecision : uint8_t
+    {
+        Div_1,
+        Div_2,
+        Div_4,
+        Div_8,
+        Div_16
+    };
+    //*********Basic communication functions
+    void     cmdWrite(uint8_t command, uint8_t parameter);
+    uint8_t  rd8(uint32_t address);
+    uint16_t rd16(uint32_t address);
+    uint32_t rd32(uint32_t address);
+    //*************************
+    //*********Drawing functions
+    void drawVertexPointF(float x1,
+                          float y1);
+
+    //*************************
+
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     struct TouchCalibrationResult
     {
@@ -334,7 +354,7 @@ public:
         return cbs.tagNumber;
     }
 #endif
-    //*************************************************************
+    //**********************************************************************
 
 private:
     EVE_HAL * m_hal{nullptr};

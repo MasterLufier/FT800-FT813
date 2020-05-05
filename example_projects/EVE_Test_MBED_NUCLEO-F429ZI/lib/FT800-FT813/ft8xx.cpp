@@ -315,6 +315,62 @@ void FT8xx::setBacklight(uint8_t value)
     EVE_memWrite8(REG_PWM_DUTY, value);
 #endif
 }
+//*********Basic communication functions
+void FT8xx::cmdWrite(uint8_t cmd, uint8_t parameter)
+{
+    m_hal->csSet();
+    m_hal->write(cmd);
+    m_hal->write(parameter);
+    m_hal->write(0x00);
+    m_hal->csClear();
+}
+
+uint8_t FT8xx::rd8(uint32_t address)
+{
+    uint8_t data;
+    m_hal->csSet();
+    m_hal->write(static_cast<uint8_t>(address >> 16));
+    m_hal->write(static_cast<uint8_t>(address >> 8));
+    m_hal->write(static_cast<uint8_t>(address));
+    m_hal->write(0x00);
+    data = m_hal->write(0x00);
+}
+
+uint16_t FT8xx::rd16(uint32_t address)
+{
+}
+
+uint32_t FT8xx::rd32(uint32_t address)
+{
+}
+//*************************
+//*********Drawing functions
+void FT8xx::drawVertexPointF(float x1, float y1)
+{
+    switch(m_pixelPrecision)
+    {
+    case FT8xx::Div_1:
+        EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1),
+                            static_cast<uint32_t>(y1)));
+        break;
+    case FT8xx::Div_2:
+        EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 2),
+                            static_cast<uint32_t>(y1 * 2)));
+        break;
+    case FT8xx::Div_4:
+        EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 4),
+                            static_cast<uint32_t>(y1 * 4)));
+        break;
+    case FT8xx::Div_8:
+        EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 8),
+                            static_cast<uint32_t>(y1 * 8)));
+        break;
+    case FT8xx::Div_16:
+        EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 16),
+                            static_cast<uint32_t>(y1 * 16)));
+        break;
+    }
+}
 //*********************************************************************************
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 

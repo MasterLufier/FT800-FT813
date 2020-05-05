@@ -84,127 +84,130 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
   At the end of the DMA transfer an IRQ is executed which clears the DMA active state, calls EVE_cs_clear() and EVE_cmd_start().
 
 */
-#if !defined (__MBED__)
-#if !defined (ARDUINO)
+#if !defined(__MBED__)
+    #if !defined(ARDUINO)
 
-	#if defined (__IMAGECRAFT__)
-		#if defined (_AVR)
-			#include <iccioavr.h>
+        #if defined(__IMAGECRAFT__)
+            #if defined(_AVR)
+                #include <iccioavr.h>
 
-			static inline void DELAY_MS(uint16_t val)
-			{
-				uint16_t counter;
+static inline void DELAY_MS(uint16_t val)
+{
+    uint16_t counter;
 
-				while(val > 0)
-				{
-					for(counter=0; counter < 2000;counter++) // maybe ~1ms at 16MHz clock
-					{
-						__asm__ volatile ("nop");
-					}
-					val--;
-				}
-			}
+    while(val > 0)
+    {
+        for(counter = 0; counter < 2000; counter++)    // maybe ~1ms at 16MHz clock
+        {
+            __asm__ volatile("nop");
+        }
+        val--;
+    }
+}
 
-			#define EVE_CS_PORT	PORTB
-			#define EVE_CS 		(1<<PB5)
-			#define EVE_PDN_PORT	PORTB
-			#define EVE_PDN		(1<<PB4)
+                #define EVE_CS_PORT  PORTB
+                #define EVE_CS       (1 << PB5)
+                #define EVE_PDN_PORT PORTB
+                #define EVE_PDN      (1 << PB4)
 
-			static inline void EVE_pdn_set(void)
-			{
-				EVE_PDN_PORT &= ~EVE_PDN;	/* Power-Down low */
-			}
+static inline void EVE_pdn_set(void)
+{
+    EVE_PDN_PORT &= ~EVE_PDN; /* Power-Down low */
+}
 
-			static inline void EVE_pdn_clear(void)
-			{
-				EVE_PDN_PORT |= EVE_PDN;	/* Power-Down high */
-			}
+static inline void EVE_pdn_clear(void)
+{
+    EVE_PDN_PORT |= EVE_PDN; /* Power-Down high */
+}
 
-			static inline void EVE_cs_set(void)
-			{
-				EVE_CS_PORT &= ~EVE_CS;	/* cs low */
-			}
+static inline void EVE_cs_set(void)
+{
+    EVE_CS_PORT &= ~EVE_CS; /* cs low */
+}
 
-			static inline void EVE_cs_clear(void)
-			{
-				EVE_CS_PORT |= EVE_CS;	/* cs high */
-			}
+static inline void EVE_cs_clear(void)
+{
+    EVE_CS_PORT |= EVE_CS; /* cs high */
+}
 
-			static inline void spi_transmit_async(uint8_t data)
-			{
-				SPDR = data; /* start transmission */
-				while(!(SPSR & (1<<SPIF))); /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
-			}
+static inline void spi_transmit_async(uint8_t data)
+{
+    SPDR = data; /* start transmission */
+    while(!(SPSR & (1 << SPIF)))
+        ; /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
+}
 
-			static inline void spi_transmit(uint8_t data)
-			{
-				SPDR = data; /* start transmission */
-				while(!(SPSR & (1<<SPIF))); /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
-			}
+static inline void spi_transmit(uint8_t data)
+{
+    SPDR = data; /* start transmission */
+    while(!(SPSR & (1 << SPIF)))
+        ; /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
+}
 
-			static inline uint8_t spi_receive(uint8_t data)
-			{
-				SPDR = data; /* start transmission */
-				while(!(SPSR & (1<<SPIF))); /* wait for transmission to complete - 1us @ 8MHz SPI-CLock */
-				return SPDR;
-			}
+static inline uint8_t spi_receive(uint8_t data)
+{
+    SPDR = data; /* start transmission */
+    while(!(SPSR & (1 << SPIF)))
+        ; /* wait for transmission to complete - 1us @ 8MHz SPI-CLock */
+    return SPDR;
+}
 
-			static inline uint8_t fetch_flash_byte(const uint8_t *data)
-			{
-				return *data;
-			}
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+    return *data;
+}
 
+            #endif
+        #endif
 
-		#endif
-	#endif
+        /*----------------------------------------------------------------------------------------------------------------*/
+        /*----------------------------------------------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
+        #if defined(__GNUC__)
 
-    #if defined (__GNUC__)
+            #if defined(__AVR__)
 
-		#if	defined (__AVR__)
+                #include <avr/io.h>
+                #include <avr/pgmspace.h>
+                #define F_CPU 16000000UL
+                #include <util/delay.h>
 
-			#include <avr/io.h>
-			#include <avr/pgmspace.h>
-			#define F_CPU 16000000UL
-			#include <util/delay.h>
+                #define DELAY_MS(ms) _delay_ms(ms)
 
-			#define DELAY_MS(ms) _delay_ms(ms)
+                #define EVE_CS_PORT  PORTB
+                #define EVE_CS       (1 << PB5)
+                #define EVE_PDN_PORT PORTB
+                #define EVE_PDN      (1 << PB4)
 
-			#define EVE_CS_PORT	PORTB
-			#define EVE_CS 		(1<<PB5)
-			#define EVE_PDN_PORT	PORTB
-			#define EVE_PDN		(1<<PB4)
+static inline void EVE_pdn_set(void)
+{
+    EVE_PDN_PORT &= ~EVE_PDN; /* Power-Down low */
+}
 
-			static inline void EVE_pdn_set(void)
-			{
-				EVE_PDN_PORT &= ~EVE_PDN;	/* Power-Down low */
-			}
+static inline void EVE_pdn_clear(void)
+{
+    EVE_PDN_PORT |= EVE_PDN; /* Power-Down high */
+}
 
-			static inline void EVE_pdn_clear(void)
-			{
-				EVE_PDN_PORT |= EVE_PDN;	/* Power-Down high */
-			}
+static inline void EVE_cs_set(void)
+{
+    EVE_CS_PORT &= ~EVE_CS; /* cs low */
+}
 
-			static inline void EVE_cs_set(void)
-			{
-				EVE_CS_PORT &= ~EVE_CS;	/* cs low */
-			}
+static inline void EVE_cs_clear(void)
+{
+    EVE_CS_PORT |= EVE_CS; /* cs high */
+}
 
-			static inline void EVE_cs_clear(void)
-			{
-				EVE_CS_PORT |= EVE_CS;	/* cs high */
-			}
+static inline void spi_transmit_async(uint8_t data)
+{
+                #if 1
+    SPDR = data; /* start transmission */
+    while(!(SPSR & (1 << SPIF)))
+        ; /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
+                #endif
 
-			static inline void spi_transmit_async(uint8_t data)
-			{
-#if 1
-				SPDR = data; /* start transmission */
-				while(!(SPSR & (1<<SPIF))); /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
-#endif
-
-#if 0
+                #if 0
 				uint8_t spiIndex  = 0x80;
 				uint8_t k;
 
@@ -221,17 +224,18 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
 					spiIndex >>= 1;
 				}
-#endif
-			}
+                #endif
+}
 
-			static inline void spi_transmit(uint8_t data)
-			{
-#if 1
-				SPDR = data; /* start transmission */
-				while(!(SPSR & (1<<SPIF))); /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
-#endif
+static inline void spi_transmit(uint8_t data)
+{
+                #if 1
+    SPDR = data; /* start transmission */
+    while(!(SPSR & (1 << SPIF)))
+        ; /* wait for transmission to complete - 1us @ 8MHz SPI-Clock */
+                #endif
 
-#if 0
+                #if 0
 				uint8_t spiIndex  = 0x80;
 				uint8_t k;
 
@@ -251,18 +255,19 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
 					spiIndex >>= 1;
 				}
-#endif
-			}
+                #endif
+}
 
-			static inline uint8_t spi_receive(uint8_t data)
-			{
-#if 1
-				SPDR = data; /* start transmission */
-				while(!(SPSR & (1<<SPIF))); /* wait for transmission to complete - 1us @ 8MHz SPI-CLock */
-				return SPDR;
-#endif
+static inline uint8_t spi_receive(uint8_t data)
+{
+                #if 1
+    SPDR = data; /* start transmission */
+    while(!(SPSR & (1 << SPIF)))
+        ; /* wait for transmission to complete - 1us @ 8MHz SPI-CLock */
+    return SPDR;
+                #endif
 
-#if 0
+                #if 0
 				uint8_t spiIndex  = 0x80;
 				uint8_t spiInByte = 0;
 				uint8_t k;
@@ -289,679 +294,700 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 					spiIndex >>= 1;
 				}
 				return spiInByte;
-#endif
-
-			}
-
-			static inline uint8_t fetch_flash_byte(const uint8_t *data)
-			{
-				#if defined (__AVR_HAVE_ELPM__)	/* we have an AVR with more than 64kB FLASH memory */
-					return(pgm_read_byte_far(data));
-				#else
-					return(pgm_read_byte_near(data));
-				#endif
-			}
-
-		#endif /* AVR */
-
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
-
-		#if defined (__v851__)
-
-			#include <stdint.h>
-			#include "rh850_regs.h"
-			#include "os.h"
-
-			#define DELAY_MS(ms)	OS_Wait(ms * 1000)
-
-			static inline void EVE_pdn_set(void)
-			{
-				P0 &= ~(1u<<6);
-			}
-
-			static inline void EVE_pdn_clear(void)
-			{
-				P0 |= (1u<<6);
-			}
-
-			static inline void EVE_cs_set(void)
-			{
-				P8 &= ~(1u<<2); /* manually set chip-select to low */
-			}
-
-			static inline void EVE_cs_clear(void)
-			{
-				P8 |= (1u<<2);  /* manually set chip-select to high */
-			}
-
-			static inline void spi_transmit_async(uint8_t data)
-			{
-				CSIH0CTL0 = 0xC1; /* CSIH2PWR = 1;  CSIH2TXE=1; CSIH2RXE = 0; direct access mode  */
-				CSIH0TX0H = data;	/* start transmission */
-				while(CSIH0STR0 & 0x00080);	/* wait for transmission to complete - 800ns @ 10MHz SPI-Clock */
-			}
-
-			static inline void spi_transmit(uint8_t data)
-			{
-				CSIH0CTL0 = 0xC1; /* CSIH2PWR = 1;  CSIH2TXE=1; CSIH2RXE = 0; direct access mode  */
-				CSIH0TX0H = data;	/* start transmission */
-				while(CSIH0STR0 & 0x00080);	/* wait for transmission to complete - 800ns @ 10MHz SPI-Clock */
-			}
-
-			static inline uint8_t spi_receive(uint8_t data)
-			{
-				CSIH0CTL0 = 0xE1; /* CSIH2PWR = 1;  CSIH2TXE=1; CSIH2RXE = 1; direct access mode  */
-				CSIH0TX0H = data;	/* start transmission */
-				while(CSIH0STR0 & 0x00080);	/* wait for transmission to complete - 800ns @ 10MHz SPI-Clock */
-				return (uint8_t) CSIH0RX0H;
-			}
-
-			static inline uint8_t fetch_flash_byte(const uint8_t *data)
-			{
-				return *data;
-			}
-
-		#endif /* RH850 */
-
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
-
-		#if defined (__TRICORE__)
-
-			#include "types.h"
-			#include "os.h"
-			#include "dio.h"
-			#include "spi.h"
-
-			#define DELAY_MS(ms) OS_Wait(ms * 1000)
-
-			static inline void EVE_pdn_set(void)
-			{
-				HW_DIO_SetSync(IO_DIO_DIGOUT_PD_TFT, 0);/* Power-Down low */
-			}
-
-			static inline void EVE_pdn_clear(void)
-			{
-				HW_DIO_SetSync(IO_DIO_DIGOUT_PD_TFT, 1);/* Power-Down high */
-			}
-
-			static inline void EVE_cs_set(void)
-			{
-				HW_DIO_SetSync(IO_DIO_DIGOUT_CS_TFT, 0); /* manually set chip-select to low */
-			}
-
-			static inline void EVE_cs_clear(void)
-			{
-				HW_DIO_SetSync(IO_DIO_DIGOUT_CS_TFT, 1);  /* manually set chip-select to high */
-			}
-
-			static inline void spi_transmit_async(uint8_t data)
-			{
-				SPI_ReceiveByte(data);
-			}
-
-			static inline void spi_transmit(uint8_t data)
-			{
-				SPI_ReceiveByte(data);
-			}
-
-			static inline uint8_t spi_receive(uint8_t data)
-			{
-				return SPI_ReceiveByte(data);
-			}
-
-			static inline uint8_t fetch_flash_byte(const uint8_t *data)
-			{
-				return *data;
-			}
-
-		#endif /* __TRICORE__ */
-
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
-
-		#if defined (__SAMC21E18A__) || (__SAME51J19A__)	/* target as set by AtmelStudio */
-
-		#include "sam.h"
-
-		#if defined  (__SAMC21E18A__)
-		#define EVE_CS_PORT 0
-		#define EVE_CS PORT_PA05
-		#define EVE_PDN_PORT 0
-		#define EVE_PDN PORT_PA03
-		#define EVE_SPI SERCOM0
-		#define EVE_SPI_DMA_TRIGGER SERCOM0_DMAC_ID_TX
-		#define EVE_DMA_CHANNEL 0
-		#define EVE_DMA
-		#define EVE_DELAY_1MS 8000	 // ~1ms at 48MHz Core-Clock
-		#endif
-
-		#if defined (__SAME51J19A__)
-		#define EVE_CS_PORT 1
-		#define EVE_CS PORT_PB01
-		#define EVE_PDN_PORT 1
-		#define EVE_PDN PORT_PB31
-		#define EVE_SPI SERCOM5
-		#define EVE_SPI_DMA_TRIGGER SERCOM5_DMAC_ID_TX
-		#define EVE_DMA_CHANNEL 0
-		#define EVE_DMA
-		#define EVE_DELAY_1MS 9000	 /* ~1ms at 120MHz Core-Clock, according to my Logic-Analyzer */
-		#endif
-
-
-		#if defined (EVE_DMA)
-			extern uint8_t EVE_dma_buffer[4100];
-			extern volatile uint16_t EVE_dma_buffer_index;
-			extern volatile uint8_t EVE_dma_busy;
-
-			void EVE_init_dma(void);
-			void EVE_start_dma_transfer(void);
-		#endif
-
-		void DELAY_MS(uint16_t val);
-
-
-		static inline void EVE_pdn_set(void)
-		{
-			PORT->Group[EVE_PDN_PORT].OUTCLR.reg = EVE_PDN;
-		}
-
-		static inline void EVE_pdn_clear(void)
-		{
-			PORT->Group[EVE_PDN_PORT].OUTSET.reg = EVE_PDN;
-		}
-
-		static inline void EVE_cs_set(void)
-		{
-			PORT->Group[EVE_CS_PORT].OUTCLR.reg = EVE_CS;
-		}
-
-		static inline void EVE_cs_clear(void)
-		{
-			PORT->Group[EVE_CS_PORT].OUTSET.reg = EVE_CS;
-		}
-
-		static inline void spi_transmit_async(uint8_t data)
-		{
-			#if defined (EVE_DMA)
-				EVE_dma_buffer[EVE_dma_buffer_index++] = data;
-			#else
-				EVE_SPI->SPI.DATA.reg = data;
-				while((EVE_SPI->SPI.INTFLAG.reg & SERCOM_SPI_INTFLAG_TXC) == 0);
-				(void) EVE_SPI->SPI.DATA.reg; /* dummy read-access to clear SERCOM_SPI_INTFLAG_RXC */
-			#endif
-		}
-
-		static inline void spi_transmit(uint8_t data)
-		{
-			EVE_SPI->SPI.DATA.reg = data;
-			while((EVE_SPI->SPI.INTFLAG.reg & SERCOM_SPI_INTFLAG_TXC) == 0);
-			(void) EVE_SPI->SPI.DATA.reg; /* dummy read-access to clear SERCOM_SPI_INTFLAG_RXC */
-		}
-
-		static inline uint8_t spi_receive(uint8_t data)
-		{
-			EVE_SPI->SPI.DATA.reg = data;
-			while((EVE_SPI->SPI.INTFLAG.reg & SERCOM_SPI_INTFLAG_TXC) == 0);
-			return EVE_SPI->SPI.DATA.reg;
-		}
-
-		static inline uint8_t fetch_flash_byte(const uint8_t *data)
-		{
-			return *data;
-		}
-
-		#endif /* __SAMC21J18A__ / __SAME51J19A__ */
-
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
-
-		#if defined (__riscv)
-
-//		#warning Compiling for GD32VF103CBT6
-
-		#include "gd32vf103.h"
-
-		static inline void DELAY_MS(uint16_t val)
-		{
-			uint16_t counter;
-
-			while(val > 0)
-			{
-				for(counter=0; counter < 18000;counter++) /* ~1ms at 108MHz Core-Clock, according to my Logic-Analyzer */
-				{
-					__asm__ volatile ("nop");
-				}
-				val--;
-			}
-		}
-
-		static inline void EVE_pdn_set(void)
-		{
-			gpio_bit_reset(GPIOB,GPIO_PIN_1);
-		}
-
-		static inline void EVE_pdn_clear(void)
-		{
-			gpio_bit_set(GPIOB,GPIO_PIN_1);
-		}
-
-		static inline void EVE_cs_set(void)
-		{
-			gpio_bit_reset(GPIOB,GPIO_PIN_0);
-		}
-
-		static inline void EVE_cs_clear(void)
-		{
-			gpio_bit_set(GPIOB,GPIO_PIN_0);
-		}
-
-		static inline void spi_transmit_async(uint8_t data)
-		{
-			#if defined (EVE_DMA)
-				EVE_dma_buffer[EVE_dma_buffer_index++] = data;
-			#else
-				SPI_DATA(SPI0) = (uint32_t) data;
-				while(SPI_STAT(SPI0) & SPI_STAT_TRANS);
-			#endif
-		}
-
-		static inline void spi_transmit(uint8_t data)
-		{
-				SPI_DATA(SPI0) = (uint32_t) data;
-				while(SPI_STAT(SPI0) & SPI_STAT_TRANS);
-		}
-
-		static inline uint8_t spi_receive(uint8_t data)
-		{
-				SPI_DATA(SPI0) = (uint32_t) data;
-				while(SPI_STAT(SPI0) & SPI_STAT_TRANS);
-				return (uint8_t) SPI_DATA(SPI0);
-		}
-
-		static inline uint8_t fetch_flash_byte(const uint8_t *data)
-		{
-			return *data;
-		}
-
-		#endif /* __riscv */
-
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
-
-		#if defined (STM32L073xx) || (STM32F1) || (STM32F207xx) || (STM32F3) || (STM32F4)
-
-		#if defined (STM32L073xx) /* set by PlatformIO board definition file nucleo_l073z.json */
-		#include "stm32l0xx.h"
-		#include "stm32l0xx_hal.h"
-		#include "stm32l0xx_ll_spi.h"
-		#endif
-
-		#if defined (STM32F1) /* set by PlatformIO board definition file genericSTM32F103C8.json */
-		#include "stm32f1xx.h"
-		#include "stm32f1xx_hal.h"
-		#include "stm32f1xx_ll_spi.h"
-		#endif
-
-		#if defined (STM32F207xx) /* set by PlatformIO board definition file nucleo_f207zg.json */
-		#include "stm32f2xx.h"
-		#include "stm32f2xx_hal.h"
-		#include "stm32f2xx_ll_spi.h"
-		#endif
-
-		#if defined (STM32F3) /* set by PlatformIO board definition file genericSTM32F303CB.json */
-		#include "stm32f3xx.h"
-		#include "stm32f3xx_hal.h"
-		#include "stm32f3xx_ll_spi.h"
-		#endif
-
-		#if defined (STM32F4) /* set by PlatformIO board definition file genericSTM32F407VET6.json */
-		#include "stm32f4xx.h"
-		#include "stm32f4xx_hal.h"
-		#include "stm32f4xx_ll_spi.h"
-		#endif
-
-
-		#define EVE_CS_PORT GPIOD
-		#define EVE_CS GPIO_PIN_12
-		#define EVE_PDN_PORT GPIOD
-		#define EVE_PDN GPIO_PIN_13
-		#define EVE_SPI SPI1
-		#define EVE_DMA_INSTANCE DMA2
-		#define EVE_DMA_CHANNEL 3
-		#define EVE_DMA_STREAM 3
-//		#define EVE_DMA		/* do not active, it is not working yet */
-
-		#if defined (EVE_DMA)
-			extern uint8_t EVE_dma_buffer[4100];
-			extern volatile uint16_t EVE_dma_buffer_index;
-			extern volatile uint8_t EVE_dma_busy;
-
-			void EVE_init_dma(void);
-			void EVE_start_dma_transfer(void);
-		#endif
-
-		#define DELAY_MS(ms) HAL_Delay(ms)
-
-		static inline void EVE_pdn_clear(void)
-		{
-			HAL_GPIO_WritePin(EVE_PDN_PORT, EVE_PDN, GPIO_PIN_SET);
-		}
-
-		static inline void EVE_pdn_set(void)
-		{
-			HAL_GPIO_WritePin(EVE_PDN_PORT, EVE_PDN, GPIO_PIN_RESET);
-		}
-
-		static inline void EVE_cs_clear(void)
-		{
-			HAL_GPIO_WritePin(EVE_CS_PORT, EVE_CS, GPIO_PIN_SET);
-		}
-
-		static inline void EVE_cs_set(void)
-		{
-			HAL_GPIO_WritePin(EVE_CS_PORT, EVE_CS, GPIO_PIN_RESET);
-		}
-
-		static inline void spi_transmit(uint8_t data)
-		{
-			LL_SPI_TransmitData8(EVE_SPI, data);
-			while(!LL_SPI_IsActiveFlag_TXE(EVE_SPI));
-			while(!LL_SPI_IsActiveFlag_RXNE(EVE_SPI));
-			LL_SPI_ReceiveData8(EVE_SPI); /* dummy read-access to clear SPI_SR_RXNE */
-		}
-
-		static inline void spi_transmit_async(uint8_t data)
-		{
-			#if defined (EVE_DMA)
-				EVE_dma_buffer[EVE_dma_buffer_index++] = data;
-			#else
-				LL_SPI_TransmitData8(EVE_SPI, data);
-				while(!LL_SPI_IsActiveFlag_TXE(EVE_SPI));
-				while(!LL_SPI_IsActiveFlag_RXNE(EVE_SPI));
-				LL_SPI_ReceiveData8(EVE_SPI); /* dummy read-access to clear SPI_SR_RXNE */
-			#endif
-		}
-
-		static inline uint8_t spi_receive(uint8_t data)
-		{
-			LL_SPI_TransmitData8(EVE_SPI, data);
-			while(!LL_SPI_IsActiveFlag_TXE(EVE_SPI));
-			while(!LL_SPI_IsActiveFlag_RXNE(EVE_SPI));
-			return LL_SPI_ReceiveData8(EVE_SPI);
-		}
-
-		static inline uint8_t fetch_flash_byte(const uint8_t *data)
-		{
-			return *data;
-		}
-
-		#endif  /* STM32 */
-
-	#endif /* __GNUC__ */
-
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
-
-    #if defined (__TI_ARM__)
-
-        #if defined (__MSP432P401R__)
-
-        #include <ti/devices/msp432p4xx/inc/msp.h>
-        #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-        #include <stdint.h>
-
-        #define RIVERDI_PORT GPIO_PORT_P1
-        #define RIVERDI_SIMO BIT6   // P1.6
-        #define RIVERDI_SOMI BIT7   // P1.7
-        #define RIVERDI_CLK BIT5    // P1.5
-        #define EVE_CS_PORT         GPIO_PORT_P5
-        #define EVE_CS              GPIO_PIN0           //P5.0
-        #define EVE_PDN_PORT        GPIO_PORT_P5
-        #define EVE_PDN             GPIO_PIN1           //P5.1
-
-        void EVE_SPI_Init(void);
-
-        static inline void DELAY_MS(uint16_t val)
-        {
-            uint16_t counter;
-
-            while(val > 0)
-            {
-                for(counter=0; counter < 8000;counter++) // ~1ms at 48MHz Core-Clock
-                {
-                    __nop();
-                }
-                val--;
-            }
-        }
-
-        static inline void EVE_pdn_set(void)
-        {
-//            GPIO_setOutputLowOnPin(EVE_PDN_PORT,EVE_PDN);   /* Power-Down low */
-            P5OUT &= ~EVE_PDN;   /* Power-Down low */
-        }
-
-        static inline void EVE_pdn_clear(void)
-        {
-//            GPIO_setOutputHighOnPin(EVE_PDN_PORT,EVE_PDN);   /* Power-Down high */
-            P5OUT |= EVE_PDN;    /* Power-Down high */
-        }
-
-        static inline void EVE_cs_set(void)
-        {
-//            GPIO_setOutputLowOnPin(EVE_CS_PORT,EVE_CS);   /* CS low */
-            P5OUT &= ~EVE_CS;   /* CS low */
-        }
-
-        static inline void EVE_cs_clear(void)
-        {
-//            GPIO_setOutputHighOnPin(EVE_CS_PORT,EVE_CS);    /* CS high */
-            P5OUT |= EVE_CS;    /* CS high */
-        }
-
-        static inline void spi_transmit_async(uint8_t data)
-        {
-            #if defined (EVE_DMA)
-
-            #else
-//            SPI_transmitData(EUSCI_B0_BASE, data);
-//            while (!(SPI_getInterruptStatus(EUSCI_B0_BASE,EUSCI_B_SPI_TRANSMIT_INTERRUPT)));
-
-            UCB0TXBUF_SPI = data;
-            while(!(UCB0IFG_SPI & UCTXIFG)); /* wait for transmission to complete */
-            #endif
-        }
-
-        static inline void spi_transmit(uint8_t data)
-        {
-//            SPI_transmitData(EUSCI_B0_BASE, data);
-//            while (!(SPI_getInterruptStatus(EUSCI_B0_BASE,EUSCI_B_SPI_TRANSMIT_INTERRUPT)));
-
-            UCB0TXBUF_SPI = data;
-            while(!(UCB0IFG_SPI & UCTXIFG)); /* wait for transmission to complete */
-        }
-
-        static inline uint8_t spi_receive(uint8_t data)
-        {
-//            SPI_transmitData(EUSCI_B0_BASE, data);
-//            while (!(SPI_getInterruptStatus(EUSCI_B0_BASE,EUSCI_B_SPI_TRANSMIT_INTERRUPT)));
-//            return EUSCI_B_CMSIS(EUSCI_B0_BASE)->RXBUF;
-
-            UCB0TXBUF_SPI = data;
-            while(!(UCB0IFG_SPI & UCTXIFG)); /* wait for transmission to complete */
-            return UCB0RXBUF_SPI;
-         }
-
-        static inline uint8_t fetch_flash_byte(const uint8_t *data)
-        {
-            return *data;
-        }
-
-        #endif /* __MSP432P401R__ */
-
-    #endif /* __TI_ARM */
-#endif
-
-/*----------------------------------------------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------------------------------------------*/
-
-#if defined (ARDUINO)
-
-	#include <Arduino.h>
-	#include <stdio.h>
-	#include <SPI.h>
-
-	#define EVE_CS 		9
-	#define EVE_PDN		8
-
-	#define DELAY_MS(ms) delay(ms)
-
-	#if defined (ESP8266)
-
-	#endif
-
-	#if	defined (__AVR__)
-		#include <avr/pgmspace.h>
-	#endif
-
-
-	static inline void EVE_pdn_set(void)
-	{
-		digitalWrite(EVE_PDN, LOW);	/* Power-Down low */
-	}
-
-	static inline void EVE_pdn_clear(void)
-	{
-		digitalWrite(EVE_PDN, HIGH);	/* Power-Down high */
-	}
-
-	static inline void EVE_cs_set(void)
-	{
-		SPI.setDataMode(SPI_MODE0);
-		digitalWrite(EVE_CS, LOW);
-	}
-
-	static inline void EVE_cs_clear(void)
-	{
-		digitalWrite(EVE_CS, HIGH);
-	}
-
-	#if defined (ESP8266)
-		static inline void spi_transmit_async(uint8_t data)
-		{
-			SPI.write(data);
-		}
-
-		static inline void spi_transmit(uint8_t data)
-		{
-			SPI.write(data);
-		}
-	#else
-		static inline void spi_transmit_async(uint8_t data)
-		{
-			SPI.transfer(data);
-		}
-
-		static inline void spi_transmit(uint8_t data)
-		{
-			SPI.transfer(data);
-		}
-	#endif
-
-	static inline uint8_t spi_receive(uint8_t data)
-	{
-		return SPI.transfer(data);
-	}
-
-	static inline uint8_t fetch_flash_byte(const uint8_t *data)
-	{
-		#if	defined (__AVR__)
-			#if defined(RAMPZ)
-				return(pgm_read_byte_far(data));
-			#else
-				return(pgm_read_byte_near(data));
-			#endif
-		#else /* this may fail on your Arduino system that is not AVR and that I am not aware of */
-			return *data;
-		#endif
-	}
-
-#endif /* Arduino */
-    /*----------------------------------------------------------------------------------------------------------------*/
-    /*----------------------------------------------------------------------------------------------------------------*/
-#endif  /* __MBED__*/
-
-#if defined (__MBED__)
-#include <mbed.h>
-    //Use thread waiting or not
-    static inline void _eve_delay(uint32_t ms)
+                #endif
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+                #if defined(__AVR_HAVE_ELPM__) /* we have an AVR with more than 64kB FLASH memory */
+    return (pgm_read_byte_far(data));
+                #else
+    return (pgm_read_byte_near(data));
+                #endif
+}
+
+            #endif /* AVR */
+
+            /*----------------------------------------------------------------------------------------------------------------*/
+            /*----------------------------------------------------------------------------------------------------------------*/
+
+            #if defined(__v851__)
+
+                #include "os.h"
+                #include "rh850_regs.h"
+
+                #include <stdint.h>
+
+                #define DELAY_MS(ms) OS_Wait(ms * 1000)
+
+static inline void EVE_pdn_set(void)
+{
+    P0 &= ~(1u << 6);
+}
+
+static inline void EVE_pdn_clear(void)
+{
+    P0 |= (1u << 6);
+}
+
+static inline void EVE_cs_set(void)
+{
+    P8 &= ~(1u << 2); /* manually set chip-select to low */
+}
+
+static inline void EVE_cs_clear(void)
+{
+    P8 |= (1u << 2); /* manually set chip-select to high */
+}
+
+static inline void spi_transmit_async(uint8_t data)
+{
+    CSIH0CTL0 = 0xC1; /* CSIH2PWR = 1;  CSIH2TXE=1; CSIH2RXE = 0; direct access mode  */
+    CSIH0TX0H = data; /* start transmission */
+    while(CSIH0STR0 & 0x00080)
+        ; /* wait for transmission to complete - 800ns @ 10MHz SPI-Clock */
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    CSIH0CTL0 = 0xC1; /* CSIH2PWR = 1;  CSIH2TXE=1; CSIH2RXE = 0; direct access mode  */
+    CSIH0TX0H = data; /* start transmission */
+    while(CSIH0STR0 & 0x00080)
+        ; /* wait for transmission to complete - 800ns @ 10MHz SPI-Clock */
+}
+
+static inline uint8_t spi_receive(uint8_t data)
+{
+    CSIH0CTL0 = 0xE1; /* CSIH2PWR = 1;  CSIH2TXE=1; CSIH2RXE = 1; direct access mode  */
+    CSIH0TX0H = data; /* start transmission */
+    while(CSIH0STR0 & 0x00080)
+        ; /* wait for transmission to complete - 800ns @ 10MHz SPI-Clock */
+    return (uint8_t)CSIH0RX0H;
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+    return *data;
+}
+
+            #endif /* RH850 */
+
+            /*----------------------------------------------------------------------------------------------------------------*/
+            /*----------------------------------------------------------------------------------------------------------------*/
+
+            #if defined(__TRICORE__)
+
+                #include "dio.h"
+                #include "os.h"
+                #include "spi.h"
+                #include "types.h"
+
+                #define DELAY_MS(ms) OS_Wait(ms * 1000)
+
+static inline void EVE_pdn_set(void)
+{
+    HW_DIO_SetSync(IO_DIO_DIGOUT_PD_TFT, 0); /* Power-Down low */
+}
+
+static inline void EVE_pdn_clear(void)
+{
+    HW_DIO_SetSync(IO_DIO_DIGOUT_PD_TFT, 1); /* Power-Down high */
+}
+
+static inline void EVE_cs_set(void)
+{
+    HW_DIO_SetSync(IO_DIO_DIGOUT_CS_TFT, 0); /* manually set chip-select to low */
+}
+
+static inline void EVE_cs_clear(void)
+{
+    HW_DIO_SetSync(IO_DIO_DIGOUT_CS_TFT, 1); /* manually set chip-select to high */
+}
+
+static inline void spi_transmit_async(uint8_t data)
+{
+    SPI_ReceiveByte(data);
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    SPI_ReceiveByte(data);
+}
+
+static inline uint8_t spi_receive(uint8_t data)
+{
+    return SPI_ReceiveByte(data);
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+    return *data;
+}
+
+            #endif /* __TRICORE__ */
+
+            /*----------------------------------------------------------------------------------------------------------------*/
+            /*----------------------------------------------------------------------------------------------------------------*/
+
+            #if defined(__SAMC21E18A__) || (__SAME51J19A__) /* target as set by AtmelStudio */
+
+                #include "sam.h"
+
+                #if defined(__SAMC21E18A__)
+                    #define EVE_CS_PORT         0
+                    #define EVE_CS              PORT_PA05
+                    #define EVE_PDN_PORT        0
+                    #define EVE_PDN             PORT_PA03
+                    #define EVE_SPI             SERCOM0
+                    #define EVE_SPI_DMA_TRIGGER SERCOM0_DMAC_ID_TX
+                    #define EVE_DMA_CHANNEL     0
+                    #define EVE_DMA
+                    #define EVE_DELAY_1MS 8000    // ~1ms at 48MHz Core-Clock
+                #endif
+
+                #if defined(__SAME51J19A__)
+                    #define EVE_CS_PORT         1
+                    #define EVE_CS              PORT_PB01
+                    #define EVE_PDN_PORT        1
+                    #define EVE_PDN             PORT_PB31
+                    #define EVE_SPI             SERCOM5
+                    #define EVE_SPI_DMA_TRIGGER SERCOM5_DMAC_ID_TX
+                    #define EVE_DMA_CHANNEL     0
+                    #define EVE_DMA
+                    #define EVE_DELAY_1MS 9000 /* ~1ms at 120MHz Core-Clock, according to my Logic-Analyzer */
+                #endif
+
+                #if defined(EVE_DMA)
+extern uint8_t           EVE_dma_buffer[4100];
+extern volatile uint16_t EVE_dma_buffer_index;
+extern volatile uint8_t  EVE_dma_busy;
+
+void EVE_init_dma(void);
+void EVE_start_dma_transfer(void);
+                #endif
+
+void DELAY_MS(uint16_t val);
+
+static inline void EVE_pdn_set(void)
+{
+    PORT->Group[EVE_PDN_PORT].OUTCLR.reg = EVE_PDN;
+}
+
+static inline void EVE_pdn_clear(void)
+{
+    PORT->Group[EVE_PDN_PORT].OUTSET.reg = EVE_PDN;
+}
+
+static inline void EVE_cs_set(void)
+{
+    PORT->Group[EVE_CS_PORT].OUTCLR.reg = EVE_CS;
+}
+
+static inline void EVE_cs_clear(void)
+{
+    PORT->Group[EVE_CS_PORT].OUTSET.reg = EVE_CS;
+}
+
+static inline void spi_transmit_async(uint8_t data)
+{
+                #if defined(EVE_DMA)
+    EVE_dma_buffer[EVE_dma_buffer_index++] = data;
+                #else
+    EVE_SPI->SPI.DATA.reg = data;
+    while((EVE_SPI->SPI.INTFLAG.reg & SERCOM_SPI_INTFLAG_TXC) == 0)
+        ;
+    (void)EVE_SPI->SPI.DATA.reg; /* dummy read-access to clear SERCOM_SPI_INTFLAG_RXC */
+                #endif
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    EVE_SPI->SPI.DATA.reg = data;
+    while((EVE_SPI->SPI.INTFLAG.reg & SERCOM_SPI_INTFLAG_TXC) == 0)
+        ;
+    (void)EVE_SPI->SPI.DATA.reg; /* dummy read-access to clear SERCOM_SPI_INTFLAG_RXC */
+}
+
+static inline uint8_t spi_receive(uint8_t data)
+{
+    EVE_SPI->SPI.DATA.reg = data;
+    while((EVE_SPI->SPI.INTFLAG.reg & SERCOM_SPI_INTFLAG_TXC) == 0)
+        ;
+    return EVE_SPI->SPI.DATA.reg;
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+    return *data;
+}
+
+            #endif /* __SAMC21J18A__ / __SAME51J19A__ */
+
+            /*----------------------------------------------------------------------------------------------------------------*/
+            /*----------------------------------------------------------------------------------------------------------------*/
+
+            #if defined(__riscv)
+
+                //		#warning Compiling for GD32VF103CBT6
+
+                #include "gd32vf103.h"
+
+static inline void DELAY_MS(uint16_t val)
+{
+    uint16_t counter;
+
+    while(val > 0)
     {
-#if defined (PIO_FRAMEWORK_MBED_RTOS_PRESENT) \
-            && (MBED_CONF_RTOS_API_PRESENT) \
-            && (MBED_CONF_RTOS_PRESENT)
-        ThisThread::sleep_for(ms);
-#else
-    wait_us(ms*1000);
-#endif
+        for(counter = 0; counter < 18000; counter++) /* ~1ms at 108MHz Core-Clock, according to my Logic-Analyzer */
+        {
+            __asm__ volatile("nop");
+        }
+        val--;
     }
-#define DELAY_MS(ms) _eve_delay(ms)
+}
 
-    class EVE_HAL
+static inline void EVE_pdn_set(void)
+{
+    gpio_bit_reset(GPIOB, GPIO_PIN_1);
+}
+
+static inline void EVE_pdn_clear(void)
+{
+    gpio_bit_set(GPIOB, GPIO_PIN_1);
+}
+
+static inline void EVE_cs_set(void)
+{
+    gpio_bit_reset(GPIOB, GPIO_PIN_0);
+}
+
+static inline void EVE_cs_clear(void)
+{
+    gpio_bit_set(GPIOB, GPIO_PIN_0);
+}
+
+static inline void spi_transmit_async(uint8_t data)
+{
+                #if defined(EVE_DMA)
+    EVE_dma_buffer[EVE_dma_buffer_index++] = data;
+                #else
+    SPI_DATA(SPI0) = (uint32_t)data;
+    while(SPI_STAT(SPI0) & SPI_STAT_TRANS)
+        ;
+                #endif
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    SPI_DATA(SPI0) = (uint32_t)data;
+    while(SPI_STAT(SPI0) & SPI_STAT_TRANS)
+        ;
+}
+
+static inline uint8_t spi_receive(uint8_t data)
+{
+    SPI_DATA(SPI0) = (uint32_t)data;
+    while(SPI_STAT(SPI0) & SPI_STAT_TRANS)
+        ;
+    return (uint8_t)SPI_DATA(SPI0);
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+    return *data;
+}
+
+            #endif /* __riscv */
+
+            /*----------------------------------------------------------------------------------------------------------------*/
+            /*----------------------------------------------------------------------------------------------------------------*/
+
+            #if defined(STM32L073xx) || (STM32F1) || (STM32F207xx) || (STM32F3) || (STM32F4)
+
+                #if defined(STM32L073xx) /* set by PlatformIO board definition file nucleo_l073z.json */
+                    #include "stm32l0xx.h"
+                    #include "stm32l0xx_hal.h"
+                    #include "stm32l0xx_ll_spi.h"
+                #endif
+
+                #if defined(STM32F1) /* set by PlatformIO board definition file genericSTM32F103C8.json */
+                    #include "stm32f1xx.h"
+                    #include "stm32f1xx_hal.h"
+                    #include "stm32f1xx_ll_spi.h"
+                #endif
+
+                #if defined(STM32F207xx) /* set by PlatformIO board definition file nucleo_f207zg.json */
+                    #include "stm32f2xx.h"
+                    #include "stm32f2xx_hal.h"
+                    #include "stm32f2xx_ll_spi.h"
+                #endif
+
+                #if defined(STM32F3) /* set by PlatformIO board definition file genericSTM32F303CB.json */
+                    #include "stm32f3xx.h"
+                    #include "stm32f3xx_hal.h"
+                    #include "stm32f3xx_ll_spi.h"
+                #endif
+
+                #if defined(STM32F4) /* set by PlatformIO board definition file genericSTM32F407VET6.json */
+                    #include "stm32f4xx.h"
+                    #include "stm32f4xx_hal.h"
+                    #include "stm32f4xx_ll_spi.h"
+                #endif
+
+                #define EVE_CS_PORT      GPIOD
+                #define EVE_CS           GPIO_PIN_12
+                #define EVE_PDN_PORT     GPIOD
+                #define EVE_PDN          GPIO_PIN_13
+                #define EVE_SPI          SPI1
+                #define EVE_DMA_INSTANCE DMA2
+                #define EVE_DMA_CHANNEL  3
+                #define EVE_DMA_STREAM   3
+                //		#define EVE_DMA		/* do not active, it is not working yet */
+
+                #if defined(EVE_DMA)
+extern uint8_t           EVE_dma_buffer[4100];
+extern volatile uint16_t EVE_dma_buffer_index;
+extern volatile uint8_t  EVE_dma_busy;
+
+void EVE_init_dma(void);
+void EVE_start_dma_transfer(void);
+                #endif
+
+                #define DELAY_MS(ms) HAL_Delay(ms)
+
+static inline void EVE_pdn_clear(void)
+{
+    HAL_GPIO_WritePin(EVE_PDN_PORT, EVE_PDN, GPIO_PIN_SET);
+}
+
+static inline void EVE_pdn_set(void)
+{
+    HAL_GPIO_WritePin(EVE_PDN_PORT, EVE_PDN, GPIO_PIN_RESET);
+}
+
+static inline void EVE_cs_clear(void)
+{
+    HAL_GPIO_WritePin(EVE_CS_PORT, EVE_CS, GPIO_PIN_SET);
+}
+
+static inline void EVE_cs_set(void)
+{
+    HAL_GPIO_WritePin(EVE_CS_PORT, EVE_CS, GPIO_PIN_RESET);
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    LL_SPI_TransmitData8(EVE_SPI, data);
+    while(!LL_SPI_IsActiveFlag_TXE(EVE_SPI))
+        ;
+    while(!LL_SPI_IsActiveFlag_RXNE(EVE_SPI))
+        ;
+    LL_SPI_ReceiveData8(EVE_SPI); /* dummy read-access to clear SPI_SR_RXNE */
+}
+
+static inline void spi_transmit_async(uint8_t data)
+{
+                #if defined(EVE_DMA)
+    EVE_dma_buffer[EVE_dma_buffer_index++] = data;
+                #else
+    LL_SPI_TransmitData8(EVE_SPI, data);
+    while(!LL_SPI_IsActiveFlag_TXE(EVE_SPI))
+        ;
+    while(!LL_SPI_IsActiveFlag_RXNE(EVE_SPI))
+        ;
+    LL_SPI_ReceiveData8(EVE_SPI); /* dummy read-access to clear SPI_SR_RXNE */
+                #endif
+}
+
+static inline uint8_t spi_receive(uint8_t data)
+{
+    LL_SPI_TransmitData8(EVE_SPI, data);
+    while(!LL_SPI_IsActiveFlag_TXE(EVE_SPI))
+        ;
+    while(!LL_SPI_IsActiveFlag_RXNE(EVE_SPI))
+        ;
+    return LL_SPI_ReceiveData8(EVE_SPI);
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+    return *data;
+}
+
+            #endif /* STM32 */
+
+        #endif /* __GNUC__ */
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        #if defined(__TI_ARM__)
+
+            #if defined(__MSP432P401R__)
+
+                #include <stdint.h>
+                #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
+                #include <ti/devices/msp432p4xx/inc/msp.h>
+
+                #define RIVERDI_PORT GPIO_PORT_P1
+                #define RIVERDI_SIMO BIT6    // P1.6
+                #define RIVERDI_SOMI BIT7    // P1.7
+                #define RIVERDI_CLK  BIT5    // P1.5
+                #define EVE_CS_PORT  GPIO_PORT_P5
+                #define EVE_CS       GPIO_PIN0    //P5.0
+                #define EVE_PDN_PORT GPIO_PORT_P5
+                #define EVE_PDN      GPIO_PIN1    //P5.1
+
+void EVE_SPI_Init(void);
+
+static inline void DELAY_MS(uint16_t val)
+{
+    uint16_t counter;
+
+    while(val > 0)
     {
-    public:
-        enum SPIFrequency : int32_t
+        for(counter = 0; counter < 8000; counter++)    // ~1ms at 48MHz Core-Clock
         {
-            F_1M =      1000000,
-            F_5M =      5000000,
-            F_10M =     10000000,
-            F_20M =     20000000,
-            F_30M =     30000000
-        };
-        inline void _cs_set(){m_ssel.write(0);}
-        inline void _cs_clear(){m_ssel.write(1);}
-        inline void _spi_transmit(uint8_t data){m_spi.write(data);}
-        inline int _spi_receive(uint8_t data){return m_spi.write(data);}
-        inline void _pdn_set(){m_pd.write(0);}
-        inline void _pdn_clear(){m_pd.write(1);}
+            __nop();
+        }
+        val--;
+    }
+}
 
-        static EVE_HAL * instance();
-        static EVE_HAL * instance(PinName mosi,
-                                 PinName miso,
-                                 PinName sclk,
-                                 PinName ssel,
-                                 PinName pd);
+static inline void EVE_pdn_set(void)
+{
+    //            GPIO_setOutputLowOnPin(EVE_PDN_PORT,EVE_PDN);   /* Power-Down low */
+    P5OUT &= ~EVE_PDN; /* Power-Down low */
+}
 
-        ~EVE_HAL(){_ptr = nullptr;}
+static inline void EVE_pdn_clear(void)
+{
+    //            GPIO_setOutputHighOnPin(EVE_PDN_PORT,EVE_PDN);   /* Power-Down high */
+    P5OUT |= EVE_PDN; /* Power-Down high */
+}
 
-        void setSPIfrequency(SPIFrequency frequency) ;
+static inline void EVE_cs_set(void)
+{
+    //            GPIO_setOutputLowOnPin(EVE_CS_PORT,EVE_CS);   /* CS low */
+    P5OUT &= ~EVE_CS; /* CS low */
+}
 
-    private:
-        EVE_HAL();
-        EVE_HAL(PinName mosi = EVE_SPI_MOSI,
-                PinName miso = EVE_SPI_MISO,
-                PinName sclk = EVE_SPI_CLK,
-                PinName ssel = EVE_SPI_SSEL,
-                PinName pd = EVE_PD);
+static inline void EVE_cs_clear(void)
+{
+    //            GPIO_setOutputHighOnPin(EVE_CS_PORT,EVE_CS);    /* CS high */
+    P5OUT |= EVE_CS; /* CS high */
+}
 
-        EVE_HAL(const EVE_HAL & other) = delete;
-        EVE_HAL(EVE_HAL&& other) = delete;
+static inline void spi_transmit_async(uint8_t data)
+{
+                #if defined(EVE_DMA)
 
-        SPI m_spi;
-        DigitalOut m_ssel;
-        DigitalOut m_pd;
-        static EVE_HAL * _ptr;
+                #else
+                                  //            SPI_transmitData(EUSCI_B0_BASE, data);
+                                  //            while (!(SPI_getInterruptStatus(EUSCI_B0_BASE,EUSCI_B_SPI_TRANSMIT_INTERRUPT)));
+
+    UCB0TXBUF_SPI = data;
+    while(!(UCB0IFG_SPI & UCTXIFG))
+        ; /* wait for transmission to complete */
+                #endif
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    //            SPI_transmitData(EUSCI_B0_BASE, data);
+    //            while (!(SPI_getInterruptStatus(EUSCI_B0_BASE,EUSCI_B_SPI_TRANSMIT_INTERRUPT)));
+
+    UCB0TXBUF_SPI = data;
+    while(!(UCB0IFG_SPI & UCTXIFG))
+        ; /* wait for transmission to complete */
+}
+
+static inline uint8_t spi_receive(uint8_t data)
+{
+    //            SPI_transmitData(EUSCI_B0_BASE, data);
+    //            while (!(SPI_getInterruptStatus(EUSCI_B0_BASE,EUSCI_B_SPI_TRANSMIT_INTERRUPT)));
+    //            return EUSCI_B_CMSIS(EUSCI_B0_BASE)->RXBUF;
+
+    UCB0TXBUF_SPI = data;
+    while(!(UCB0IFG_SPI & UCTXIFG))
+        ; /* wait for transmission to complete */
+    return UCB0RXBUF_SPI;
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+    return *data;
+}
+
+            #endif /* __MSP432P401R__ */
+
+        #endif /* __TI_ARM */
+    #endif
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------------------------------------------*/
+
+    #if defined(ARDUINO)
+
+        #include <Arduino.h>
+        #include <SPI.h>
+        #include <stdio.h>
+
+        #define EVE_CS  9
+        #define EVE_PDN 8
+
+        #define DELAY_MS(ms) delay(ms)
+
+        #if defined(ESP8266)
+
+        #endif
+
+        #if defined(__AVR__)
+            #include <avr/pgmspace.h>
+        #endif
+
+static inline void EVE_pdn_set(void)
+{
+    digitalWrite(EVE_PDN, LOW); /* Power-Down low */
+}
+
+static inline void EVE_pdn_clear(void)
+{
+    digitalWrite(EVE_PDN, HIGH); /* Power-Down high */
+}
+
+static inline void EVE_cs_set(void)
+{
+    SPI.setDataMode(SPI_MODE0);
+    digitalWrite(EVE_CS, LOW);
+}
+
+static inline void EVE_cs_clear(void)
+{
+    digitalWrite(EVE_CS, HIGH);
+}
+
+        #if defined(ESP8266)
+static inline void spi_transmit_async(uint8_t data)
+{
+    SPI.write(data);
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    SPI.write(data);
+}
+        #else
+static inline void spi_transmit_async(uint8_t data)
+{
+    SPI.transfer(data);
+}
+
+static inline void spi_transmit(uint8_t data)
+{
+    SPI.transfer(data);
+}
+        #endif
+
+static inline uint8_t spi_receive(uint8_t data)
+{
+    return SPI.transfer(data);
+}
+
+static inline uint8_t fetch_flash_byte(const uint8_t * data)
+{
+        #if defined(__AVR__)
+            #if defined(RAMPZ)
+    return (pgm_read_byte_far(data));
+            #else
+    return (pgm_read_byte_near(data));
+            #endif
+        #else /* this may fail on your Arduino system that is not AVR and that I am not aware of */
+    return *data;
+        #endif
+}
+
+    #endif /* Arduino */
+    /*----------------------------------------------------------------------------------------------------------------*/
+    /*----------------------------------------------------------------------------------------------------------------*/
+#endif /* __MBED__*/
+
+#if defined(__MBED__)
+    #include <mbed.h>
+//Use thread waiting or not
+static inline void _eve_delay(uint32_t ms)
+{
+    #if defined(PIO_FRAMEWORK_MBED_RTOS_PRESENT) \
+        && (MBED_CONF_RTOS_API_PRESENT)          \
+        && (MBED_CONF_RTOS_PRESENT)
+    ThisThread::sleep_for(ms);
+    #else
+    wait_us(ms * 1000);
+    #endif
+}
+    #define DELAY_MS(ms) _eve_delay(ms)
+
+class EVE_HAL
+{
+public:
+    enum SPIFrequency : int32_t
+    {
+        F_10K  = 10000,
+        F_100K = 100000,
+        F_1M   = 1000000,
+        F_5M   = 5000000,
+        F_10M  = 10000000,
+        F_20M  = 20000000,
+        F_30M  = 30000000
     };
+    inline void csSet() { m_ssel.write(0); }
+    inline void csClear() { m_ssel.write(1); }
+    inline void transmit(uint8_t data) { m_spi.write(data); }
+    inline int  receive(uint8_t data) { return m_spi.write(data); }
+    inline void pdnSet() { m_pd.write(0); }
+    inline void pdnClear() { m_pd.write(1); }
 
-    extern "C" void EVE_cs_set();
-    extern "C" void EVE_cs_clear();
-    extern "C" void spi_transmit(uint8_t data);
-    extern "C" int spi_receive(uint8_t data);
-    extern "C" uint8_t fetch_flash_byte(const uint8_t  * data);
-    extern "C" void EVE_pdn_set();
-    extern "C" void EVE_pdn_clear();
-    extern "C" void spi_transmit_async(uint8_t data);
-#endif/* __MBED__*/
+    inline uint8_t write(uint8_t data)
+    {
+        return static_cast<uint8_t>(m_spi.write(data));
+    }
+
+    static EVE_HAL * instance();
+    static EVE_HAL * instance(PinName mosi,
+                              PinName miso,
+                              PinName sclk,
+                              PinName ssel,
+                              PinName pd);
+
+    ~EVE_HAL() { _ptr = nullptr; }
+
+    void setSPIfrequency(SPIFrequency frequency);
+
+private:
+    EVE_HAL();
+    EVE_HAL(PinName mosi = EVE_SPI_MOSI,
+            PinName miso = EVE_SPI_MISO,
+            PinName sclk = EVE_SPI_CLK,
+            PinName ssel = EVE_SPI_SSEL,
+            PinName pd   = EVE_PD);
+
+    EVE_HAL(const EVE_HAL & other) = delete;
+    EVE_HAL(EVE_HAL && other)      = delete;
+
+    SPI              m_spi;
+    DigitalOut       m_ssel;
+    DigitalOut       m_pd;
+    static EVE_HAL * _ptr;
+};
+
+extern "C" void    EVE_cs_set();
+extern "C" void    EVE_cs_clear();
+extern "C" void    spi_transmit(uint8_t data);
+extern "C" int     spi_receive(uint8_t data);
+extern "C" uint8_t fetch_flash_byte(const uint8_t * data);
+extern "C" void    EVE_pdn_set();
+extern "C" void    EVE_pdn_clear();
+extern "C" void    spi_transmit_async(uint8_t data);
+#endif /* __MBED__*/
 
 #endif /* EVE_TARGET_H_ */
