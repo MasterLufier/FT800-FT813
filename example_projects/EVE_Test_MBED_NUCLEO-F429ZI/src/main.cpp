@@ -3,10 +3,11 @@
 #include <mbed_debug.h>
 #include <mbed_error.h>
 
+using namespace EVE;
 class A
 {
 public:
-    A(){};
+    A() {}
     void cbWithTag(string name, uint8_t tag)
     {
         printf("%s touched %u \n", name.c_str(), tag);
@@ -34,18 +35,18 @@ FTDisplayList * loadStaticDL1(FT8xx * screen)
     uint8_t tag = screen->setCallbackToTag(&cbWithTag, "DL1");
     screen->deattachFromTag(tag);
     tag = screen->setCallbackToTag(&cbWoTag, "DL1");
-    EVE_cmd_dl(TAG(tag));
+    screen->push(EVE::tag(tag));
 #endif
-    EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
+    screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
-    EVE_cmd_dl(BEGIN(EVE_BITMAPS));             // start drawing bitmaps
-    EVE_cmd_dl(VERTEX2II(220, 50, 31, 'T'));    // ascii T in font 31
-    EVE_cmd_dl(VERTEX2II(244, 50, 31, 'E'));    // ascii E
-    EVE_cmd_dl(VERTEX2II(270, 50, 31, 'X'));    // ascii X
-    EVE_cmd_dl(VERTEX2II(299, 50, 31, 'T'));    // ascii T
-    EVE_cmd_dl(END());
-    EVE_cmd_execute();    // Copy this display list to Flash memory for using as static DL
-    return screen->ramG()->saveDisplayList("DL1");
+    screen->begin(Bitmaps);                            // start drawing bitmaps
+    screen->push(EVE::vertex2ii(220, 50, 31, 'T'));    // ascii T in font 31
+    screen->push(EVE::vertex2ii(244, 50, 31, 'E'));    // ascii E
+    screen->push(EVE::vertex2ii(270, 50, 31, 'X'));    // ascii X
+    screen->push(EVE::vertex2ii(299, 50, 31, 'T'));    // ascii T
+    screen->push(END());
+    screen->execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->saveDisplayList("DL1");
 }
 
 FTDisplayList * loadStaticDL2(FT8xx * screen)
@@ -55,18 +56,18 @@ FTDisplayList * loadStaticDL2(FT8xx * screen)
     uint8_t tag = screen->setCallbackToTag(&a, &A::cbWoTag, "DL2");
     screen->deattachFromTag(tag);
     tag = screen->setCallbackToTag(&a, &A::cbWithTag, "DL2");
-    EVE_cmd_dl(TAG(tag));
+    screen->push(EVE::tag(tag));
 #endif
-    EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
+    screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
-    EVE_cmd_dl(BEGIN(EVE_BITMAPS));              // start drawing bitmaps
-    EVE_cmd_dl(VERTEX2II(220, 120, 31, 'T'));    // ascii T in font 31
-    EVE_cmd_dl(VERTEX2II(244, 120, 31, 'E'));    // ascii E
-    EVE_cmd_dl(VERTEX2II(270, 120, 31, 'X'));    // ascii X
-    EVE_cmd_dl(VERTEX2II(299, 120, 31, 'T'));    // ascii T
-    EVE_cmd_dl(END());
-    EVE_cmd_execute();    // Copy this display list to Flash memory for using as static DL
-    return screen->ramG()->saveDisplayList("DL2");
+    screen->push(begin(Bitmaps));                       // start drawing bitmaps
+    screen->push(EVE::vertex2ii(220, 120, 31, 'T'));    // ascii T in font 31
+    screen->push(EVE::vertex2ii(244, 120, 31, 'E'));    // ascii E
+    screen->push(EVE::vertex2ii(270, 120, 31, 'X'));    // ascii X
+    screen->push(EVE::vertex2ii(299, 120, 31, 'T'));    // ascii T
+    screen->push(END());
+    screen->execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->saveDisplayList("DL2");
 }
 
 FTDisplayList * loadStaticDL3(FT8xx * screen)
@@ -76,28 +77,31 @@ FTDisplayList * loadStaticDL3(FT8xx * screen)
     uint8_t tag = screen->setCallbackToTag([&](uint8_t tag) {
         printf("TAG_NUMBER: %u \n", tag);
     });
-    EVE_cmd_dl(TAG(tag));
+    screen->push(EVE::tag(tag));
 #endif
-    EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
+    screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
-    EVE_cmd_dl(BEGIN(EVE_BITMAPS));              // start drawing bitmaps
-    EVE_cmd_dl(VERTEX2II(220, 180, 31, 'T'));    // ascii T in font 31
-    EVE_cmd_dl(VERTEX2II(244, 180, 31, 'E'));    // ascii E
-    EVE_cmd_dl(VERTEX2II(270, 180, 31, 'X'));    // ascii X
-    EVE_cmd_dl(VERTEX2II(299, 180, 31, 'T'));    // ascii T
-    EVE_cmd_dl(END());
-    EVE_cmd_execute();    // Copy this display list to Flash memory for using as static DL
-    return screen->ramG()->saveDisplayList("DL3");
+    screen->push(begin(Bitmaps));                       // start drawing bitmaps
+    screen->push(EVE::vertex2ii(220, 180, 31, 'T'));    // ascii T in font 31
+    screen->push(EVE::vertex2ii(244, 180, 31, 'E'));    // ascii E
+    screen->push(EVE::vertex2ii(270, 180, 31, 'X'));    // ascii X
+    screen->push(EVE::vertex2ii(299, 180, 31, 'T'));    // ascii T
+    screen->push(END());
+    screen->execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->saveDisplayList("DL3");
 }
 
-void loadDynamicDL()
+void loadDynamicDL(FT8xx * screen)
 {
-    EVE_cmd_dl(COLOR_RGB((rand() % 255), (rand() % 255), (rand() % 255)));    // change colour
+    screen->push(EVE::tag(0));
+    screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
-    EVE_cmd_dl(POINT_SIZE(320));              // set point size to 20 pixels in radius
-    EVE_cmd_dl(BEGIN(EVE_POINTS));            // start drawing points
-    EVE_cmd_dl(VERTEX2II(192, 133, 0, 0));    // red point
-    EVE_cmd_dl(END());
+    screen->point(192, 133, 320);
+    //    screen->pushText(1, 200, 31, 0, "TEXT TEXT TEXT TEXT0");
+    //    screen->pushText(1, 150, 31, 0, "TEXT0");
+    //    screen->pushText(1, 100, 31, 0, "TEX0");
+    //    screen->pushText(1, 50, 31, 0, "TE0");
+    //    screen->pushText(1, 1, 31, 0, "");
 }
 
 int main()
@@ -148,20 +152,23 @@ int main()
     dlVect.push_back(loadStaticDL2(&m_screen));
     dlVect.push_back(loadStaticDL3(&m_screen));
 
+    int i = 0;
     while(1)
     {
-        EVE_cmd_dl(CMD_DLSTART);
-        EVE_cmd_dl(CLEAR(1, 1, 1));
-        for(const auto & l : dlVect)
-            EVE_cmd_append(l->m_address, l->m_size);
-        loadDynamicDL();
-        EVE_cmd_dl(DL_END);
-        EVE_cmd_dl(DL_DISPLAY);
-        EVE_cmd_dl(CMD_SWAP);
-        EVE_cmd_execute();
-        EVE_memWrite16(REG_CMD_DL, 0);
+        m_screen.dlStart();
+        m_screen.clear();
+        for(const auto l : dlVect)
+            m_screen.append(l);
+        loadDynamicDL(&m_screen);
+        if(i == 0)
+            m_screen.push(0xffffffff);
+        //        m_screen.push(DL_END);
+        //        m_screen.push(DL_DISPLAY);
+        //        m_screen.push(CMD_SWAP);
+        m_screen.swap();
+        m_screen.execute();
         ThisThread::sleep_for(100);
-
+        ++i;
         //**Example Backlight fade conrol
         //        //Linear
         //        m_screen.backlightFade(0, 128, 500);

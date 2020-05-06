@@ -914,6 +914,12 @@ static inline uint8_t fetch_flash_byte(const uint8_t * data)
 
 #if defined(__MBED__)
     #include <mbed.h>
+    #include <vector>
+
+    /* EVE Memory Commands - used with EVE_memWritexx and EVE_memReadxx */
+    #define MEM_WRITE 0x80 /* EVE Host Memory Write */
+    #define MEM_READ  0x00 /* EVE Host Memory Read */
+
 //Use thread waiting or not
 static inline void _eve_delay(uint32_t ms)
 {
@@ -946,6 +952,19 @@ public:
     inline int  receive(uint8_t data) { return m_spi.write(data); }
     inline void pdnSet() { m_pd.write(0); }
     inline void pdnClear() { m_pd.write(1); }
+
+    //*********Basic communication functions
+    void     cmdWrite(uint8_t command, uint8_t parameter);
+    uint8_t  rd8(uint32_t address);
+    uint16_t rd16(uint32_t address);
+    uint32_t rd32(uint32_t address);
+
+    void wr8(uint32_t address, uint8_t data);
+    void wr16(uint32_t address, uint16_t data);
+    void wr32(uint32_t address, uint32_t data);
+
+    void wrByteBuffer(uint32_t address, const std::vector<uint8_t> & buffer);
+    void wrByteBuffer(uint32_t address, const uint8_t * buffer, uint16_t len);
 
     inline uint8_t write(uint8_t data)
     {

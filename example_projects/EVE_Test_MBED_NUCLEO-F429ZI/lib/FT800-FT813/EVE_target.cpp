@@ -299,6 +299,120 @@ EVE_HAL::EVE_HAL(PinName mosi,
     _ptr = this;
 }
 
+//*********Basic communication functions
+void EVE_HAL::cmdWrite(uint8_t cmd, uint8_t parameter)
+{
+    csSet();
+    m_spi.write(cmd);
+    m_spi.write(parameter);
+    m_spi.write(0x00);
+    csClear();
+}
+
+uint8_t EVE_HAL::rd8(uint32_t address)
+{
+    uint8_t data;
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_READ));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    m_spi.write(0x00);
+    data = static_cast<uint8_t>(m_spi.write(0x00));
+    csClear();
+    return data;
+}
+
+uint16_t EVE_HAL::rd16(uint32_t address)
+{
+    uint16_t data;
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_READ));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    m_spi.write(0x00);
+    data = static_cast<uint16_t>(m_spi.write(0x00));
+    data = static_cast<uint16_t>(m_spi.write(0x00) << 8) | data;
+    csClear();
+    return data;
+}
+
+uint32_t EVE_HAL::rd32(uint32_t address)
+{
+    uint32_t data;
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_READ));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    m_spi.write(0x00);
+    data = static_cast<uint32_t>(m_spi.write(0x00));
+    data = static_cast<uint32_t>(m_spi.write(0x00) << 8) | data;
+    data = static_cast<uint32_t>(m_spi.write(0x00) << 16) | data;
+    data = static_cast<uint32_t>(m_spi.write(0x00) << 24) | data;
+    csClear();
+    return data;
+}
+
+void EVE_HAL::wr8(uint32_t address, uint8_t data)
+{
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_WRITE));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    m_spi.write(data);
+    csClear();
+}
+
+void EVE_HAL::wr16(uint32_t address, uint16_t data)
+{
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_WRITE));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    m_spi.write(static_cast<uint8_t>(data));
+    m_spi.write(static_cast<uint8_t>(data >> 8));
+    csClear();
+}
+
+void EVE_HAL::wr32(uint32_t address, uint32_t data)
+{
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_WRITE));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    m_spi.write(static_cast<uint8_t>(data));
+    m_spi.write(static_cast<uint8_t>(data >> 8));
+    m_spi.write(static_cast<uint8_t>(data >> 16));
+    m_spi.write(static_cast<uint8_t>(data >> 24));
+    csClear();
+}
+
+void EVE_HAL::wrByteBuffer(uint32_t address, const std::vector<uint8_t> & buffer)
+{
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_WRITE));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    for(const auto & b : buffer)
+        write(b);
+    csClear();
+}
+
+void EVE_HAL::wrByteBuffer(uint32_t address, const uint8_t * buffer, uint16_t len)
+{
+    uint16_t count;
+    len = (len + 3) & (~3);
+
+    csSet();
+    m_spi.write(static_cast<uint8_t>((address >> 16) | MEM_WRITE));
+    m_spi.write(static_cast<uint8_t>(address >> 8));
+    m_spi.write(static_cast<uint8_t>(address));
+    for(count = 0; count < len; count++)
+    {
+        m_spi.write(static_cast<uint8_t>(*buffer + count));
+    }
+    csClear();
+}
+
 //********************************************************************
 void EVE_cs_set()
 {
