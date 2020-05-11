@@ -28,7 +28,7 @@ void cbWoTag(string name)
     printf("%s touched \n", name.c_str());
 }
 
-FTDisplayList * loadStaticDL1(FT8xx * screen)
+DisplayList * loadStaticDL1(FT8xx * screen)
 {
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //Auto attach lambda callback to next empty tag
@@ -45,14 +45,15 @@ FTDisplayList * loadStaticDL1(FT8xx * screen)
     screen->push(EVE::vertex2ii(270, 50, 31, 'X'));    // ascii X
     screen->push(EVE::vertex2ii(299, 50, 31, 'T'));    // ascii T
     screen->push(END());
-    screen->execute();    // Copy this display list to Flash memory for using as static DL
-    return screen->saveDisplayList("DL1");
+    //    screen->execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->ramG()->saveDisplayList("DL1");
 }
 
-FTDisplayList * loadStaticDL2(FT8xx * screen)
+DisplayList * loadStaticDL2(FT8xx * screen)
 {
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //Auto attach callback to next empty tag
+    screen->clear(0, 0, 1);
     uint8_t tag = screen->setCallbackToTag(&a, &A::cbWoTag, "DL2");
     screen->deattachFromTag(tag);
     tag = screen->setCallbackToTag(&a, &A::cbWithTag, "DL2");
@@ -66,11 +67,11 @@ FTDisplayList * loadStaticDL2(FT8xx * screen)
     screen->push(EVE::vertex2ii(270, 120, 31, 'X'));    // ascii X
     screen->push(EVE::vertex2ii(299, 120, 31, 'T'));    // ascii T
     screen->push(END());
-    screen->execute();    // Copy this display list to Flash memory for using as static DL
-    return screen->saveDisplayList("DL2");
+    //    screen->execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->ramG()->saveDisplayList("DL2");
 }
 
-FTDisplayList * loadStaticDL3(FT8xx * screen)
+DisplayList * loadStaticDL3(FT8xx * screen)
 {
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //Auto attach callback to next empty tag
@@ -87,31 +88,52 @@ FTDisplayList * loadStaticDL3(FT8xx * screen)
     screen->push(EVE::vertex2ii(270, 180, 31, 'X'));    // ascii X
     screen->push(EVE::vertex2ii(299, 180, 31, 'T'));    // ascii T
     screen->push(END());
-    screen->execute();    // Copy this display list to Flash memory for using as static DL
-    return screen->saveDisplayList("DL3");
+    //    screen->execute();    // Copy this display list to Flash memory for using as static DL
+    auto dl = screen->ramG()->saveDisplayList("DL3");
+    screen->deattachFromTag(tag);
+#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+    //Auto attach callback to next empty tag
+    tag = screen->setCallbackToTag([&](uint8_t tag) {
+        printf("TAG_NUMBER: %u \n", tag);
+    });
+    screen->push(EVE::tag(tag));
+#endif
+    screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
+
+    screen->push(begin(Bitmaps));                       // start drawing bitmaps
+    screen->push(EVE::vertex2ii(220, 180, 31, 'R'));    // ascii T in font 31
+    screen->push(EVE::vertex2ii(244, 180, 31, 'A'));    // ascii E
+    screen->push(EVE::vertex2ii(270, 180, 31, 'N'));    // ascii X
+    screen->push(EVE::vertex2ii(299, 180, 31, 'D'));    // ascii T
+    screen->push(EVE::vertex2ii(325, 180, 31, 'R'));    // ascii T
+    screen->push(END());
+    //    screen->execute();    // Copy this display list to Flash memory for using as static DL
+    return screen->ramG()->updateDisplayList(dl);
 }
 
 void loadDynamicDL(FT8xx * screen)
 {
     screen->push(EVE::tag(0));
-    screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
+    screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));
 
-    screen->point(192, 133, 320);
-    //    screen->pushText(1, 200, 31, 0, "TEXT TEXT TEXT TEXT0");
-    //    screen->pushText(1, 150, 31, 0, "TEXT0");
-    //    screen->pushText(1, 100, 31, 0, "TEX0");
-    //    screen->pushText(1, 50, 31, 0, "TE0");
-    //    screen->pushText(1, 1, 31, 0, "");
+    screen->point((rand() % EVE_HSIZE), (rand() % EVE_VSIZE), 20);
+    //    screen->point((rand() % 480), (rand() % 270), 320);
+    //    screen->point((rand() % 480), (rand() % 270), 320);
+    //    screen->point((rand() % 480), (rand() % 270), 320);
+    //    screen->point((rand() % 480), (rand() % 270), 320);
+
+    //    return screen->ramG()->saveDisplayList("DL4");
 }
 
 int main()
 {
     //**Initialize screen
-    FT8xx m_screen(PF_9, PF_8, PF_7, PF_12, PB_2, PD_15);
+    FT8xx screen(PF_9, PF_8, PF_7, PF_12, PB_2, PD_15);
     //**Initialize DL storage in RamG
-    m_screen.ramGInit();
+    screen.ramGInit();
+    screen.flashInit(8000);
     //** calibrate touchscreen with predefined values
-    FT8xx::TouchCalibrationResult tcResult = m_screen.touchCalibrate(true);
+    screen.touchCalibrate(true);
     //** or uncomment next block to start calibrate touchscreen and get calibrate values
     //    FT8xx::TouchCalibrationResult tcResult = m_screen.touchCalibrate(false);
     //    printf("TOUCH_TRANSFORM_A: %#08x \n", tcResult.touch_a);
@@ -121,7 +143,7 @@ int main()
     //    printf("TOUCH_TRANSFORM_E: %#08x \n", tcResult.touch_e);
     //    printf("TOUCH_TRANSFORM_F: %#08x \n", tcResult.touch_f);
     //Set backlight
-    m_screen.setBacklight(100);
+    screen.setBacklight(100);
 
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //**Uncomment any required callbacks
@@ -147,51 +169,73 @@ int main()
     //**************
 #endif
     //Static DL Storage
-    std::vector<FTDisplayList *> dlVect;
-    dlVect.push_back(loadStaticDL1(&m_screen));
-    dlVect.push_back(loadStaticDL2(&m_screen));
-    dlVect.push_back(loadStaticDL3(&m_screen));
 
-    int i = 0;
+    //    loadStaticDL1(&m_screen);
+    //    loadStaticDL2(&m_screen);
+    //    loadStaticDL3(&m_screen);
+    //    //Start DL
+    //    screen.dlStart();
+    //    screen.clear();
+    //    screen.push(EVE::tag(0));
+    //    screen.colorRGB(0xff, 0x00, 0x00);
+    //    screen.point(0, 0, 50);
+    //    screen.point(EVE_HSIZE, EVE_VSIZE, 50);
+    //    screen.swap();
+    //    screen.execute();
+    //    //Take snapshot
+    //    screen.ramG()->saveSnapshot("SN1");
+
+    screen.dlStart();
+    screen.clear();
+    //    loadDynamicDL(&screen);
+    //    screen.line(20, 20, 30, 30, 1);
+    //    screen.clearColorARGB(0xFFFF0000);
+    //    screen.colorRGB((rand() % 255), (rand() % 255), (rand() % 255));
+    //    screen.rectangle(20, 20, 100, 100, 1);
+
+    //    screen.text(100, 100, 27, EVE_OPT_CENTER, "TEXT");
+    //    screen.button(20, 20, 200, 100, 27, ButtonOpt::Flat, "Push me!");
+    screen.gradientA(0, 0, 0xccff0000, 0, 300, 0x4400ff00);
+    screen.swap();
+    screen.execute();
+
     while(1)
     {
-        m_screen.dlStart();
-        m_screen.clear();
-        for(const auto l : dlVect)
-            m_screen.append(l);
-        loadDynamicDL(&m_screen);
-        if(i == 0)
-            m_screen.push(0xffffffff);
-        //        m_screen.push(DL_END);
-        //        m_screen.push(DL_DISPLAY);
-        //        m_screen.push(CMD_SWAP);
-        m_screen.swap();
-        m_screen.execute();
-        ThisThread::sleep_for(100);
-        ++i;
+        //        screen.dlStart();
+        //        screen.clear();
+        //        screen.button(20, 20, 200, 100, 27, Draw3D, "Push Me!");
+        //        //        for(const auto l : m_screen.ramG()->pool())
+        //        //        {
+        //        //            screen.append(l);
+        //        //        }
+        //        //        loadDynamicDL(&m_screen);
+        //        screen.swap();
+        //        screen.execute();
+        ThisThread::sleep_for(1000);
+
         //**Example Backlight fade conrol
         //        //Linear
-        //        m_screen.backlightFade(0, 128, 500);
+        //        screen.backlightFade(0, 128, 500);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500);
+        //        screen.backlightFade(128, 0, 500);
         //        ThisThread::sleep_for(1000);
         //        loadTestDL();
         //        //Quad
-        //        m_screen.backlightFade(0, 128, 500, FT8xx::Quad);
+        //        screen.backlightFade(0, 128, 500, FT8xx::Quad);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500, FT8xx::Quad);
+        //        screen.backlightFade(128, 0, 500, FT8xx::Quad);
         //        ThisThread::sleep_for(1000);
         //        loadTestDL();
         //        //Cubic
-        //        m_screen.backlightFade(0, 128, 500, FT8xx::Cubic);
+        //        screen.backlightFade(0, 128, 500, FT8xx::Cubic);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500, FT8xx::Cubic);
+        //        screen.backlightFade(128, 0, 500, FT8xx::Cubic);
         //        ThisThread::sleep_for(1000);
         //        loadTestDL();
         //        //Quart
-        //        m_screen.backlightFade(0, 128, 500, FT8xx::Quart);
+        //        screen.backlightFade(0, 128, 500, FT8xx::Quart);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500, FT8xx::Quart);
+        //        screen.backlightFade(128, 0, 500, FT8xx::Quart);
         //        ThisThread::sleep_for(1000);
         //*********
     }

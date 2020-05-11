@@ -32,35 +32,6 @@
 #include "ft8xx.h"
 using namespace EVE;
 
-FTDisplayList * FT8xx::saveDisplayList(string name)
-{
-    auto * list = new FTDisplayList(name,
-                                    m_ramG->m_currentPosition,
-                                    m_hal->rd16(REG_CMD_DL));
-    //Check if DL memory have data to store
-    if(list->m_size == 0)
-    {
-        //Try to execute something from CoPro FIFO to DL when user forgot it
-        execute();
-        //Check again
-        if((list->m_size = m_hal->rd16(REG_CMD_DL)) == 0)
-        {
-            debug("Nothing to store. Exit \n");
-            delete list;
-            return nullptr;
-        }
-    }
-    if(list->m_address + list->m_size > m_ramG->m_size)
-    {
-        error("RamG overflow\n");
-    }
-    execute();
-    memCopy(list->m_address, EVE_RAM_DL, list->m_size);
-    m_hal->wr16(REG_CMD_DL, 0);
-    m_ramG->m_currentPosition += list->m_size;
-    return list;
-}
-
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 /*!
  * \brief FT8xx::FT8xx driver for FTDI FT8xx-BT8xx
@@ -111,11 +82,11 @@ FT8xx::FT8xx(
     /* *reading* the SPI while EVE inits itself is causing any issues. */
     /* But since BT815 at 72MHz need 42ms anyways before they start to answer, here is my compromise, a fixed 40ms delay */
     /* to provide at least a short moment of silence for EVE */
-    DELAY_MS(40);
+    DELAY_MS(40)
 
     while(chipid != 0x7C) /* if chipid is not 0x7c, continue to read it until it is, EVE needs a moment for it's power on self-test and configuration */
     {
-        DELAY_MS(1);
+        DELAY_MS(1)
         chipid = m_hal->rd8(REG_ID);
         timeout++;
         if(timeout > 400)
@@ -128,7 +99,7 @@ FT8xx::FT8xx(
     timeout = 0;
     while(0x00 != (m_hal->rd8(REG_CPURESET) & 0x03)) /* check if EVE is in working status */
     {
-        DELAY_MS(1);
+        DELAY_MS(1)
         timeout++;
         if(timeout > 50) /* experimental, 10 was the lowest value to get the BT815 started with, the touch-controller was the last to get out of reset */
         {
@@ -157,22 +128,22 @@ FT8xx::FT8xx(
     EVE_cs_clear();
     EVE_cmd_execute();
 
-    EVE_memWrite8(REG_TOUCH_OVERSAMPLE, 0x0f); /* setup oversample to 0x0f as "hidden" in binary-blob for AN_336 */
-    m_hal->wr16(REG_TOUCH_CONFIG, 0x05D0);     /* write magic cookie as requested by AN_336 */
+    m_hal->wr8(REG_TOUCH_OVERSAMPLE, 0x0f); /* setup oversample to 0x0f as "hidden" in binary-blob for AN_336 */
+    m_hal->wr16(REG_TOUCH_CONFIG, 0x05D0);  /* write magic cookie as requested by AN_336 */
 
     /* specific to the EVE2 modules from Matrix-Orbital we have to use GPIO3 to reset GT911 */
     m_hal->wr16(REG_GPIOX_DIR, 0x8008); /* Reset-Value is 0x8000, adding 0x08 sets GPIO3 to output, default-value for REG_GPIOX is 0x8000 -> Low output on GPIO3 */
     DELAY_MS(1);                        /* wait more than 100?s */
-    EVE_memWrite8(REG_CPURESET, 0x00);  /* clear all resets */
+    m_hal->wr8(REG_CPURESET, 0x00);     /* clear all resets */
     DELAY_MS(56);                       /* wait more than 55ms */
     m_hal->wr16(REG_GPIOX_DIR, 0x8000); /* setting GPIO3 back to input */
         #endif
     #endif
 
-    /*	EVE_memWrite8(REG_PCLK, 0x00);	*/ /* set PCLK to zero - don't clock the LCD until later, line disabled because zero is reset-default and we just did a reset */
+    /*	m_hal->wr8(REG_PCLK, 0x00);	*/ /* set PCLK to zero - don't clock the LCD until later, line disabled because zero is reset-default and we just did a reset */
 
     #if defined(EVE_ADAM101)
-    EVE_memWrite8(REG_PWM_DUTY, 0x80); /* turn off backlight for Glyn ADAM101 module, it uses inverted values */
+    m_hal->wr8(REG_PWM_DUTY, 0x80); /* turn off backlight for Glyn ADAM101 module, it uses inverted values */
     #else
     m_hal->wr8(REG_PWM_DUTY, 0);    /* turn off backlight for any other module */
     #endif
@@ -257,6 +228,9 @@ FT8xx::FT8xx(
     }
     m_interrupt.fall(m_queue->event(callback(this, &FT8xx::interruptFound)));
     m_hal->setSPIfrequency(spiFrequency);
+
+    m_eventFlags.set(EVEeventFlags::CoProBusy
+                     | EVEeventFlags::CmdBufBusy);
 }
 #elif
 /*!
@@ -276,8 +250,16 @@ FT8xx(PinName               mosi,
 
 FT8xx::~FT8xx()
 {
+    m_queue->break_dispatch();
+    m_eventThread->terminate();
+    delete m_queue;
+    delete m_eventThread;
     if(m_ramG)
         delete m_ramG;
+#if defined(BT81X_ENABLE)
+    if(m_flash)
+        delete m_flash;
+#endif
     delete m_hal;
 }
 
@@ -437,7 +419,8 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         push(DL_CLEAR_RGB | COLOR_RGB(0, 0, 0));
         push(DL_CLEAR | CLR_COL | CLR_STN | CLR_TAG);
         text((EVE_HSIZE / 2), 50, 26, EVE_OPT_CENTER, "Please tap on the dot.");
-        EVE_cmd_calibrate();
+        push(CMD_CALIBRATE);
+        push({0x00});
         push(DL_DISPLAY);
         push(CMD_SWAP);
         execute();
@@ -462,57 +445,73 @@ void FT8xx::setBacklight(uint8_t value)
 #endif
 }
 
-//bool FT8xx::busy()
-//{
-//    uint16_t cmdBufferRead = m_hal->rd16(REG_CMD_READ);
-//    if(cmdBufferRead == 0xFFF)
-//    {
-//        /* we have a co-processor fault, make EVE play with us again */
-//#if defined(BT81X_ENABLE)
+const RamG * FT8xx::ramG()
+{
+    return m_ramG;
+}
 
-//        uint16_t copro_patch_pointer;
-//        uint32_t ftAddress;
+uint8_t FT8xx::flashInit(uint32_t size)
+{
+    m_flash = new Flash(this, size);
+    if(m_flash->flashStatus() == FlashStatus::FLASH_STATUS_DETACHED || m_flash->flashStatus() == FlashStatus::FLASH_STATUS_INIT)
+    {
+        delete m_flash;
+        return -1;
+    }
+    return 0;
+}
 
-//        copro_patch_pointer = m_hal->rd16(REG_COPRO_PATCH_DTR);
-//#endif
-//        m_hal->wr8(REG_CPURESET, 1);   /* hold co-processor engine in the reset condition */
-//        m_hal->wr16(REG_CMD_READ, 0);  /* set REG_CMD_READ to 0 */
-//        m_hal->wr16(REG_CMD_WRITE, 0); /* set REG_CMD_WRITE to 0 */
-//        m_hal->wr32(REG_CMD_DL, 0);    /* reset REG_CMD_DL to 0 as required by the BT81x programming guide, should not hurt FT8xx */
-//        m_cmdOffset = 0;
-//        m_hal->wr8(REG_CPURESET, 0); /* set REG_CMD_WRITE to 0 to restart the co-processor engine*/
+void FT8xx::rebootCoPro()
+{
+    /* we have a co-processor fault, make EVE play with us again */
+#if defined(BT81X_ENABLE)
+    uint16_t copro_patch_pointer = m_hal->rd16(REG_COPRO_PATCH_DTR);
+#endif
+    m_hal->wr8(REG_CPURESET, 1);   /* hold co-processor engine in the reset condition */
+    m_hal->wr16(REG_CMD_READ, 0);  /* set REG_CMD_READ to 0 */
+    m_hal->wr16(REG_CMD_WRITE, 0); /* set REG_CMD_WRITE to 0 */
+    m_hal->wr32(REG_CMD_DL, 0);    /* reset REG_CMD_DL to 0 as required by the BT81x programming guide, should not hurt FT8xx */
+    m_hal->wr8(REG_CPURESET, 0);   /* set REG_CMD_WRITE to 0 to restart the co-processor engine*/
 
-//#if defined(BT81X_ENABLE)
+#if defined(BT81X_ENABLE)
 
-//        m_hal->wr16(REG_COPRO_PATCH_DTR, copro_patch_pointer);
+    m_hal->wr16(REG_COPRO_PATCH_DTR, copro_patch_pointer);
 
-//        DELAY_MS(5); /* just to be safe */
+    DELAY_MS(5) /* just to be safe */
 
-//        ftAddress = EVE_RAM_CMD + m_cmdOffset;
+    m_hal->csSet();
+    m_hal->write(static_cast<uint8_t>(EVE_RAM_CMD >> 16) | MEM_WRITE);
+    m_hal->write(static_cast<uint8_t>(EVE_RAM_CMD >> 8));
+    m_hal->write(static_cast<uint8_t>(EVE_RAM_CMD));
 
-//        write(ftAddress, CMD_FLASHATTACH, CMD_FLASHFAST);
-//        m_cmdOffset = 8;
-//        m_hal->csSet();
-//        m_hal->write(static_cast<uint8_t>(MEM_WRITE | 0x30));
-//        m_hal->write(static_cast<uint8_t>(0x20));
-//        m_hal->write(static_cast<uint8_t>(0xfc));
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH));
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH >> 8));
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH >> 16));
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH >> 24));
 
-//        m_hal->write(static_cast<uint8_t>(m_cmdOffset));
-//        m_hal->write(static_cast<uint8_t>(m_cmdOffset >> 8));
-//        m_hal->csClear();
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST));
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST >> 8));
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST >> 16));
+    m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST >> 24));
+    m_hal->csClear();
 
-//        m_hal->wr8(REG_PCLK, EVE_PCLK); /* restore REG_PCLK in case it was set to zero by an error */
+    m_hal->csSet();
+    m_hal->write(static_cast<uint8_t>(REG_CMD_WRITE >> 16) | MEM_WRITE);
+    m_hal->write(static_cast<uint8_t>(REG_CMD_WRITE >> 8));
+    m_hal->write(static_cast<uint8_t>(REG_CMD_WRITE));
 
-//        DELAY_MS(5); /* just to be safe */
-//#endif
-//    }
-//    if(m_cmdOffset != cmdBufferRead)
-//        return true;
-//    else
-//        return false;
-//}
+    m_hal->write(static_cast<uint8_t>(8));
+    m_hal->write(static_cast<uint8_t>(8 >> 8));
 
-void FT8xx::writeString(string text)
+    m_hal->csClear();
+
+    m_hal->wr8(REG_PCLK, EVE_PCLK); /* restore REG_PCLK in case it was set to zero by an error */
+
+    DELAY_MS(5) /* just to be safe */
+#endif
+}
+
+void FT8xx::writeString(const string & text)
 {
     for(auto it = text.cbegin(); it != text.cend();)
     {
@@ -526,26 +525,49 @@ void FT8xx::writeString(string text)
         }
         push(value);
     }
+    //append 4 zero byte if text aligned to 4 byte
     if(text.size() % 4 == 0)
-        push({0x00u});
-}
-
-void FT8xx::memCopy(uint32_t dest, uint32_t src, uint32_t num)
-{
-    push(CMD_MEMCPY);
-    push(dest);
-    push(src);
-    push(num);
-    execute();
+        push(0x0);
 }
 
 void FT8xx::push(const CmdBuf_t & command)
 {
+    //Block any modifying cmd buffer while is not sended
+    m_eventFlags.wait_all(EVEeventFlags::CmdBufBusy, osWaitForever, false);
+    m_ramDLobserver += 4;
     m_cmdBuffer.push_back(command);
 }
 
 void FT8xx::execute()
 {
+    //if Nothing to execute
+    if(m_cmdBuffer.size() == 0)
+    {
+        debug("if Nothing to execute\n");
+        return;
+    }
+    //if RamDL will be overflow
+    if(m_ramDLobserver > EVE_RAM_DL_SIZE)
+    {
+        debug("Ram DL overflow!\n");
+        //Clear cmdBuffer
+        m_cmdBuffer.clear();
+        m_ramDLobserver = 0;
+        //clear cmdBuffer lock flag
+        m_eventFlags.set(CmdBufBusy);
+        return;
+    }
+    //If cmdBuffer will be overflow
+    if(m_cmdBuffer.size() > EVE_CMDFIFO_SIZE)
+    {
+        debug("cmdBuffer overflow\n");
+        return;
+    }
+    //Blocking any operation with CmdBuffer while it is not sended to EVE FIFO
+    m_eventFlags.clear(EVEeventFlags::CmdBufBusy);
+    //If CoPro busy now - wait
+    m_eventFlags.wait_any(EVEeventFlags::CoProBusy);
+
     m_hal->csSet();
     m_hal->write(static_cast<uint8_t>((REG_CMDB_WRITE) >> 16) | MEM_WRITE);
     m_hal->write(static_cast<uint8_t>((REG_CMDB_WRITE) >> 8));
@@ -559,15 +581,37 @@ void FT8xx::execute()
         m_hal->write(u.byte[3]);
     }
     m_hal->csClear();
+
     //If CoPro commands fault reboot it
     if(m_hal->rd16(REG_CMD_READ) == 0xFFF)
-        rebootCoPro();
-    while(m_hal->rd16(REG_CMD_READ) != m_hal->rd16(REG_CMD_READ))
     {
-        debug("CoPro Busy");
-        ThisThread::sleep_for(1);
+        debug("CoPro error. Reboot started!\n");
+        rebootCoPro();
+        debug("EVE Reboot compleated!\n");
+        m_eventFlags.set(EVEeventFlags::CoProBusy);
+        return;
     }
+    //Clear cmdBuffer
     m_cmdBuffer.clear();
+    m_ramDLobserver = 0;
+    //clear cmdBuffer lock flag
+    m_eventFlags.set(CmdBufBusy);
+    //Wait while CoPro working
+    for(uint32_t i = 0; i < 100; ++i)
+    {
+        if(m_hal->rd16(REG_CMDB_SPACE) == 4092)
+            break;
+        ThisThread::sleep_for(1);
+        if(i == 99)
+        {
+            debug("CoPro error. Reboot started!\n");
+            rebootCoPro();
+            m_eventFlags.set(EVEeventFlags::CoProBusy);
+            return;
+        }
+    }
+
+    m_eventFlags.set(EVEeventFlags::CoProBusy);
 }
 
 void FT8xx::display()
@@ -623,39 +667,78 @@ void FT8xx::colorARGB(const FT8xx::CmdBuf_t & argb)
     colorRGB(argb.byte[2], argb.byte[1], argb.byte[0]);
 }
 
+void FT8xx::vertexPointII(uint16_t x, uint16_t y, uint16_t handle, uint16_t cell)
+{
+    debug_if(x > 511 || y > 511, "x and  y must be <511\n");
+    push(vertex2ii(x,
+                   y,
+                   handle,
+                   cell));
+}
+
 //*************************
 //*********Drawing functions
-void FT8xx::vertexPointF(uint32_t x1, uint32_t y1)
+void FT8xx::vertexPointF(int16_t x, int16_t y)
 {
     switch(m_pixelPrecision)
     {
     case FT8xx::Div_1:
-        push(vertex2f(x1, y1));
+        debug_if(x > 16383
+                     || y > 16383
+                     || x < -16384
+                     || y < -16384,
+                 "x and  y must be between -16384 to 16383\n");
+        push(vertex2f(x,
+                      y));
         break;
     case FT8xx::Div_2:
-        push(vertex2f(x1 * 2, y1 * 2));
+        debug_if(x > 8191
+                     || y > 8191
+                     || x < -8192
+                     || y < -8192,
+                 "x and  y must be between -8192 to 8191\n");
+        push(vertex2f(x * 2,
+                      y * 2));
         break;
     case FT8xx::Div_4:
-        push(vertex2f(x1 * 4, y1 * 4));
+        debug_if(x > 4095
+                     || y > 4095
+                     || x < -4096
+                     || y < -4096,
+                 "x and  y must be between -4096 to 4095\n");
+        push(vertex2f(x * 4,
+                      y * 4));
         break;
     case FT8xx::Div_8:
-        push(vertex2f(x1 * 8, y1 * 8));
+        debug_if(x > 2047
+                     || y > 2047
+                     || x < -2048
+                     || y < -2048,
+                 "x and  y must be between -2048 to 2047\n");
+        push(vertex2f(x * 8,
+                      y * 8));
         break;
     case FT8xx::Div_16:
-        push(vertex2f(x1 * 16, y1 * 16));
+        debug_if(x > 1023
+                     || y > 1023
+                     || x < -1024
+                     || y < -1024,
+                 "x and  y must be between -1024 to 1023\n");
+        push(vertex2f(x * 16,
+                      y * 16));
         break;
     }
 }
 
-void FT8xx::point(uint16_t x, uint16_t y, uint16_t size)
+void FT8xx::point(int16_t x, int16_t y, uint16_t size)
 {
-    pointSize(size);
+    pointSize(size * 16);
     begin(Points);
     vertexPointF(x, y);
     end();
 }
 
-void FT8xx::line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t width)
+void FT8xx::line(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t width)
 {
     begin(Lines);
     lineWidth(width * 16);
@@ -664,13 +747,42 @@ void FT8xx::line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t wi
     end();
 }
 
-void FT8xx::rectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t radius)
+void FT8xx::rectangle(int16_t x, int16_t y, int16_t width, int16_t height, uint16_t radius)
 {
+    debug_if(radius == 0, "Radius must be > 0\n");
     begin(Rects);
     lineWidth(radius * 16);
     vertexPointF(x, y);
     vertexPointF(x + width - 1, y + height - 1);
     end();
+}
+
+void FT8xx::gradient(uint16_t x0,
+                     uint16_t y0,
+                     uint32_t rgb0,
+                     uint16_t x1,
+                     uint16_t y1,
+                     uint32_t rgb1)
+{
+    push(CMD_GRADIENT);
+    push({x0, y0});
+    push(rgb0);
+    push({x1, y1});
+    push(rgb1);
+}
+
+void FT8xx::gradientA(uint16_t x0,
+                      uint16_t y0,
+                      uint32_t argb0,
+                      uint16_t x1,
+                      uint16_t y1,
+                      uint32_t argb1)
+{
+    push(CMD_GRADIENTA);
+    push({x0, y0});
+    push(argb0);
+    push({x1, y1});
+    push(argb1);
 }
 
 void FT8xx::text(uint16_t       x,
@@ -688,18 +800,114 @@ void FT8xx::text(uint16_t       x,
     writeString(text);
 }
 
+void FT8xx::button(uint16_t       x,
+                   uint16_t       y,
+                   uint16_t       width,
+                   uint16_t       height,
+                   uint16_t       font,
+                   const string & text,
+                   ButtonOpt      options)
+{
+    push(CMD_BUTTON);
+    push({x, y});
+    push({width, height});
+    push({font, static_cast<uint16_t>(options)});
+
+    writeString(text);
+}
+
+void FT8xx::clock(uint16_t x,
+                  uint16_t y,
+                  uint16_t radius,
+                  uint16_t h,
+                  uint16_t m,
+                  uint16_t s,
+                  uint16_t ms,
+                  ClockOpt options)
+{
+    push(CMD_CLOCK);
+    push({x, y});
+    push({radius, static_cast<uint16_t>(options)});
+    push({h, m});
+    push({s, ms});
+}
+
+void FT8xx::gauge(uint16_t x,
+                  uint16_t y,
+                  uint16_t radius,
+                  uint16_t major,
+                  uint16_t minor,
+                  uint16_t val,
+                  uint16_t range,
+                  GaugeOpt options)
+{
+    push(CMD_GAUGE);
+    push({x, y});
+    push({radius, static_cast<uint16_t>(options)});
+    push({major, minor});
+    push({val, range});
+}
+
 void FT8xx::append(uint32_t address, uint32_t count)
 {
     push(CMD_APPEND);
     push({address});
     push({count});
+    m_ramDLobserver += count - 12;
 }
 
-void FT8xx::append(const FTDisplayList * dl)
+void FT8xx::append(StoredObject * o)
 {
-    append(dl->m_address, dl->m_size);
+    switch(o->type())
+    {
+    case EVE::UnknowType:
+        debug("Unknow Type\n");
+        break;
+    case EVE::DisplayListType:
+        append(reinterpret_cast<DisplayList *>(o));
+        break;
+    case EVE::SnapshotType:
+        append(reinterpret_cast<Snapshot *>(o));
+        break;
+    case EVE::ImageType:
+        debug("ImageType not supported yet\n");
+        break;
+    }
 }
 
+void FT8xx::append(const DisplayList * dl)
+{
+    append(dl->address(), dl->size());
+}
+
+void FT8xx::append(const Snapshot * s,
+                   int16_t          x,
+                   int16_t          y,
+                   int16_t          width,
+                   int16_t          height)
+{
+    if(s->format() == SnapshotBitmapFormat::ARGB8_s)
+    {
+        debug("You don't load snapshot stored in ARGB8_s format \n");
+        return;
+    }
+    push(CMD_SETBITMAP);
+    push(s->address());
+    push({static_cast<uint16_t>(s->format()),
+          width < 0 ? s->width() : static_cast<uint16_t>(width)});
+    push({height < 0 ? s->height() : static_cast<uint16_t>(height),
+          0});
+
+    begin(Bitmaps);
+    vertexPointII(x < 0 ? s->x() : x,
+                  y < 0 ? s->y() : y);
+    this->end();
+}
+
+void FT8xx::ramGInit(uint32_t size)
+{
+    m_ramG = new RamG(this, size);
+}
 //*********************************************************************************
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 
@@ -720,12 +928,12 @@ void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType 
         delay,
         fadeType,
     };
-    p_backlightFade(bf);
+    m_queue->call(this, &FT8xx::p_backlightFade, bf);
 }
 
 void FT8xx::interruptFound()
 {
-    uint8_t flag = EVE_memRead8(REG_INT_FLAGS);
+    uint8_t flag = m_hal->rd8(REG_INT_FLAGS);
     if((flag & EVE_INT_SWAP) != 0
        && m_pageSwapCallback)
     {
@@ -746,11 +954,11 @@ void FT8xx::interruptFound()
         }
         if(m_tagNumberCallback)
         {
-            m_tagNumberCallback(EVE_memRead8(REG_TOUCH_TAG));
+            m_tagNumberCallback(m_hal->rd8(REG_TOUCH_TAG));
         }
         if(m_tagCallbacksPool.size() != 0)
         {
-            uint8_t tag = EVE_memRead8(REG_TOUCH_TAG);
+            uint8_t tag = m_hal->rd8(REG_TOUCH_TAG);
             for(const auto & f : m_tagCallbacksPool)
             {
                 if(f.tagNumber == tag)
@@ -790,9 +998,9 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
 {
     uint8_t interruptMask{0};
     //if interrupt is disabled = clear interrupt flags
-    if(EVE_memRead8(REG_INT_EN) == 0x1)
+    if(m_hal->rd8(REG_INT_EN) == 0x1)
     {
-        interruptMask = EVE_memRead8(REG_INT_MASK);
+        interruptMask = m_hal->rd8(REG_INT_MASK);
     }
     interruptMask |= flag;
     switch(flag)
@@ -825,37 +1033,37 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
         return;
     }
     //set interrupts mask
-    EVE_memWrite8(REG_INT_MASK, interruptMask);
+    m_hal->wr8(REG_INT_MASK, interruptMask);
     //enable interrupts
-    EVE_memWrite8(REG_INT_EN, 0x1);
+    m_hal->wr8(REG_INT_EN, 0x1);
 }
 
 void FT8xx::attachToTags(mbed::Callback<void(uint8_t)> f)
 {
     uint8_t interruptMask{0};
-    if(EVE_memRead8(REG_INT_EN) == 0x1)
+    if(m_hal->rd8(REG_INT_EN) == 0x1)
     {
-        interruptMask = EVE_memRead8(REG_INT_MASK);
+        interruptMask = m_hal->rd8(REG_INT_MASK);
     }
     interruptMask |= EVE_INT_TAG;
     m_tagNumberCallback = f;
     //set interrupts mask
-    EVE_memWrite8(REG_INT_MASK, interruptMask);
+    m_hal->wr8(REG_INT_MASK, interruptMask);
     //enable interrupts
-    EVE_memWrite8(REG_INT_EN, 0x1);
+    m_hal->wr8(REG_INT_EN, 0x1);
 }
 
 void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag)
 {
     //First calling needed to enable TAG interrupt
-    if(EVE_memRead8(REG_INT_EN) == 0x0)
+    if(m_hal->rd8(REG_INT_EN) == 0x0)
     {
-        uint8_t interruptMask = EVE_memRead8(REG_INT_MASK);
+        uint8_t interruptMask = m_hal->rd8(REG_INT_MASK);
         interruptMask |= EVE_INT_TAG;
         //set interrupts mask
-        EVE_memWrite8(REG_INT_MASK, interruptMask);
+        m_hal->wr8(REG_INT_MASK, interruptMask);
         //enable interrupts
-        EVE_memWrite8(REG_INT_EN, 0x1);
+        m_hal->wr8(REG_INT_EN, 0x1);
     }
     for(auto & c : m_tagCallbacksPool)
     {
@@ -924,14 +1132,14 @@ uint8_t FT8xx::findFirstEmptyTag()
 
 void FT8xx::enableTagInterrupt()
 {
-    if(EVE_memRead8(REG_INT_EN) == 0x0)
+    if(m_hal->rd8(REG_INT_EN) == 0x0)
     {
-        uint8_t interruptMask = EVE_memRead8(REG_INT_MASK);
+        uint8_t interruptMask = m_hal->rd8(REG_INT_MASK);
         interruptMask |= EVE_INT_TAG;
         //set interrupts mask
-        EVE_memWrite8(REG_INT_MASK, interruptMask);
+        m_hal->wr8(REG_INT_MASK, interruptMask);
         //enable interrupts
-        EVE_memWrite8(REG_INT_EN, 0x1);
+        m_hal->wr8(REG_INT_EN, 0x1);
     }
 }
 

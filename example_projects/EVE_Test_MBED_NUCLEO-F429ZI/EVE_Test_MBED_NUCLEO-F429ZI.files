@@ -7,6 +7,8 @@ lib/FT800-FT813/EVE_target.cpp
 lib/FT800-FT813/EVE_target.h
 lib/FT800-FT813/ft8xx.cpp
 lib/FT800-FT813/ft8xx.h
+lib/FT800-FT813/ft8xxmemory.cpp
+lib/FT800-FT813/ft8xxmemory.h
 lib/FT800-FT813/mbed_lib.json
 lib/README
 mbed_app.json

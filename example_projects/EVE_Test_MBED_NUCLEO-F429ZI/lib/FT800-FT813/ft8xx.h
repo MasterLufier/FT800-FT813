@@ -33,26 +33,25 @@
 #ifndef FT8XX_H
 #define FT8XX_H
 
-#include <EVE_commands.h>
+#include <EVE_target.h>
 #include <algorithm>
+#include <ft8xxmemory.h>
 #include <functional>
 #include <vector>
 
 namespace EVE
 {
-struct FTDisplayList
-{
-    std::string m_name{};
-    uint32_t    m_address{0};
-    uint32_t    m_size{0};
-    FTDisplayList(string name, uint32_t address, uint32_t size) :
-        m_name(name), m_address(address), m_size(size)
-    {}
-};
-
 class FT8xx : private NonCopyable<FT8xx>
 {
+    friend class RamG;
+    friend class Flash;
+
 public:
+    enum EVEeventFlags
+    {
+        CoProBusy  = 1UL << 0,
+        CmdBufBusy = 1UL << 1
+    };
     enum PixelPrecision : uint8_t
     {
         Div_1,
@@ -79,7 +78,12 @@ public:
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     struct TouchCalibrationResult
     {
-        uint32_t touch_a{}, touch_b{}, touch_c{}, touch_d{}, touch_e{}, touch_f{};
+        uint32_t touch_a{},
+            touch_b{},
+            touch_c{},
+            touch_d{},
+            touch_e{},
+            touch_f{};
     };
 
     enum FadeType : uint8_t{Linear, Quad, Cubic, Quart};
@@ -114,7 +118,7 @@ public:
 
     /*!
      * \brief Load cmdBuffer to EVE cmd FIFO and start processing to copy result to Ram_DL
-     *  \note now this function support only FT/BT81X
+     *  \note now this function support only FT/BT81X, because use new FIFO write mechanism. For more information see BRT_AN_033 page 92.
      */
     void execute();
 
@@ -142,51 +146,122 @@ public:
 
     //*************************
     //*********Drawing functions
-    void vertexPointF(uint32_t x1,
-                      uint32_t y1);
+    void vertexPointII(uint16_t x,
+                       uint16_t y,
+                       uint16_t handle = 0,
+                       uint16_t cell   = 0);
+    void vertexPointF(int16_t x,
+                      int16_t y);
 
-    void point(uint16_t x,
-               uint16_t y,
+    void point(int16_t  x,
+               int16_t  y,
                uint16_t size);
 
-    void line(uint16_t x0,
-              uint16_t y0,
-              uint16_t x1,
-              uint16_t y1,
+    void line(int16_t  x0,
+              int16_t  y0,
+              int16_t  x1,
+              int16_t  y1,
               uint16_t width);
 
-    void rectangle(uint16_t x,
-                   uint16_t y,
-                   uint16_t width,
-                   uint16_t height,
-                   uint16_t radius);
+    void rectangle(int16_t  x,
+                   int16_t  y,
+                   int16_t  width,
+                   int16_t  height,
+                   uint16_t radius = 1);
     //*************************
-    //*********Drawing graphics objects
+    //*********Drawing Widgets
+    //*****Colors of Widgets
+    inline void fgColor(uint32_t color)
+    {
+        push(CMD_FGCOLOR);
+        push(color);
+    };
+
+    inline void bgColor(uint32_t color)
+    {
+        push(CMD_BGCOLOR);
+        push(color);
+    }
+
+    inline void gradColor(uint32_t color)
+    {
+        push(CMD_GRADCOLOR);
+        push(color);
+    }
+
+    void gradient(uint16_t x0,
+                  uint16_t y0,
+                  uint32_t rgb0,
+                  uint16_t x1,
+                  uint16_t y1,
+                  uint32_t rgb1);
+
+    void gradientA(uint16_t x0,
+                   uint16_t y0,
+                   uint32_t argb0,
+                   uint16_t x1,
+                   uint16_t y1,
+                   uint32_t argb1);
+    //****
     void text(uint16_t            x,
               uint16_t            y,
               uint16_t            font,
               uint16_t            options,
               const std::string & text);
+
+    void button(uint16_t            x,
+                uint16_t            y,
+                uint16_t            width,
+                uint16_t            height,
+                uint16_t            font    = 27,
+                const std::string & text    = "",
+                ButtonOpt           options = ButtonOpt::_3D);
+
+    void clock(uint16_t x,
+               uint16_t y,
+               uint16_t radius,
+               uint16_t h       = 10,
+               uint16_t m       = 10,
+               uint16_t s       = 0,
+               uint16_t ms      = 0,
+               ClockOpt options = ClockOpt::_3D);
+
+    void gauge(uint16_t x,
+               uint16_t y,
+               uint16_t radius,
+               uint16_t major,
+               uint16_t minor,
+               uint16_t val,
+               uint16_t range,
+               GaugeOpt options = GaugeOpt::_3D);
     //*************************
     //*********Special commands
 
 #if defined(FT81X_ENABLE)
-    void append(uint32_t address, uint32_t count);
-    void append(const FTDisplayList * dl);
+
+    //Overload function for call with any StoredObjects
+    void append(StoredObject * o);
+
+    void append(const DisplayList * dl);
+    void append(const Snapshot * s,
+                int16_t          x      = -1,
+                int16_t          y      = -1,
+                int16_t          width  = -1,
+                int16_t          height = -1);
 #endif
+
     //**************************
 
     //***********Ram G Commands
-    void ramGInit(uint32_t size = EVE_RAM_G_SAFETY_SIZE) { m_ramG = new RamG(size); }
-
-    /*!
-     * \brief Saved curent Ram_DL data to Ram_G for next using with append(...) function for reduce SPI overhead
-     * \param name Display list name
-     * \return pointer to display list memory object
-     */
-    FTDisplayList * saveDisplayList(string name);
+    void         ramGInit(uint32_t size = EVE_RAM_G_SAFETY_SIZE);
+    const RamG * ramG();
     //****************
 
+#if defined(BT81X_ENABLE)
+    //***********Flash commands
+    uint8_t flashInit(uint32_t size);
+        //****************
+#endif
     /*!
      * \brief touchCalibrate - function for calibrate touchscreen
      * \param factory - if true - load factory calibration, else - start new calibration
@@ -432,86 +507,20 @@ public:
     //**************************************************************
 
 private:
-    struct RamG
-    {
-        uint32_t m_start{0x0},
-            m_size{0x0},
-            m_currentPosition{0x0};
-        RamG(uint32_t size = EVE_RAM_G_SAFETY_SIZE)
-        {
-            if(size > EVE_RAM_G_SIZE)
-                error("Allocated size must be less than EVE_RAM_G_SIZE");
-            debug_if(
-                size > EVE_RAM_G_SAFETY_SIZE,
-                "Note: If the loading image is in PNG format, the top 42K bytes from address "
-                "0xF5800 of RAM_G will be overwritten as temporary data buffer for decoding "
-                "process. \n\n");
-            m_start = EVE_RAM_G;
-            m_size  = m_start + size;
-        }
-    };
-    EVE_HAL *             m_hal{nullptr};
-    RamG *                m_ramG{nullptr};
+    EVE_HAL * m_hal{nullptr};
+    RamG *    m_ramG{nullptr};
+#if defined(BT81X_ENABLE)
+    Flash * m_flash{nullptr};
+#endif
     PixelPrecision        m_pixelPrecision{Div_16};
     std::vector<CmdBuf_t> m_cmdBuffer;
+    uint16_t              m_ramDLobserver{0};
 
-    void rebootCoPro()
-    {
-        /* we have a co-processor fault, make EVE play with us again */
-#if defined(BT81X_ENABLE)
-        uint16_t copro_patch_pointer = m_hal->rd16(REG_COPRO_PATCH_DTR);
+    void rebootCoPro();
+    void writeString(const string & text);
+#if defined(FT81X_ENABLE)
+    void append(uint32_t address, uint32_t count);
 #endif
-        m_hal->wr8(REG_CPURESET, 1);   /* hold co-processor engine in the reset condition */
-        m_hal->wr16(REG_CMD_READ, 0);  /* set REG_CMD_READ to 0 */
-        m_hal->wr16(REG_CMD_WRITE, 0); /* set REG_CMD_WRITE to 0 */
-        m_hal->wr32(REG_CMD_DL, 0);    /* reset REG_CMD_DL to 0 as required by the BT81x programming guide, should not hurt FT8xx */
-        m_hal->wr8(REG_CPURESET, 0);   /* set REG_CMD_WRITE to 0 to restart the co-processor engine*/
-
-#if defined(BT81X_ENABLE)
-
-        m_hal->wr16(REG_COPRO_PATCH_DTR, copro_patch_pointer);
-
-        DELAY_MS(5); /* just to be safe */
-
-        m_hal->csSet();
-        m_hal->write(static_cast<uint8_t>(EVE_RAM_CMD >> 16) | MEM_WRITE);
-        m_hal->write(static_cast<uint8_t>(EVE_RAM_CMD >> 8));
-        m_hal->write(static_cast<uint8_t>(EVE_RAM_CMD));
-
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH));
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH >> 8));
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH >> 16));
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHATTACH >> 24));
-
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST));
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST >> 8));
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST >> 16));
-        m_hal->write(static_cast<uint8_t>(CMD_FLASHFAST >> 24));
-        m_hal->csClear();
-
-        m_hal->csSet();
-        m_hal->write(static_cast<uint8_t>(REG_CMD_WRITE >> 16) | MEM_WRITE);
-        m_hal->write(static_cast<uint8_t>(REG_CMD_WRITE >> 8));
-        m_hal->write(static_cast<uint8_t>(REG_CMD_WRITE));
-
-        m_hal->write(static_cast<uint8_t>(8));
-        m_hal->write(static_cast<uint8_t>(8 >> 8));
-
-        m_hal->csClear();
-
-        m_hal->wr8(REG_PCLK, EVE_PCLK); /* restore REG_PCLK in case it was set to zero by an error */
-
-        DELAY_MS(5); /* just to be safe */
-#endif
-    }
-
-    //    bool busy();
-    void
-    writeString(string text);
-    /* Raw memory commands. Users actually does'n use in directly.
-     * To opperate with Ram_G call RamGInit() and work with public
-     * memory commands block */
-    void memCopy(uint32_t dest, uint32_t src, uint32_t num);
     //**********************************
 
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
@@ -548,6 +557,8 @@ private:
     InterruptIn  m_interrupt;
     Thread *     m_eventThread{nullptr};
     EventQueue * m_queue{nullptr};
+    EventFlags   m_eventFlags;
+
     //Calbacks for interrupt events
     mbed::Callback<void(uint8_t)> m_pageSwapCallback{nullptr};
     mbed::Callback<void(uint8_t)> m_touchDetectedCallback{nullptr};
@@ -557,7 +568,7 @@ private:
     mbed::Callback<void(uint8_t)> m_tagNumberCallback{nullptr};
     std::vector<TagCallback>      m_tagCallbacksPool;
 #endif
-};    // namespace EVE
+};
 }    // namespace EVE
 
 #endif    // FT8XX_H
