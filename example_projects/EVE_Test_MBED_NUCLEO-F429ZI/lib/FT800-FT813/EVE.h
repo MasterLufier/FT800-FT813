@@ -244,6 +244,13 @@ enum GraphicPrimitives
 #define EVE_OPT_RIGHTX    2048
 #define EVE_OPT_SIGNED    256
 
+static const struct DefaultWidgetColours
+{
+    uint32_t bgColor   = 0x002040;
+    uint32_t fgColor   = 0x003870;
+    uint32_t gradColor = 0xffffff;
+} defaultWidgetsState;
+
 enum class TextOpt : uint16_t
 {
     CenterX  = 512,
@@ -278,6 +285,36 @@ enum class GaugeOpt : uint16_t
     NoBack    = 4096,
     NoTicks   = 8192,
     NoPointer = 16384,
+};
+
+enum class SliderOpt : uint16_t
+{
+    _3D  = 0,
+    Flat = 256,
+};
+
+enum class ProgressOpt : uint16_t
+{
+    _3D  = 0,
+    Flat = 256,
+};
+
+enum class ScrollBarOpt : uint16_t
+{
+    _3D  = 0,
+    Flat = 256,
+};
+
+enum class DialOpt : uint16_t
+{
+    _3D  = 0,
+    Flat = 256,
+};
+
+enum class ToggleOpt : uint16_t
+{
+    _3D  = 0,
+    Flat = 256,
 };
 
 /* Defines related to inbuilt font */
@@ -507,14 +544,18 @@ static constexpr uint32_t blendFunc(AlphaBlending src, AlphaBlending dst)
 #define CLEAR_COLOR_A(alpha) ((15UL << 24) | (((alpha)&255UL) << 0))
 static constexpr uint32_t clearColorA(uint8_t a)
 {
-    return ((15UL << 24) | (((a)&255UL) << 0));
+    return ((15UL << 24)
+            | (((a)&255UL) << 0));
 }
 #define CLEAR_COLOR_RGB(red, green, blue) ((2UL << 24) | (((red)&255UL) << 16) | (((green)&255UL) << 8) | (((blue)&255UL) << 0))
 static constexpr uint32_t clearColorRGB(uint8_t r,
                                         uint8_t g,
                                         uint8_t b)
 {
-    return ((2UL << 24) | (((r)&255UL) << 16) | (((g)&255UL) << 8) | (((b)&255UL) << 0));
+    return ((2UL << 24)
+            | (((r)&255UL) << 16)
+            | (((g)&255UL) << 8)
+            | (((b)&255UL) << 0));
 }
 #define CLEAR_STENCIL(s) ((17UL << 24) | (((s)&255UL) << 0))
 #define CLEAR_TAG(s)     ((18UL << 24) | (((s)&255UL) << 0))

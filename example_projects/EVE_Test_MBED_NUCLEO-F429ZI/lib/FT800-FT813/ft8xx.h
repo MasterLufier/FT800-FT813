@@ -64,14 +64,14 @@ public:
     //Special container for 8-32 byte commands
     union CmdBuf_t
     {
-        uint32_t word{0x00000000u};
-        uint8_t  byte[4];
-        uint16_t halfWord[2];
-        CmdBuf_t(uint32_t data = 0x0) :
+        int32_t word{0x00000000u};
+        int8_t  byte[4];
+        int16_t halfWord[2];
+        CmdBuf_t(int32_t data = 0x0) :
             word{data} { MBED_STATIC_ASSERT(sizeof(this) == sizeof(uint32_t), "CmdBuf_t: Padding detected"); }
-        CmdBuf_t(uint16_t d1, uint16_t d2) :
+        CmdBuf_t(int16_t d1, int16_t d2) :
             halfWord{d1, d2} {}
-        CmdBuf_t(uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4) :
+        CmdBuf_t(int8_t d1, int8_t d2, int8_t d3, int8_t d4) :
             byte{d1, d2, d3, d4} {}
     };
 
@@ -123,11 +123,12 @@ public:
     void execute();
 
     inline void dlStart() { push(CMD_DLSTART); }
-    inline void dlEnd() { push(DL_END); }
     inline void begin(GraphicPrimitives prim) { push(EVE::begin(prim)); }
     inline void end() { push(EVE::end()); }
-    void        display();
     void        swap();
+
+    void tag(uint8_t tag) { push(EVE::tag(tag)); }
+    void clearTag() { push(EVE::tag(0)); }
 
     void clear(bool colorBuf   = true,
                bool stencilBuf = true,
@@ -150,6 +151,7 @@ public:
                        uint16_t y,
                        uint16_t handle = 0,
                        uint16_t cell   = 0);
+
     void vertexPointF(int16_t x,
                       int16_t y);
 
@@ -189,36 +191,36 @@ public:
         push(color);
     }
 
-    void gradient(uint16_t x0,
-                  uint16_t y0,
+    void gradient(int16_t  x0,
+                  int16_t  y0,
                   uint32_t rgb0,
-                  uint16_t x1,
-                  uint16_t y1,
+                  int16_t  x1,
+                  int16_t  y1,
                   uint32_t rgb1);
 
-    void gradientA(uint16_t x0,
-                   uint16_t y0,
+    void gradientA(int16_t  x0,
+                   int16_t  y0,
                    uint32_t argb0,
-                   uint16_t x1,
-                   uint16_t y1,
+                   int16_t  x1,
+                   int16_t  y1,
                    uint32_t argb1);
     //****
-    void text(uint16_t            x,
-              uint16_t            y,
+    void text(int16_t             x,
+              int16_t             y,
               uint16_t            font,
-              uint16_t            options,
-              const std::string & text);
+              const std::string & text,
+              TextOpt             options = TextOpt::CenterXY);
 
-    void button(uint16_t            x,
-                uint16_t            y,
+    void button(int16_t             x,
+                int16_t             y,
                 uint16_t            width,
                 uint16_t            height,
                 uint16_t            font    = 27,
                 const std::string & text    = "",
                 ButtonOpt           options = ButtonOpt::_3D);
 
-    void clock(uint16_t x,
-               uint16_t y,
+    void clock(int16_t  x,
+               int16_t  y,
                uint16_t radius,
                uint16_t h       = 10,
                uint16_t m       = 10,
@@ -226,14 +228,55 @@ public:
                uint16_t ms      = 0,
                ClockOpt options = ClockOpt::_3D);
 
-    void gauge(uint16_t x,
-               uint16_t y,
+    void gauge(int16_t  x,
+               int16_t  y,
                uint16_t radius,
                uint16_t major,
                uint16_t minor,
                uint16_t val,
                uint16_t range,
                GaugeOpt options = GaugeOpt::_3D);
+
+    void slider(int16_t   x,
+                int16_t   y,
+                uint16_t  width,
+                uint16_t  height,
+                uint16_t  value,
+                uint16_t  range,
+                SliderOpt options = SliderOpt::_3D);
+
+    void progress(int16_t     x,
+                  int16_t     y,
+                  uint16_t    width,
+                  uint16_t    height,
+                  uint16_t    value,
+                  uint16_t    size,
+                  uint16_t    range,
+                  ProgressOpt options = ProgressOpt::_3D);
+
+    void scrollBar(int16_t      x,
+                   int16_t      y,
+                   uint16_t     width,
+                   uint16_t     height,
+                   uint16_t     value,
+                   uint16_t     size,
+                   uint16_t     range,
+                   ScrollBarOpt options = ScrollBarOpt::_3D);
+
+    void dial(int16_t  x,
+              int16_t  y,
+              uint16_t radius,
+              uint16_t value,
+              DialOpt  options = DialOpt::_3D);
+
+    void toggle(int16_t             x,
+                int16_t             y,
+                uint16_t            width,
+                uint16_t            font,
+                uint16_t            state,
+                const std::string & offText = "",
+                const std::string & onText  = "",
+                ToggleOpt           options = ToggleOpt::_3D);
     //*************************
     //*********Special commands
 
@@ -273,7 +316,13 @@ public:
      * \param value - value from 0(off) to 128(full)
      */
     void setBacklight(uint8_t value);
-//****************************************************************
+    //****************************************************************
+    void animate(int32_t * value,
+                 int32_t   from,
+                 int32_t   to,
+                 uint32_t  duration = 1000,
+                 FadeType  fadeType = Linear,
+                 uint8_t   delay    = 10);
 
 //***Next commands works only if MBED Thread enabled
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
@@ -301,27 +350,19 @@ public:
      */
     void attach(mbed::Callback<void(uint8_t)> f, uint8_t flag);
 
-    inline void attachPageSwapCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_SWAP); }
-    inline void attachTouchDetectedCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_TOUCH); }
-    inline void attachTouchTagCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_TAG); }
+    inline void attachPageSwapCallback(mbed::Callback<void(uint8_t)> f)
+    {
+        attach(f, EVE_INT_SWAP);
+    }
+    inline void attachTouchDetectedCallback(mbed::Callback<void(uint8_t)> f)
+    {
+        attach(f, EVE_INT_TOUCH);
+    }
+
     inline void attachTouchConversionsCallback(mbed::Callback<void(uint8_t)> f)
     {
         attach(f, EVE_INT_CONVCOMPLETE);
     }
-
-    /*!
-     * \brief attachToTag. attach callback to all tags. Passing tag number as parameter to callback function.
-     * \param f - callback function attached to all tags (1-254)
-     */
-    void attachToTags(mbed::Callback<void(uint8_t)> f);
-
-    /*!
-     * \brief attachToTag. Attach calback to specific tag number.
-     * Do not use this method both with setCallbackToTag(mbed::Callback<void(uint8_t)> f)
-     * \param f - callback function will be attached to tag
-     * \param tag - tag number (1-254)
-     */
-    void attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag);
 
     /*!
      * \brief deattachFromTag. Remove callback from tag. This function remove all callbacks from tag, if many callbacks attached to one tag.
@@ -334,10 +375,55 @@ public:
      * \param f - callback function will be attached to tag
      * \return Tag number
      */
-    uint8_t setCallbackToTag(mbed::Callback<void(uint8_t)> f);
+    uint8_t setCallbackToTag(std::function<void(uint8_t)> f)
+    {
+        //Switch on tag interrupt if this a first call
+        if(m_tagCBPool.size() == 0)
+            enableTagInterrupt();
+        //Check tag pool size
+        if(m_tagCBPool.size() == 254)
+        {
+            debug("TagPool is full");
+            return 0;
+        }
+        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
+            (f)(tag);
+        });
 
+        TagCB cbs{
+            findFirstEmptyTag(),
+            fp};
+        m_tagCBPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
+
+    uint8_t setCallbackToTag(std::function<void()> f)
+    {
+        //Switch on tag interrupt if this a first call
+        if(m_tagCBPool.size() == 0)
+            enableTagInterrupt();
+
+        //Check tag pool size
+        if(m_tagCBPool.size() == 254)
+        {
+            debug("TagPool is full");
+            return 0;
+        }
+
+        //Wrap callback with different args type
+        auto * fp = new std::function<void(uint8_t)>([=](uint8_t) -> void {
+            f();
+        });
+
+        TagCB cbs{
+            findFirstEmptyTag(),
+            fp};
+
+        m_tagCBPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag. Last argument in function must be uint8_t for pushing tag number
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag. Last argument in function must be uint8_t for passing tag number
      * \param obj - pointer to object
      * \param method - pointer to  member callback function will be attached to tag
      * \return Tag number
@@ -355,11 +441,11 @@ public:
                      Args... args)
     {
         //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
+        if(m_tagCBPool.size() == 0)
             enableTagInterrupt();
 
         //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
+        if(m_tagCBPool.size() == 254)
         {
             debug("TagPool is full");
             return 0;
@@ -370,19 +456,19 @@ public:
             (obj->*method)(args..., tag);
         });
 
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
+        TagCB cbs{
             findFirstEmptyTag(),
-            cb,
             fp};
 
-        m_tagCallbacksPool.push_back(cbs);
+        m_tagCBPool.push_back(cbs);
         return cbs.tagNumber;
     }
-
+    /*!
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
+     * \param obj - pointer to object
+     * \param method - pointer to  member callback function will be attached to tag
+     * \return Tag number
+     */
     template<typename R,
              typename T,
              typename U,
@@ -396,31 +482,26 @@ public:
                      Args... args)
     {
         //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
+        if(m_tagCBPool.size() == 0)
             enableTagInterrupt();
 
         //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
+        if(m_tagCBPool.size() == 254)
         {
             debug("TagPool is full");
             return 0;
         }
 
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
+        auto * fp = new std::function<void(uint8_t)>([=](uint8_t) -> void {
             (obj->*method)(args...);
         });
 
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
+        TagCB cbs{
             findFirstEmptyTag(),
-            cb,
             fp};
 
-        m_tagCallbacksPool.push_back(cbs);
+        m_tagCBPool.push_back(cbs);
         return cbs.tagNumber;
     }
 
@@ -432,56 +513,55 @@ public:
     template<typename F,
              typename... Types,
              typename... Args>
-    typename std::enable_if<(sizeof...(Types) == sizeof...(Args)), uint8_t>::type
+    typename std::enable_if<(sizeof...(Types)
+                             == sizeof...(Args)),
+                            uint8_t>::type
     setCallbackToTag(F (*f)(Types...),
                      Args... args)
     {
         //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
+        if(m_tagCBPool.size() == 0)
             enableTagInterrupt();
 
         //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
+        if(m_tagCBPool.size() == 254)
         {
             debug("TagPool is full");
             return 0;
         }
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t tag) -> void {
+        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t) -> void {
             (*f)(args...);
         });
 
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
+        TagCB cbs{
             findFirstEmptyTag(),
-            cb,
             fp};
 
-        m_tagCallbacksPool.push_back(cbs);
+        m_tagCBPool.push_back(cbs);
         return cbs.tagNumber;
     }
 
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
+     * \brief setCallbackToTag. Automatic attach callback to next empty tag. Last argument in function must be uint8_t for passing tag number.
      * \param f - pointer to callback function will be attached to tag
      * \return Tag number
      */
     template<typename F,
              typename... Types,
              typename... Args>
-    typename std::enable_if<!(sizeof...(Types) == sizeof...(Args)), uint8_t>::type
+    typename std::enable_if<!(sizeof...(Types)
+                              == sizeof...(Args)),
+                            uint8_t>::type
     setCallbackToTag(F (*f)(Types...),
                      Args... args)
     {
         //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
+        if(m_tagCBPool.size() == 0)
             enableTagInterrupt();
 
         //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
+        if(m_tagCBPool.size() == 254)
         {
             debug("TagPool is full");
             return 0;
@@ -491,18 +571,14 @@ public:
             (*f)(args..., tag);
         });
 
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
+        TagCB cbs{
             findFirstEmptyTag(),
-            cb,
             fp};
 
-        m_tagCallbacksPool.push_back(cbs);
+        m_tagCBPool.push_back(cbs);
         return cbs.tagNumber;
     }
+
 #endif
     //**************************************************************
 
@@ -528,30 +604,29 @@ private:
     void    interruptFound();
     uint8_t findFirstEmptyTag();
 
-    struct BacklightFade
+    struct Fade
     {
         float    cycCount;
         int32_t  duration;
-        int16_t  range;
-        uint8_t  start;
-        uint8_t  value;
+        int32_t  range;
+        int32_t  start;
         uint8_t  freq;
         FadeType fadeType;
     };
 
-    struct TagCallback
+    struct TagCB
     {
         uint8_t                        tagNumber;
-        mbed::Callback<void(uint8_t)>  callback{nullptr};
-        std::function<void(uint8_t)> * cbPonter{nullptr};
+        std::function<void(uint8_t)> * cb{nullptr};
 
-        bool operator<(const TagCallback & c) const
+        bool operator<(const TagCB & c) const
         {
             return (tagNumber < c.tagNumber);
         }
     };
 
-    void p_backlightFade(BacklightFade bf);
+    void p_backlightFade(uint8_t * value, Fade * fade);
+    void p_animate(int32_t * value, Fade * fade);
 
     bool         m_fadeBlock{false};
     InterruptIn  m_interrupt;
@@ -559,14 +634,12 @@ private:
     EventQueue * m_queue{nullptr};
     EventFlags   m_eventFlags;
 
-    //Calbacks for interrupt events
+    //Callbacks for interrupt events
     mbed::Callback<void(uint8_t)> m_pageSwapCallback{nullptr};
     mbed::Callback<void(uint8_t)> m_touchDetectedCallback{nullptr};
-    mbed::Callback<void(uint8_t)> m_touchTagCallback{nullptr};
     mbed::Callback<void(uint8_t)> m_touchConvCompCallback{nullptr};
 
-    mbed::Callback<void(uint8_t)> m_tagNumberCallback{nullptr};
-    std::vector<TagCallback>      m_tagCallbacksPool;
+    std::vector<TagCB> m_tagCBPool;
 #endif
 };
 }    // namespace EVE

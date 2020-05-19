@@ -64,8 +64,8 @@ class Snapshot : public StoredObject
 public:
     Snapshot(string               name,
              uint32_t             address,
-             uint16_t             x,
-             uint16_t             y,
+             int16_t              x,
+             int16_t              y,
              uint16_t             width,
              uint16_t             height,
              SnapshotBitmapFormat format) :
@@ -93,15 +93,15 @@ public:
     uint16_t             width() const;
     uint16_t             height() const;
 
-    uint16_t y() const;
-    uint16_t x() const;
+    int16_t y() const;
+    int16_t x() const;
 
 protected:
     SnapshotBitmapFormat m_format;
 
-    uint16_t m_x{0},
-        m_y{0},
-        m_width{0},
+    int16_t m_x{0},
+        m_y{0};
+    uint16_t m_width{0},
         m_height{0};
 };
 
@@ -130,8 +130,8 @@ public:
 
     Snapshot * saveSnapshot(string               name,
                             SnapshotBitmapFormat fmt    = ARGB4_s,
-                            uint16_t             x      = 0,
-                            uint16_t             y      = 0,
+                            int16_t              x      = 0,
+                            int16_t              y      = 0,
                             uint16_t             width  = EVE_HSIZE,
                             uint16_t             height = EVE_VSIZE) const;
 
@@ -143,9 +143,9 @@ public:
     {
         removeStoredObject(name);
     }
-    Snapshot * updateSnapshot(Snapshot * s)
-    {
-    }
+    //    Snapshot * updateSnapshot(Snapshot * s)
+    //    {
+    //    }
 
     const std::vector<StoredObject *> & pool() const;
 

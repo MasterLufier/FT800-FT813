@@ -418,7 +418,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         push(CMD_DLSTART);
         push(DL_CLEAR_RGB | COLOR_RGB(0, 0, 0));
         push(DL_CLEAR | CLR_COL | CLR_STN | CLR_TAG);
-        text((EVE_HSIZE / 2), 50, 26, EVE_OPT_CENTER, "Please tap on the dot.");
+        text((EVE_HSIZE / 2), 50, 26, "Please tap on the dot.", TextOpt::CenterXY);
         push(CMD_CALIBRATE);
         push({0x00});
         push(DL_DISPLAY);
@@ -443,6 +443,25 @@ void FT8xx::setBacklight(uint8_t value)
 #else
     m_hal->wr8(REG_PWM_DUTY, value);
 #endif
+}
+
+void FT8xx::animate(int32_t * value,
+                    int32_t   from,
+                    int32_t   to,
+                    uint32_t  duration,
+                    FadeType  fadeType,
+                    uint8_t   delay)
+{
+    auto fade = new Fade{
+        0,
+        static_cast<int32_t>(duration),
+        static_cast<int32_t>(to - from),
+        from,
+        delay,
+        fadeType,
+    };
+
+    m_queue->call_in(delay, this, &FT8xx::p_animate, value, fade);
 }
 
 const RamG * FT8xx::ramG()
@@ -518,7 +537,7 @@ void FT8xx::writeString(const string & text)
         CmdBuf_t value;
         for(uint8_t i = 0; i < 4; ++i)
         {
-            value.byte[i] = *it;
+            value.byte[i] = static_cast<int8_t>(*it);
             ++it;
             if(it == text.cend())
                 break;
@@ -614,17 +633,9 @@ void FT8xx::execute()
     m_eventFlags.set(EVEeventFlags::CoProBusy);
 }
 
-void FT8xx::display()
-{
-    if(m_cmdBuffer.back().word != DL_END)
-        push(DL_END);
-    push(DL_DISPLAY);
-}
-
 void FT8xx::swap()
 {
-    if(m_cmdBuffer.back().word != DL_DISPLAY)
-        display();
+    push(DL_DISPLAY);
     push(CMD_SWAP);
 }
 
@@ -647,8 +658,10 @@ void FT8xx::clearColorA(uint8_t a)
 
 void FT8xx::clearColorARGB(const FT8xx::CmdBuf_t & argb)
 {
-    clearColorA(argb.byte[3]);
-    clearColorRGB(argb.byte[2], argb.byte[1], argb.byte[0]);
+    clearColorA(static_cast<uint8_t>(argb.byte[3]));
+    clearColorRGB(static_cast<uint8_t>(argb.byte[2]),
+                  static_cast<uint8_t>(argb.byte[1]),
+                  static_cast<uint8_t>(argb.byte[0]));
 }
 
 void FT8xx::colorRGB(uint8_t r, uint8_t g, uint8_t b)
@@ -738,7 +751,11 @@ void FT8xx::point(int16_t x, int16_t y, uint16_t size)
     end();
 }
 
-void FT8xx::line(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t width)
+void FT8xx::line(int16_t  x0,
+                 int16_t  y0,
+                 int16_t  x1,
+                 int16_t  y1,
+                 uint16_t width)
 {
     begin(Lines);
     lineWidth(width * 16);
@@ -747,7 +764,11 @@ void FT8xx::line(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t width)
     end();
 }
 
-void FT8xx::rectangle(int16_t x, int16_t y, int16_t width, int16_t height, uint16_t radius)
+void FT8xx::rectangle(int16_t  x,
+                      int16_t  y,
+                      int16_t  width,
+                      int16_t  height,
+                      uint16_t radius)
 {
     debug_if(radius == 0, "Radius must be > 0\n");
     begin(Rects);
@@ -757,11 +778,11 @@ void FT8xx::rectangle(int16_t x, int16_t y, int16_t width, int16_t height, uint1
     end();
 }
 
-void FT8xx::gradient(uint16_t x0,
-                     uint16_t y0,
+void FT8xx::gradient(int16_t  x0,
+                     int16_t  y0,
                      uint32_t rgb0,
-                     uint16_t x1,
-                     uint16_t y1,
+                     int16_t  x1,
+                     int16_t  y1,
                      uint32_t rgb1)
 {
     push(CMD_GRADIENT);
@@ -771,11 +792,11 @@ void FT8xx::gradient(uint16_t x0,
     push(rgb1);
 }
 
-void FT8xx::gradientA(uint16_t x0,
-                      uint16_t y0,
+void FT8xx::gradientA(int16_t  x0,
+                      int16_t  y0,
                       uint32_t argb0,
-                      uint16_t x1,
-                      uint16_t y1,
+                      int16_t  x1,
+                      int16_t  y1,
                       uint32_t argb1)
 {
     push(CMD_GRADIENTA);
@@ -785,23 +806,23 @@ void FT8xx::gradientA(uint16_t x0,
     push(argb1);
 }
 
-void FT8xx::text(uint16_t       x,
-                 uint16_t       y,
+void FT8xx::text(int16_t        x,
+                 int16_t        y,
                  uint16_t       font,
-                 uint16_t       options,
-                 const string & text)
+                 const string & text,
+                 TextOpt        options)
 {
     if(text.size() == 0)
         return;
     push(CMD_TEXT);
     push({x, y});
-    push({font, options});
+    push({static_cast<int16_t>(font), static_cast<int16_t>(options)});
 
     writeString(text);
 }
 
-void FT8xx::button(uint16_t       x,
-                   uint16_t       y,
+void FT8xx::button(int16_t        x,
+                   int16_t        y,
                    uint16_t       width,
                    uint16_t       height,
                    uint16_t       font,
@@ -810,14 +831,14 @@ void FT8xx::button(uint16_t       x,
 {
     push(CMD_BUTTON);
     push({x, y});
-    push({width, height});
-    push({font, static_cast<uint16_t>(options)});
+    push({static_cast<int16_t>(width), static_cast<int16_t>(height)});
+    push({static_cast<int16_t>(font), static_cast<int16_t>(options)});
 
     writeString(text);
 }
 
-void FT8xx::clock(uint16_t x,
-                  uint16_t y,
+void FT8xx::clock(int16_t  x,
+                  int16_t  y,
                   uint16_t radius,
                   uint16_t h,
                   uint16_t m,
@@ -827,13 +848,13 @@ void FT8xx::clock(uint16_t x,
 {
     push(CMD_CLOCK);
     push({x, y});
-    push({radius, static_cast<uint16_t>(options)});
-    push({h, m});
-    push({s, ms});
+    push({static_cast<int16_t>(radius), static_cast<int16_t>(options)});
+    push({static_cast<int16_t>(h), static_cast<int16_t>(m)});
+    push({static_cast<int16_t>(s), static_cast<int16_t>(ms)});
 }
 
-void FT8xx::gauge(uint16_t x,
-                  uint16_t y,
+void FT8xx::gauge(int16_t  x,
+                  int16_t  y,
                   uint16_t radius,
                   uint16_t major,
                   uint16_t minor,
@@ -843,16 +864,91 @@ void FT8xx::gauge(uint16_t x,
 {
     push(CMD_GAUGE);
     push({x, y});
-    push({radius, static_cast<uint16_t>(options)});
-    push({major, minor});
-    push({val, range});
+    push({static_cast<int16_t>(radius), static_cast<int16_t>(options)});
+    push({static_cast<int16_t>(major), static_cast<int16_t>(minor)});
+    push({static_cast<int16_t>(val), static_cast<int16_t>(range)});
+}
+
+void FT8xx::slider(int16_t   x,
+                   int16_t   y,
+                   uint16_t  width,
+                   uint16_t  height,
+                   uint16_t  value,
+                   uint16_t  range,
+                   SliderOpt options)
+{
+    push(CMD_SLIDER);
+    push({x, y});
+    push({static_cast<int16_t>(width), static_cast<int16_t>(height)});
+    push({static_cast<int16_t>(options), static_cast<int16_t>(value)});
+    push({static_cast<int16_t>(range), 0});
+}
+
+void FT8xx::progress(int16_t     x,
+                     int16_t     y,
+                     uint16_t    width,
+                     uint16_t    height,
+                     uint16_t    value,
+                     uint16_t    size,
+                     uint16_t    range,
+                     ProgressOpt options)
+{
+    push(CMD_PROGRESS);
+    push({x, y});
+    push({static_cast<int16_t>(width), static_cast<int16_t>(height)});
+    push({static_cast<int16_t>(options), static_cast<int16_t>(value)});
+    push({static_cast<int16_t>(size), static_cast<int16_t>(range)});
+}
+
+void FT8xx::scrollBar(int16_t      x,
+                      int16_t      y,
+                      uint16_t     width,
+                      uint16_t     height,
+                      uint16_t     value,
+                      uint16_t     size,
+                      uint16_t     range,
+                      ScrollBarOpt options)
+{
+    push(CMD_SCROLLBAR);
+    push({x, y});
+    push({static_cast<int16_t>(width), static_cast<int16_t>(height)});
+    push({static_cast<int16_t>(options), static_cast<int16_t>(value)});
+    push({static_cast<int16_t>(size), static_cast<int16_t>(range)});
+}
+
+void FT8xx::dial(int16_t  x,
+                 int16_t  y,
+                 uint16_t radius,
+                 uint16_t value,
+                 DialOpt  options)
+{
+    push(CMD_DIAL);
+    push({x, y});
+    push({static_cast<int16_t>(radius), static_cast<int16_t>(options)});
+    push({static_cast<int16_t>(value), 0});
+}
+
+void FT8xx::toggle(int16_t        x,
+                   int16_t        y,
+                   uint16_t       width,
+                   uint16_t       font,
+                   uint16_t       state,
+                   const string & offText,
+                   const string & onText,
+                   ToggleOpt      options)
+{
+    push(CMD_TOGGLE);
+    push({x, y});
+    push({static_cast<int16_t>(width), static_cast<int16_t>(font)});
+    push({static_cast<int16_t>(options), static_cast<int16_t>(state)});
+    writeString(offText + "\xff" + onText);
 }
 
 void FT8xx::append(uint32_t address, uint32_t count)
 {
     push(CMD_APPEND);
-    push({address});
-    push({count});
+    push({static_cast<int32_t>(address)});
+    push({static_cast<int32_t>(count)});
     m_ramDLobserver += count - 12;
 }
 
@@ -893,9 +989,9 @@ void FT8xx::append(const Snapshot * s,
     }
     push(CMD_SETBITMAP);
     push(s->address());
-    push({static_cast<uint16_t>(s->format()),
-          width < 0 ? s->width() : static_cast<uint16_t>(width)});
-    push({height < 0 ? s->height() : static_cast<uint16_t>(height),
+    push({static_cast<int16_t>(s->format()),
+          width < 0 ? static_cast<int16_t>(s->width()) : width});
+    push({height < 0 ? static_cast<int16_t>(s->height()) : height,
           0});
 
     begin(Bitmaps);
@@ -911,7 +1007,11 @@ void FT8xx::ramGInit(uint32_t size)
 //*********************************************************************************
 #if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 
-void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType fadeType, uint8_t delay)
+void FT8xx::backlightFade(uint8_t  from,
+                          uint8_t  to,
+                          uint32_t duration,
+                          FadeType fadeType,
+                          uint8_t  delay)
 {
     //Check if fade is not started now
     if(m_fadeBlock == true)
@@ -919,16 +1019,16 @@ void FT8xx::backlightFade(uint8_t from, uint8_t to, uint32_t duration, FadeType 
     //block calling fade when already started
     m_fadeBlock = true;
 
-    BacklightFade bf{
+    auto value = new uint8_t(0);
+    auto bf    = new Fade{
         0,
         static_cast<int32_t>(duration),
         static_cast<int16_t>(to - from),
         from,
-        from,
         delay,
         fadeType,
     };
-    m_queue->call(this, &FT8xx::p_backlightFade, bf);
+    m_queue->call(this, &FT8xx::p_backlightFade, value, bf);
 }
 
 void FT8xx::interruptFound()
@@ -948,21 +1048,13 @@ void FT8xx::interruptFound()
 
     if((flag & EVE_INT_TAG) != 0)
     {
-        if(m_touchTagCallback)
-        {
-            m_touchTagCallback(flag);
-        }
-        if(m_tagNumberCallback)
-        {
-            m_tagNumberCallback(m_hal->rd8(REG_TOUCH_TAG));
-        }
-        if(m_tagCallbacksPool.size() != 0)
+        if(!m_tagCBPool.empty())
         {
             uint8_t tag = m_hal->rd8(REG_TOUCH_TAG);
-            for(const auto & f : m_tagCallbacksPool)
+            for(const auto & f : m_tagCBPool)
             {
                 if(f.tagNumber == tag)
-                    f.callback(tag);
+                    f.cb->operator()(tag);
             }
         }
     }
@@ -1012,7 +1104,7 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
         m_touchDetectedCallback = f;
         break;
     case EVE_INT_TAG:
-        m_touchTagCallback = f;
+        //        printf("%04x \n", flag);
         break;
     case EVE_INT_SOUND:
         //        printf("%04x \n", flag);
@@ -1038,90 +1130,33 @@ void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
     m_hal->wr8(REG_INT_EN, 0x1);
 }
 
-void FT8xx::attachToTags(mbed::Callback<void(uint8_t)> f)
-{
-    uint8_t interruptMask{0};
-    if(m_hal->rd8(REG_INT_EN) == 0x1)
-    {
-        interruptMask = m_hal->rd8(REG_INT_MASK);
-    }
-    interruptMask |= EVE_INT_TAG;
-    m_tagNumberCallback = f;
-    //set interrupts mask
-    m_hal->wr8(REG_INT_MASK, interruptMask);
-    //enable interrupts
-    m_hal->wr8(REG_INT_EN, 0x1);
-}
-
-void FT8xx::attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag)
-{
-    //First calling needed to enable TAG interrupt
-    if(m_hal->rd8(REG_INT_EN) == 0x0)
-    {
-        uint8_t interruptMask = m_hal->rd8(REG_INT_MASK);
-        interruptMask |= EVE_INT_TAG;
-        //set interrupts mask
-        m_hal->wr8(REG_INT_MASK, interruptMask);
-        //enable interrupts
-        m_hal->wr8(REG_INT_EN, 0x1);
-    }
-    for(auto & c : m_tagCallbacksPool)
-    {
-        if(c.tagNumber == tag)
-        {
-            c.callback = f;
-            return;
-        }
-    }
-    m_tagCallbacksPool.push_back(TagCallback{tag, f});
-}
-
 void FT8xx::deattachFromTag(uint8_t tag)
 {
-    m_tagCallbacksPool.erase(
+    m_tagCBPool.erase(
         std::remove_if(
-            m_tagCallbacksPool.begin(),
-            m_tagCallbacksPool.end(),
-            [&](const TagCallback & c) {
+            m_tagCBPool.begin(),
+            m_tagCBPool.end(),
+            [&](const TagCB & c) {
                 if(c.tagNumber == tag)
                 {
-                    delete c.cbPonter;
+                    delete c.cb;
                     return true;
                 }
                 return false;
             }),
-        m_tagCallbacksPool.end());
-}
-
-uint8_t FT8xx::setCallbackToTag(mbed::Callback<void(uint8_t)> f)
-{
-    //Switch on tag interrupt if this a first call
-    if(m_tagCallbacksPool.size() == 0)
-        enableTagInterrupt();
-
-    //Check tag pool size
-    if(m_tagCallbacksPool.size() > 254)
-    {
-        debug("TagPool is full");
-        return 0;
-    }
-
-    TagCallback cb{findFirstEmptyTag(),
-                   f};
-    m_tagCallbacksPool.push_back(cb);
-    return cb.tagNumber;
+        m_tagCBPool.end());
 }
 
 uint8_t FT8xx::findFirstEmptyTag()
 {
-    if(m_tagCallbacksPool.empty())
+    if(m_tagCBPool.empty())
         return 1;
 
-    std::sort(m_tagCallbacksPool.begin(),
-              m_tagCallbacksPool.end());
+    std::sort(m_tagCBPool.begin(),
+              m_tagCBPool.end());
 
     uint8_t next = 1;
-    for(const auto & t : m_tagCallbacksPool)
+    for(const auto & t : m_tagCBPool)
     {
         if(t.tagNumber != next)
             return next;
@@ -1143,43 +1178,80 @@ void FT8xx::enableTagInterrupt()
     }
 }
 
-void FT8xx::p_backlightFade(BacklightFade bf)
+void FT8xx::p_backlightFade(uint8_t * value, Fade * fade)
 {
-    if(bf.cycCount <= bf.duration)
+    if(fade->cycCount <= fade->duration)
     {
-        switch(bf.fadeType)
+        switch(fade->fadeType)
         {
         case Linear:
-            bf.value = static_cast<uint8_t>((bf.range * bf.cycCount) / bf.duration + bf.start);
+            *value = static_cast<uint8_t>((fade->range * fade->cycCount) / fade->duration + fade->start);
             break;
         case Quad:
         {
-            float t  = bf.cycCount / bf.duration;
-            bf.value = static_cast<uint8_t>(bf.range * t * t + bf.start);
+            float t = fade->cycCount / fade->duration;
+            *value  = static_cast<uint8_t>(fade->range * t * t + fade->start);
             break;
         }
         case Cubic:
         {
-            float t  = bf.cycCount / bf.duration;
-            bf.value = static_cast<uint8_t>(bf.range * t * t * t + bf.start);
+            float t = fade->cycCount / fade->duration;
+            *value  = static_cast<uint8_t>(fade->range * t * t * t + fade->start);
             break;
         }
         case Quart:
         {
-            float t  = bf.cycCount / bf.duration;
-            bf.value = static_cast<uint8_t>(bf.range * t * t * t * t + bf.start);
+            float t = fade->cycCount / fade->duration;
+            *value  = static_cast<uint8_t>(fade->range * t * t * t * t + fade->start);
             break;
         }
         }
-        setBacklight(bf.value);
-        bf.cycCount += bf.freq;
-        m_queue->call_in(bf.freq, this, &FT8xx::p_backlightFade, bf);
-        //        printf("%u \n", bf.value);
+        setBacklight(*value);
+        fade->cycCount += fade->freq;
+        m_queue->call_in(fade->freq, this, &FT8xx::p_backlightFade, value, fade);
     }
     else
     {
         m_fadeBlock = false;
+        delete fade;
+        delete value;
     }
+}
+
+void FT8xx::p_animate(int32_t * value,
+                      Fade *    fade)
+{
+    switch(fade->fadeType)
+    {
+    case Linear:
+        *value = static_cast<int32_t>((fade->range * fade->cycCount) / fade->duration + fade->start);
+        break;
+    case Quad:
+    {
+        float t = fade->cycCount / fade->duration;
+        *value  = static_cast<int32_t>(fade->range * t * t + fade->start);
+        break;
+    }
+    case Cubic:
+    {
+        float t = fade->cycCount / fade->duration;
+        *value  = static_cast<int32_t>(fade->range * t * t * t + fade->start);
+        break;
+    }
+    case Quart:
+    {
+        float t = fade->cycCount / fade->duration;
+        *value  = static_cast<int32_t>(fade->range * t * t * t * t + fade->start);
+        break;
+    }
+    }
+    if(fade->cycCount == fade->duration)
+    {
+        delete fade;
+        return;
+    }
+    fade->cycCount += fade->freq;
+    m_queue->call_in(fade->freq, this, &FT8xx::p_animate, value, fade);
 }
 #endif
 //***********************************************************************

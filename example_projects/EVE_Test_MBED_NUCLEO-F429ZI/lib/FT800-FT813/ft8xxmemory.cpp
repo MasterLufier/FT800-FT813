@@ -1,4 +1,4 @@
-#include "ft8xxmemory.h"
+﻿#include "ft8xxmemory.h"
 
 #include <ft8xx.h>
 
@@ -84,8 +84,8 @@ DisplayList * RamG::updateDisplayList(DisplayList * list) const
 
 Snapshot * RamG::saveSnapshot(std::string          name,
                               SnapshotBitmapFormat fmt,
-                              uint16_t             x,
-                              uint16_t             y,
+                              int16_t              x,
+                              int16_t              y,
                               uint16_t             width,
                               uint16_t             height) const
 {
@@ -117,10 +117,10 @@ Snapshot * RamG::saveSnapshot(std::string          name,
     m_parent->push(this->m_currentPosition);       //Pointer to RamG address
     m_parent->push({x, y});                        //Position
     m_parent->push({fmt == SnapshotBitmapFormat::ARGB8_s
-                        ? static_cast<uint16_t>(width * 2u)
-                        : width,    //Bitmap Format
-                    height});       // Size
-    m_parent->execute();            //Take a snapsot
+                        ? static_cast<int16_t>(width * 2u)
+                        : static_cast<int16_t>(width),    //Bitmap Format
+                    static_cast<int16_t>(height)});       // Size
+    m_parent->execute();                                  //Take a snapsot
 
     debug("Size: %lu, %u\n", EVE_RAM_G_SAFETY_SIZE, snapshot->size());
     //increace current position
@@ -359,12 +359,12 @@ uint16_t Snapshot::height() const
     return m_height;
 }
 
-uint16_t Snapshot::y() const
+int16_t Snapshot::y() const
 {
     return m_y;
 }
 
-uint16_t Snapshot::x() const
+int16_t Snapshot::x() const
 {
     return m_x;
 }
