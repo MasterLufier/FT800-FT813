@@ -41,6 +41,11 @@
 
 namespace EVE
 {
+#if defined(EVE_CAP_TOUCH)
+typedef std::function<void(uint8_t)>  tagCB;
+typedef std::function<void(uint16_t)> trackCB;
+//typedef std::function<void(uint16_t, uint16_t)> touchCB;
+#endif
 class FT8xx : private NonCopyable<FT8xx>
 {
     friend class RamG;
@@ -75,7 +80,7 @@ public:
             byte{d1, d2, d3, d4} {}
     };
 
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+#if defined(EVE_CAP_TOUCH)
     struct TouchCalibrationResult
     {
         uint32_t touch_a{},
@@ -99,7 +104,7 @@ public:
         bool                  sharedEventQueue = false,
         uint32_t              threadStackSize  = (3 * 512),
         const char *          threadName       = "FT8xxThrd");
-#elif
+#else
     FT8xx(PinName               mosi,
           PinName               miso,
           PinName               sclk,
@@ -305,11 +310,6 @@ public:
     uint8_t flashInit(uint32_t size);
         //****************
 #endif
-    /*!
-     * \brief touchCalibrate - function for calibrate touchscreen
-     * \param factory - if true - load factory calibration, else - start new calibration
-     */
-    const FT8xx::TouchCalibrationResult & touchCalibrate(bool factory = true);
 
     /*!
      * \brief setBacklight - set the backlight PWM duty cycle
@@ -317,15 +317,36 @@ public:
      */
     void setBacklight(uint8_t value);
     //****************************************************************
+
+//***Next commands works only if MBED Thread and EventQueue enabled
+#if defined(EVE_CAP_TOUCH)
+
+    void track(int16_t  x,
+               int16_t  y,
+               uint16_t width,
+               uint16_t height,
+               uint8_t  tag);
+    /*!
+     * \brief touchCalibrate - function for calibrate touchscreen
+     * \param factory - if true - load factory calibration, else - start new calibration
+     */
+    const FT8xx::TouchCalibrationResult & touchCalibrate(bool factory = true);
+
+    /*!
+     * \brief animate - change value with specific range, speed, and easing
+     * \param value - value to animate
+     * \param from - start of animation
+     * \param to - end of animation
+     * \param duration - time to animation in ms
+     * \param fadeType - easing
+     * \param delay - delay between every steps of animation in ms. Decrease this value for smooth or increace for performance
+     */
     void animate(int32_t * value,
                  int32_t   from,
                  int32_t   to,
                  uint32_t  duration = 1000,
                  FadeType  fadeType = Linear,
                  uint8_t   delay    = 10);
-
-//***Next commands works only if MBED Thread enabled
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
 
     /*!
      * \brief backlightFade - change screen backlight PWM duty cycle with specific time and easing
@@ -365,67 +386,34 @@ public:
     }
 
     /*!
-     * \brief deattachFromTag. Remove callback from tag. This function remove all callbacks from tag, if many callbacks attached to one tag.
+     * \brief deattachFromTag. Remove callback from tag. This function remove all callbacks and trackers from tag, if many callbacks attached to one tag.
      * \param tag - tag number.
      */
     void deattachFromTag(uint8_t tag);
 
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag
-     * \param f - callback function will be attached to tag
+     * \brief setCallbackToTag. Attach callback to tag
+     * \param f - callback function will be attached to tag. Last argument in function must be uint8_t for passing tag number
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
      * \return Tag number
      */
-    uint8_t setCallbackToTag(std::function<void(uint8_t)> f)
+    template<typename F, typename... Args>
+    uint8_t setCallbackToTag(F && f, uint8_t tag = 0, Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCBPool.size() == 0)
-            enableTagInterrupt();
-        //Check tag pool size
-        if(m_tagCBPool.size() == 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
-        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
-            (f)(tag);
-        });
-
-        TagCB cbs{
-            findFirstEmptyTag(),
-            fp};
-        m_tagCBPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new tagCB(
+            [f, args...](uint8_t tag) -> void {
+                (f)(args..., tag);
+            });
+        return setCallback(fp, tag);
     }
 
-    uint8_t setCallbackToTag(std::function<void()> f)
-    {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCBPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCBPool.size() == 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
-
-        //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([=](uint8_t) -> void {
-            f();
-        });
-
-        TagCB cbs{
-            findFirstEmptyTag(),
-            fp};
-
-        m_tagCBPool.push_back(cbs);
-        return cbs.tagNumber;
-    }
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag. Last argument in function must be uint8_t for passing tag number
+     * \brief setCallbackToTag. Attach member function for callback to tag. Last argument in function must be uint8_t for passing tag number.
      * \param obj - pointer to object
      * \param method - pointer to  member callback function will be attached to tag
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
      * \return Tag number
      */
     template<typename R,
@@ -438,35 +426,22 @@ public:
                             uint8_t>::type
     setCallbackToTag(U * obj,
                      R (T::*method)(Types...),
+                     uint8_t tag = 0,
                      Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCBPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCBPool.size() == 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
-
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
-            (obj->*method)(args..., tag);
-        });
-
-        TagCB cbs{
-            findFirstEmptyTag(),
-            fp};
-
-        m_tagCBPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new tagCB(
+            [obj, method, args...](uint8_t tag) -> void {
+                (obj->*method)(args..., tag);
+            });
+        return setCallback(fp, tag);
     }
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
+     * \brief setCallbackToTag. Attach member function for callback to tag.
      * \param obj - pointer to object
      * \param method - pointer to  member callback function will be attached to tag
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
      * \return Tag number
      */
     template<typename R,
@@ -479,35 +454,21 @@ public:
                             uint8_t>::type
     setCallbackToTag(U * obj,
                      R (T::*method)(Types...),
+                     uint8_t tag = 0,
                      Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCBPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCBPool.size() == 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
-
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([=](uint8_t) -> void {
-            (obj->*method)(args...);
-        });
-
-        TagCB cbs{
-            findFirstEmptyTag(),
-            fp};
-
-        m_tagCBPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new tagCB(
+            [obj, method, args...](uint8_t) -> void {
+                (obj->*method)(args...);
+            });
+        return setCallback(fp, tag);
     }
 
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
-     * \param f - pointer to callback function will be attached to tag
+     * \brief setCallbackToTag. Attach function for callback to tag.
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
      * \return Tag number
      */
     template<typename F,
@@ -517,66 +478,53 @@ public:
                              == sizeof...(Args)),
                             uint8_t>::type
     setCallbackToTag(F (*f)(Types...),
+                     uint8_t tag = 0,
                      Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCBPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCBPool.size() == 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t) -> void {
-            (*f)(args...);
-        });
-
-        TagCB cbs{
-            findFirstEmptyTag(),
-            fp};
-
-        m_tagCBPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new tagCB(
+            [f, args...](uint8_t) -> void {
+                (*f)(args...);
+            });
+        return setCallback(fp, tag);
     }
 
+    //*******************
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag. Last argument in function must be uint8_t for passing tag number.
-     * \param f - pointer to callback function will be attached to tag
-     * \return Tag number
+     * \brief setTrackingToTag. Attach callback to tag.
+     * \param f - callback function will be attached to tag. Last argument in function must be uint16_t for passing tracking value
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
+     * \return tag number
      */
-    template<typename F,
+    template<typename F, typename... Args>
+    uint8_t setTrackingToTag(F &&    f,
+                             uint8_t tag = 0,
+                             Args... args)
+    {
+        auto * fp = new trackCB(
+            [f, args...](uint16_t value) -> void {
+                (f)(args..., value);
+            });
+        return setTracking(fp, tag);
+    }
+
+    template<typename R,
+             typename T,
+             typename U,
              typename... Types,
              typename... Args>
-    typename std::enable_if<!(sizeof...(Types)
-                              == sizeof...(Args)),
-                            uint8_t>::type
-    setCallbackToTag(F (*f)(Types...),
-                     Args... args)
+    uint8_t setTrackingToTag(U * obj,
+                             R (T::*method)(Types...),
+                             uint8_t tag = 0,
+                             Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCBPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCBPool.size() == 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t tag) -> void {
-            (*f)(args..., tag);
-        });
-
-        TagCB cbs{
-            findFirstEmptyTag(),
-            fp};
-
-        m_tagCBPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new trackCB(
+            [obj, method, args...](uint16_t value) -> void {
+                (obj->*method)(args..., value);
+            });
+        return setTracking(fp, tag);
     }
 
 #endif
@@ -591,6 +539,7 @@ private:
     PixelPrecision        m_pixelPrecision{Div_16};
     std::vector<CmdBuf_t> m_cmdBuffer;
     uint16_t              m_ramDLobserver{0};
+    EventFlags            m_eventFlags;
 
     void rebootCoPro();
     void writeString(const string & text);
@@ -599,10 +548,12 @@ private:
 #endif
     //**********************************
 
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
-    void    enableTagInterrupt();
+#if defined(EVE_CAP_TOUCH)
     void    interruptFound();
     uint8_t findFirstEmptyTag();
+
+    uint8_t setCallback(tagCB * f, uint8_t tag);
+    uint8_t setTracking(trackCB * f, uint8_t tag);
 
     struct Fade
     {
@@ -616,8 +567,9 @@ private:
 
     struct TagCB
     {
-        uint8_t                        tagNumber;
-        std::function<void(uint8_t)> * cb{nullptr};
+        uint8_t                tagNumber;
+        std::vector<tagCB *>   tagCBs;
+        std::vector<trackCB *> trackCBs;
 
         bool operator<(const TagCB & c) const
         {
@@ -632,7 +584,6 @@ private:
     InterruptIn  m_interrupt;
     Thread *     m_eventThread{nullptr};
     EventQueue * m_queue{nullptr};
-    EventFlags   m_eventFlags;
 
     //Callbacks for interrupt events
     mbed::Callback<void(uint8_t)> m_pageSwapCallback{nullptr};

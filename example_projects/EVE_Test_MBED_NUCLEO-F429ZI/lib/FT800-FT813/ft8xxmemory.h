@@ -143,9 +143,7 @@ public:
     {
         removeStoredObject(name);
     }
-    //    Snapshot * updateSnapshot(Snapshot * s)
-    //    {
-    //    }
+    Snapshot * updateSnapshot(Snapshot * s) const;
 
     const std::vector<StoredObject *> & pool() const;
 

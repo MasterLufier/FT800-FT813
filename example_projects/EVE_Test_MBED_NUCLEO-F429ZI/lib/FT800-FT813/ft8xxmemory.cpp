@@ -122,12 +122,31 @@ Snapshot * RamG::saveSnapshot(std::string          name,
                     static_cast<int16_t>(height)});       // Size
     m_parent->execute();                                  //Take a snapsot
 
-    debug("Size: %lu, %u\n", EVE_RAM_G_SAFETY_SIZE, snapshot->size());
+    //    debug("Size: %lu, %u\n", EVE_RAM_G_SAFETY_SIZE, snapshot->size());
     //increace current position
     this->m_currentPosition += snapshot->size();
     m_pool.push_back(snapshot);
     //    m_parent->m_hal->wr16(REG_CMD_DL, 0);
     return snapshot;
+}
+
+Snapshot * RamG::updateSnapshot(Snapshot * s) const
+{
+    if(m_parent->m_cmdBuffer.size() != 0)
+    {
+        m_parent->m_hal->wr16(REG_CMD_DL, 0);
+        m_parent->execute();
+    }
+    m_parent->push(CMD_SNAPSHOT2);                         //Snapshot command
+    m_parent->push(static_cast<uint32_t>(s->format()));    //Bitmap Format
+    m_parent->push(s->address());                          //Pointer to RamG address
+    m_parent->push({s->x(), s->y()});                      //Position
+    m_parent->push({s->format() == SnapshotBitmapFormat::ARGB8_s
+                        ? static_cast<int16_t>(s->width() * 2u)
+                        : static_cast<int16_t>(s->width()),    //Bitmap Format
+                    static_cast<int16_t>(s->height())});       // Size
+    m_parent->execute();                                       //Take a snapsot
+    return s;
 }
 
 void RamG::memCopy(uint32_t dest, uint32_t src, uint32_t num) const

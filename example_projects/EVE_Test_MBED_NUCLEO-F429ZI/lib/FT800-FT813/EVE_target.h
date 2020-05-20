@@ -59,8 +59,16 @@ public:
         F_20M  = 20000000,
         F_30M  = 30000000
     };
-    inline void csSet() { m_ssel.write(0); }
-    inline void csClear() { m_ssel.write(1); }
+    inline void csSet()
+    {
+        m_spi.lock();
+        m_ssel.write(0);
+    }
+    inline void csClear()
+    {
+        m_ssel.write(1);
+        m_spi.unlock();
+    }
     inline void transmit(uint8_t data) { m_spi.write(data); }
     inline int  receive(uint8_t data) { return m_spi.write(data); }
     inline void pdnSet() { m_pd.write(0); }

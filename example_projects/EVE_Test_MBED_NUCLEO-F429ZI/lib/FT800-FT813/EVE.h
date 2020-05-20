@@ -82,6 +82,17 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 
 namespace EVE
 {
+#if defined(EVE_CAP_TOUCH)
+//constexpr static void version()
+//{
+MBED_STATIC_ASSERT((MBED_VERSION
+                    >= MBED_ENCODE_VERSION(5, 8, 0)),
+                   "Too old MBED Version");
+MBED_STATIC_ASSERT(MBED_CONF_EVENTS_PRESENT,
+                   "Mbed Events disabled. Touch events won't work");
+//}
+#endif
+
 #define DL_CLEAR      0x26000000UL /* requires OR'd arguments */
 #define DL_CLEAR_RGB  0x02000000UL /* requires OR'd arguments */
 #define DL_COLOR_RGB  0x04000000UL /* requires OR'd arguments */
@@ -816,6 +827,7 @@ enum FlashInitResult : uint32_t
     #define REG_CMD_WRITE         0x3020fcUL
     #define REG_CPURESET          0x302020UL
     #define REG_CSPREAD           0x302068UL
+    #define REG_CTOUCH_MODE       0x302104UL
     #define REG_CTOUCH_EXTENDED   0x302108UL
     #define REG_CTOUCH_TOUCH0_XY  0x302124UL /* only listed in datasheet */
     #define REG_CTOUCH_TOUCH4_X   0x30216cUL

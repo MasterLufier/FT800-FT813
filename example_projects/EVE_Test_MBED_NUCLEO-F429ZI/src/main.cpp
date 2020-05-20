@@ -8,7 +8,7 @@ class A
 {
 public:
     A() {}
-    void cbWithTag(string name, uint8_t tag)
+    void cbWithTag(string name, uint16_t tag)
     {
         printf("%s touched %u \n", name.c_str(), tag);
     }
@@ -18,7 +18,7 @@ public:
     }
 } a;
 
-void cbWithTag(string name, uint8_t tag)
+void cbWithTag(string name, uint16_t tag)
 {
     printf("%s touched %u \n", name.c_str(), tag);
 }
@@ -30,13 +30,11 @@ void cbWoTag(string name)
 
 DisplayList * loadStaticDL1(FT8xx * screen)
 {
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //Auto attach lambda callback to next empty tag
-    uint8_t tag = screen->setCallbackToTag(&cbWithTag, "DL1");
-    //    screen->deattachFromTag(tag);
-    //    tag = screen->setCallbackToTag(&cbWoTag, "DL1");
+    uint8_t tag = screen->setCallbackToTag(&cbWithTag, 0, "DL1");
+    screen->deattachFromTag(tag);
+    tag = screen->setCallbackToTag(&cbWoTag, 0, "DL1");
     screen->tag(tag);
-#endif
     screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
     screen->begin(Bitmaps);                     // start drawing bitmaps
@@ -51,13 +49,10 @@ DisplayList * loadStaticDL1(FT8xx * screen)
 
 DisplayList * loadStaticDL2(FT8xx * screen)
 {
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //Auto attach callback to next empty tag
-    uint8_t tag = screen->setCallbackToTag(&a, &A::cbWoTag, "DL2");
-    //    screen->deattachFromTag(tag);
-    //    tag = screen->setCallbackToTag(&a, &A::cbWithTag, "DL2");
-    screen->push(EVE::tag(tag));
-#endif
+    uint8_t tag = screen->setCallbackToTag(&a, &A::cbWoTag, 0, "DL2");
+    screen->setCallbackToTag(&a, &A::cbWithTag, tag, "DL2");
+    screen->tag(tag);
     screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
     screen->begin(Bitmaps);                      // start drawing bitmaps
@@ -72,13 +67,11 @@ DisplayList * loadStaticDL2(FT8xx * screen)
 
 DisplayList * loadStaticDL3(FT8xx * screen)
 {
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //Auto attach callback to next empty tag
     uint8_t tag = screen->setCallbackToTag([&](uint8_t tag) {
         printf("TAG_NUMBER: %u \n", tag);
     });
     screen->tag(tag);
-#endif
     screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
     screen->begin(Bitmaps);                      // start drawing bitmaps
@@ -90,14 +83,12 @@ DisplayList * loadStaticDL3(FT8xx * screen)
     // Copy this display list to Flash memory for using as static DL
     auto dl = screen->ramG()->saveDisplayList("DL3");
 
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     screen->deattachFromTag(tag);
     //Auto attach callback to next empty tag
     tag = screen->setCallbackToTag([&](uint8_t tag) {
         printf("TAG_NUMBER: %u \n", tag);
     });
     screen->tag(tag);
-#endif
     screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));    // change colour
 
     screen->push(begin(Bitmaps));                // start drawing bitmaps
@@ -145,37 +136,31 @@ int main()
     //Set backlight
     screen.setBacklight(100);
 
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //**Uncomment any required callbacks
     //    m_screen.attach([&](uint8_t f){printf("EVE_INT_SWAP: %04x \n", f);}, EVE_INT_SWAP);
-    //    m_screen.attach([&](uint8_t f){printf("EVE_INT_TOUCH: %04x \n", f);}, EVE_INT_TOUCH);
-    //    m_screen.attach([&](uint8_t f){printf("EVE_INT_CONVCOMPLETE: %04x \n", f);}, EVE_INT_CONVCOMPLETE);
+    //        m_screen.attach([&](uint8_t f){printf("EVE_INT_TOUCH: %04x \n", f);}, EVE_INT_TOUCH);
+    //    screen.attach([&](uint8_t f) {
+    //        printf("EVE_INT_CONVCOMPLETE: %04x \n", f);
+    //    },
+    //                  EVE_INT_CONVCOMPLETE);
 
     //**************
-#endif
     //Static DL Storage
     loadStaticDL1(&screen);
     loadStaticDL2(&screen);
     loadStaticDL3(&screen);
-    //    //Start DL
-    //    screen.dlStart();
-    //    screen.clear();
-    //    screen.push(EVE::tag(0));
-    //    screen.colorRGB(0xff, 0x00, 0x00);
-    //    screen.point(0, 0, 50);
-    //    screen.point(EVE_HSIZE, EVE_VSIZE, 50);
-    //    screen.swap();
-    //    screen.execute();
-    //    //Take snapshot
-    //    screen.ramG()->saveSnapshot("SN1");
+
     int32_t val = 0;
 
-    uint8_t tag = screen.setCallbackToTag([&](uint8_t t) -> void {
-        //val == 0 ? val = 65535 : val = 0;
-        val < 65535
-            ? screen.animate(&val, 0, 65535, 400, FT8xx::Cubic)
-            : screen.animate(&val, 65535, 0, 400, FT8xx::Quart);
-    });
+    //    uint8_t tag = screen.setCallbackToTag([&](uint8_t) -> void {
+    //        //        val < 65535
+    //        //            ? screen.animate(&val, 0, 65535, 400, FT8xx::Cubic)
+    //        //            : screen.animate(&val, 65535, 0, 400, FT8xx::Quart);
+    //    });
+    uint8_t tag = screen.setTrackingToTag(
+        [&](uint16_t value) {
+            val = value;
+        });
 
     while(1)
     {
@@ -183,7 +168,8 @@ int main()
         screen.clearColorARGB(0xFF000000);
         screen.clear();
         screen.tag(tag);
-        screen.toggle(20, 20, 30, 26, val, "no", "yes");
+        screen.track(20, 20, 200, 30, tag);
+        screen.toggle(20, 20, 200, 28, val, "no", "yes", ToggleOpt::Flat);
         for(const auto l : screen.ramG()->pool())
         {
             screen.append(l);
@@ -192,12 +178,6 @@ int main()
         //        loadDynamicDL(&screen);
         screen.swap();
         screen.execute();
-        //        screen.dlStart();
-        //        screen.clear();
-        //        screen.button(20, 20, 200, 100, 27, Draw3D, "Push Me!");
-
-        //        screen.swap();
-        //        screen.execute();
         ThisThread::sleep_for(10);
 
         //**Example Backlight fade conrol

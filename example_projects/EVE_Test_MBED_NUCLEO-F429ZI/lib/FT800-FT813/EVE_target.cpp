@@ -77,7 +77,7 @@ EVE_HAL::EVE_HAL(PinName mosi,
     m_pd(pd)
 {
     pdnSet();
-    csSet();
+    //    csSet();
     ThisThread::sleep_for(100);
     m_spi.format(8, 0);
     this->setSPIfrequency(F_1M);

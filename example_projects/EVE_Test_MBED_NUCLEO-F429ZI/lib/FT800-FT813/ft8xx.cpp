@@ -32,7 +32,7 @@
 #include "ft8xx.h"
 using namespace EVE;
 
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+#if defined(EVE_CAP_TOUCH)
 /*!
  * \brief FT8xx::FT8xx driver for FTDI FT8xx-BT8xx
  */
@@ -46,11 +46,15 @@ FT8xx::FT8xx(
     EVE_HAL::SPIFrequency spiFrequency,
     bool                  sharedEventQueue,
     uint32_t              threadStackSize,
-    const char *          threadName) :
+    const char *          threadName)
+
+    :
     m_interrupt(interrupt),
     m_eventThread(new Thread(osPriorityNormal, threadStackSize, nullptr, threadName))
+
 {
     m_interrupt.mode(PullUp);
+
     m_hal = EVE_HAL::instance(mosi, miso, sclk, ssel, pd);
     //Initialize Screen
     //    EVE_init();
@@ -216,6 +220,13 @@ FT8xx::FT8xx(
     m_hal->wr8(REG_INT_EN, 0x0);
     //Clear interrupt mask
     m_hal->wr8(REG_INT_MASK, 0x0);
+    //enable touch tag interrupt
+    uint8_t interruptMask{0};
+    interruptMask |= EVE_INT_CONVCOMPLETE | EVE_INT_TAG;
+    //set interrupts mask
+    m_hal->wr8(REG_INT_MASK, interruptMask);
+    //enable interrupts
+    m_hal->wr8(REG_INT_EN, 0x1);
 
     if(sharedEventQueue == true)
     {
@@ -226,34 +237,38 @@ FT8xx::FT8xx(
         m_queue = new EventQueue(6 * EVENTS_EVENT_SIZE);
         m_eventThread->start(callback(m_queue, &EventQueue::dispatch_forever));
     }
+
     m_interrupt.fall(m_queue->event(callback(this, &FT8xx::interruptFound)));
     m_hal->setSPIfrequency(spiFrequency);
 
     m_eventFlags.set(EVEeventFlags::CoProBusy
                      | EVEeventFlags::CmdBufBusy);
 }
-#elif
+#else
 /*!
  * \brief FT8xx::FT8xx driver for FTDI FT8xx-BT8xx
  */
-FT8xx(PinName               mosi,
-      PinName               miso,
-      PinName               sclk,
-      PinName               ssel,
-      PinName               pd,
-      EVE_HAL::SPIFrequency spiFrequency)
+FT8xx::FT8xx(PinName               mosi,
+             PinName               miso,
+             PinName               sclk,
+             PinName               ssel,
+             PinName               pd,
+             EVE_HAL::SPIFrequency spiFrequency)
 {
-    EVE_init();
+    //    EVE_init();
+    //TODO: Add initial sequense
     m_hal->setSPIfrequency(spiFrequency);
-}
+};
 #endif
 
 FT8xx::~FT8xx()
 {
+#if defined(EVE_CAP_TOUCH)
     m_queue->break_dispatch();
     m_eventThread->terminate();
     delete m_queue;
     delete m_eventThread;
+#endif
     if(m_ramG)
         delete m_ramG;
 #if defined(BT81X_ENABLE)
@@ -263,145 +278,146 @@ FT8xx::~FT8xx()
     delete m_hal;
 }
 
+#if defined(EVE_CAP_TOUCH)
 const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
 {
     /* send pre-recorded touch calibration values, depending on the display the code is compiled for */
     if(factory == true)
     {
-#if defined(EVE_CFAF240400C1_030SC)
+    #if defined(EVE_CFAF240400C1_030SC)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x0000ed11);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x00001139);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfff76809);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x00000000);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x00010690);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xfffadf2e);
-#endif
+    #endif
 
-#if defined(EVE_CFAF320240F_035T)
+    #if defined(EVE_CFAF320240F_035T)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x00005614);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x0000009e);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfff43422);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x0000001d);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0xffffbda4);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0x00f8f2ef);
-#endif
+    #endif
 
-#if defined(EVE_CFAF480128A0_039TC)
+    #if defined(EVE_CFAF480128A0_039TC)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x00010485);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x0000017f);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfffb0bd3);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x00000073);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x0000e293);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0x00069904);
-#endif
+    #endif
 
-#if defined(EVE_CFAF800480E0_050SC)
+    #if defined(EVE_CFAF800480E0_050SC)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x000107f9);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0xffffff8c);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfff451ae);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x000000d2);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x0000feac);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xfffcfaaf);
-#endif
+    #endif
 
-#if defined(EVE_PAF90)
+    #if defined(EVE_PAF90)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x00000159);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x0001019c);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfff93625);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x00010157);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x00000000);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0x0000c101);
-#endif
+    #endif
 
-#if defined(EVE_RiTFT43)
+    #if defined(EVE_RiTFT43)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x000062cd);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0xfffffe45);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfff45e0a);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x000001a3);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x00005b33);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xFFFbb870);
-#endif
+    #endif
 
-#if defined(EVE_EVE2_38)
+    #if defined(EVE_EVE2_38)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x00007bed);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x000001b0);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfff60aa5);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x00000095);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0xffffdcda);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0x00829c08);
-#endif
+    #endif
 
-#if defined(EVE_EVE2_35G)
+    #if defined(EVE_EVE2_35G)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x000109E4);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x000007A6);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xFFEC1EBA);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x0000072C);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x0001096A);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xFFF469CF);
-#endif
+    #endif
 
-#if defined(EVE_EVE2_43G)
+    #if defined(EVE_EVE2_43G)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x0000a1ff);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x00000680);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xffe54cc2);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0xffffff53);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x0000912c);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xfffe628d);
-#endif
+    #endif
 
-#if defined(EVE_EVE2_50G)
+    #if defined(EVE_EVE2_50G)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x000109E4);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x000007A6);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xFFEC1EBA);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x0000072C);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x0001096A);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xFFF469CF);
-#endif
+    #endif
 
-#if defined(EVE_EVE2_70G)
+    #if defined(EVE_EVE2_70G)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x000105BC);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0xFFFFFA8A);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0x00004670);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0xFFFFFF75);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x00010074);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xFFFF14C8);
-#endif
+    #endif
 
-#if defined(EVE_NHD_35)
+    #if defined(EVE_NHD_35)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x0000f78b);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x00000427);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfffcedf8);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0xfffffba4);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x0000f756);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0x0009279e);
-#endif
+    #endif
 
-#if defined(EVE_RVT70)
+    #if defined(EVE_RVT70)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x000074df);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x000000e6);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xfffd5474);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0x000001af);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x00007e79);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0xffe9a63c);
-#endif
+    #endif
 
-#if defined(EVE_FT811CB_HY50HD)
+    #if defined(EVE_FT811CB_HY50HD)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 66353);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 712);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 4293876677);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 4294966157);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 67516);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 418276);
-#endif
+    #endif
 
-#if defined(EVE_ADAM101)
+    #if defined(EVE_ADAM101)
         m_hal->wr32(REG_TOUCH_TRANSFORM_A, 0x000101E3);
         m_hal->wr32(REG_TOUCH_TRANSFORM_B, 0x00000114);
         m_hal->wr32(REG_TOUCH_TRANSFORM_C, 0xFFF5EEBA);
         m_hal->wr32(REG_TOUCH_TRANSFORM_D, 0xFFFFFF5E);
         m_hal->wr32(REG_TOUCH_TRANSFORM_E, 0x00010226);
         m_hal->wr32(REG_TOUCH_TRANSFORM_F, 0x0000C783);
-#endif
+    #endif
         FT8xx::TouchCalibrationResult res;
         res.touch_a = m_hal->rd32(REG_TOUCH_TRANSFORM_A);
         res.touch_b = m_hal->rd32(REG_TOUCH_TRANSFORM_B);
@@ -435,6 +451,7 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
         return std::move(res);
     }
 }
+#endif
 
 void FT8xx::setBacklight(uint8_t value)
 {
@@ -443,6 +460,20 @@ void FT8xx::setBacklight(uint8_t value)
 #else
     m_hal->wr8(REG_PWM_DUTY, value);
 #endif
+}
+
+#if defined(EVE_CAP_TOUCH)
+
+void FT8xx::track(int16_t  x,
+                  int16_t  y,
+                  uint16_t width,
+                  uint16_t height,
+                  uint8_t  tag)
+{
+    push(CMD_TRACK);
+    push({x, y});
+    push({static_cast<int16_t>(width), static_cast<int16_t>(height)});
+    push({static_cast<int8_t>(tag), 0, 0, 0});
 }
 
 void FT8xx::animate(int32_t * value,
@@ -463,6 +494,7 @@ void FT8xx::animate(int32_t * value,
 
     m_queue->call_in(delay, this, &FT8xx::p_animate, value, fade);
 }
+#endif
 
 const RamG * FT8xx::ramG()
 {
@@ -482,7 +514,7 @@ uint8_t FT8xx::flashInit(uint32_t size)
 
 void FT8xx::rebootCoPro()
 {
-    /* we have a co-processor fault, make EVE play with us again */
+/* we have a co-processor fault, make EVE play with us again */
 #if defined(BT81X_ENABLE)
     uint16_t copro_patch_pointer = m_hal->rd16(REG_COPRO_PATCH_DTR);
 #endif
@@ -1005,8 +1037,7 @@ void FT8xx::ramGInit(uint32_t size)
     m_ramG = new RamG(this, size);
 }
 //*********************************************************************************
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
-
+#if defined(EVE_CAP_TOUCH)
 void FT8xx::backlightFade(uint8_t  from,
                           uint8_t  to,
                           uint32_t duration,
@@ -1051,10 +1082,13 @@ void FT8xx::interruptFound()
         if(!m_tagCBPool.empty())
         {
             uint8_t tag = m_hal->rd8(REG_TOUCH_TAG);
-            for(const auto & f : m_tagCBPool)
+            for(const auto & cbs : m_tagCBPool)
             {
-                if(f.tagNumber == tag)
-                    f.cb->operator()(tag);
+                if(cbs.tagNumber == tag)
+                {
+                    for(const auto & c : cbs.tagCBs)
+                        c->operator()(tag);
+                }
             }
         }
     }
@@ -1079,17 +1113,29 @@ void FT8xx::interruptFound()
         //        printf("EVE_INT_CMDFLAG: %04x \n", flag);
     }
 
-    if((flag & EVE_INT_CONVCOMPLETE) != 0
-       && m_touchConvCompCallback)
+    if((flag & EVE_INT_CONVCOMPLETE) != 0)
     {
-        m_touchConvCompCallback(flag);
+        if(m_touchConvCompCallback)
+            m_touchConvCompCallback(flag);
+        if(!m_tagCBPool.empty())
+        {
+            auto trackTag = m_hal->rd32(REG_TRACKER);
+            for(const auto & cbs : m_tagCBPool)
+            {
+                if(cbs.tagNumber == (trackTag & 0xff))
+                {
+                    for(const auto & c : cbs.trackCBs)
+                        c->operator()(
+                            static_cast<uint16_t>(trackTag >> 16));
+                }
+            }
+        }
     }
 }
 
 void FT8xx::attach(mbed::Callback<void(uint8_t)> f, uint8_t flag)
 {
     uint8_t interruptMask{0};
-    //if interrupt is disabled = clear interrupt flags
     if(m_hal->rd8(REG_INT_EN) == 0x1)
     {
         interruptMask = m_hal->rd8(REG_INT_MASK);
@@ -1136,10 +1182,13 @@ void FT8xx::deattachFromTag(uint8_t tag)
         std::remove_if(
             m_tagCBPool.begin(),
             m_tagCBPool.end(),
-            [&](const TagCB & c) {
-                if(c.tagNumber == tag)
+            [&](const TagCB & cbs) {
+                if(cbs.tagNumber == tag)
                 {
-                    delete c.cb;
+                    for(auto & c : cbs.tagCBs)
+                        delete c;
+                    for(auto & c : cbs.trackCBs)
+                        delete c;
                     return true;
                 }
                 return false;
@@ -1165,16 +1214,85 @@ uint8_t FT8xx::findFirstEmptyTag()
     return next;
 }
 
-void FT8xx::enableTagInterrupt()
+uint8_t FT8xx::setCallback(tagCB * f, uint8_t tag)
 {
-    if(m_hal->rd8(REG_INT_EN) == 0x0)
+    //Check tag pool size
+    if(m_tagCBPool.size() == 254)
     {
-        uint8_t interruptMask = m_hal->rd8(REG_INT_MASK);
-        interruptMask |= EVE_INT_TAG;
-        //set interrupts mask
-        m_hal->wr8(REG_INT_MASK, interruptMask);
-        //enable interrupts
-        m_hal->wr8(REG_INT_EN, 0x1);
+        debug("TagPool is full");
+        delete f;
+        return 0;
+    }
+
+    if(tag == 0)
+    {
+        TagCB cbs;
+        cbs.tagNumber = findFirstEmptyTag();
+        cbs.tagCBs.push_back(f);
+        m_tagCBPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
+    else
+    {
+        auto it = std::find_if(m_tagCBPool.begin(),
+                               m_tagCBPool.end(),
+                               [&](const TagCB & c) {
+                                   return c.tagNumber == tag;
+                               });
+        if(it != m_tagCBPool.end())
+        {
+            it->tagCBs.push_back(f);
+            return it->tagNumber;
+        }
+        else
+        {
+            TagCB cbs;
+            cbs.tagNumber = tag;
+            cbs.tagCBs.push_back(f);
+            m_tagCBPool.push_back(cbs);
+            return cbs.tagNumber;
+        }
+    }
+}
+
+uint8_t FT8xx::setTracking(trackCB * f, uint8_t tag)
+{
+    //Check tag pool size
+    if(m_tagCBPool.size() == 254)
+    {
+        debug("TagPool is full");
+        delete f;
+        return 0;
+    }
+
+    if(tag == 0)
+    {
+        TagCB cbs;
+        cbs.tagNumber = findFirstEmptyTag();
+        cbs.trackCBs.push_back(f);
+        m_tagCBPool.push_back(cbs);
+        return cbs.tagNumber;
+    }
+    else
+    {
+        auto it = std::find_if(m_tagCBPool.begin(),
+                               m_tagCBPool.end(),
+                               [&](const TagCB & c) {
+                                   return c.tagNumber == tag;
+                               });
+        if(it != m_tagCBPool.end())
+        {
+            it->trackCBs.push_back(f);
+            return it->tagNumber;
+        }
+        else
+        {
+            TagCB cbs;
+            cbs.tagNumber = tag;
+            cbs.trackCBs.push_back(f);
+            m_tagCBPool.push_back(cbs);
+            return cbs.tagNumber;
+        }
     }
 }
 
