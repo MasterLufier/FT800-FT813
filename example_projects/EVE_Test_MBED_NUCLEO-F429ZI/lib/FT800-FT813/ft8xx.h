@@ -148,6 +148,7 @@ public:
     void clearColorARGB(const CmdBuf_t & argb);
 
     void colorRGB(uint8_t r, uint8_t g, uint8_t b);
+    void colorRGB(uint32_t rgb);
     void colorA(uint8_t a);
     void colorARGB(const CmdBuf_t & argb);
 

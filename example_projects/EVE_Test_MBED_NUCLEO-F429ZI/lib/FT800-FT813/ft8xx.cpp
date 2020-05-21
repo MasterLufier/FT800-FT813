@@ -683,6 +683,11 @@ void FT8xx::clearColorRGB(uint8_t r, uint8_t g, uint8_t b)
     push(EVE::clearColorRGB(r, g, b));
 }
 
+void FT8xx::clearColorRGB(uint32_t rgb)
+{
+    clearColorRGB((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, (rgb & 0xff));
+}
+
 void FT8xx::clearColorA(uint8_t a)
 {
     push(EVE::clearColorA(a));
@@ -699,6 +704,11 @@ void FT8xx::clearColorARGB(const FT8xx::CmdBuf_t & argb)
 void FT8xx::colorRGB(uint8_t r, uint8_t g, uint8_t b)
 {
     push(EVE::colorRGB(r, g, b));
+}
+
+void FT8xx::colorRGB(uint32_t rgb)
+{
+    colorRGB((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, (rgb & 0xff));
 }
 
 void FT8xx::colorA(uint8_t a)
