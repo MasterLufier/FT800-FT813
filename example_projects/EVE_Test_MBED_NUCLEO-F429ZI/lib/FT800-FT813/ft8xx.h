@@ -33,40 +33,30 @@
 #ifndef FT8XX_H
 #define FT8XX_H
 
-#include <EVE_commands.h>
+#include <EVE_target.h>
 #include <algorithm>
+#include <ft8xxmemory.h>
 #include <functional>
 #include <vector>
 
-struct FTDisplayList
+namespace EVE
 {
-    std::string m_name{};
-    uint32_t    m_address{0};
-    uint32_t    m_size{0};
-    FTDisplayList(string   name,
-                  uint32_t address,
-                  uint32_t size) :
-        m_name(name),
-        m_address(address),
-        m_size(size)
-    {}
-};
-
-class FTRamG
-{
-public:
-    FTRamG(uint32_t size = EVE_RAM_G_SAFETY_SIZE);
-    FTDisplayList * saveDisplayList(std::string name = "Display List");
-
-private:
-    uint32_t m_start{0x0},
-        m_size{0x0},
-        m_currentPosition{0x0};
-};
-
+#if defined(EVE_CAP_TOUCH)
+typedef std::function<void(uint8_t)>  tagCB;
+typedef std::function<void(uint16_t)> trackCB;
+//typedef std::function<void(uint16_t, uint16_t)> touchCB;
+#endif
 class FT8xx : private NonCopyable<FT8xx>
 {
+    friend class RamG;
+    friend class Flash;
+
 public:
+    enum EVEeventFlags
+    {
+        CoProBusy  = 1UL << 0,
+        CmdBufBusy = 1UL << 1
+    };
     enum PixelPrecision : uint8_t
     {
         Div_1,
@@ -75,7 +65,22 @@ public:
         Div_8,
         Div_16
     };
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+
+    //Special container for 8-32 byte commands
+    union CmdBuf_t
+    {
+        int32_t word{0x00000000u};
+        int8_t  byte[4];
+        int16_t halfWord[2];
+        CmdBuf_t(int32_t data = 0x0) :
+            word{data} { MBED_STATIC_ASSERT(sizeof(this) == sizeof(uint32_t), "CmdBuf_t: Padding detected"); }
+        CmdBuf_t(int16_t d1, int16_t d2) :
+            halfWord{d1, d2} {}
+        CmdBuf_t(int8_t d1, int8_t d2, int8_t d3, int8_t d4) :
+            byte{d1, d2, d3, d4} {}
+    };
+
+#if defined(EVE_CAP_TOUCH)
     struct TouchCalibrationResult
     {
         uint32_t touch_a{},
@@ -103,7 +108,7 @@ public:
         bool                  sharedEventQueue = false,
         uint32_t              threadStackSize  = (3 * 512),
         const char *          threadName       = "FT8xxThrd");
-#elif
+#else
     FT8xx(PinName               mosi,
           PinName               miso,
           PinName               sclk,
@@ -113,10 +118,226 @@ public:
 #endif
     ~FT8xx();
 
-    void ramGInit(uint32_t size = EVE_RAM_G_SAFETY_SIZE) { m_ramG = new FTRamG(size); }
+    //*********Basic Commands
+    /*!
+     * \brief Push command to cmdBuffer
+     * \param b - command to push
+     */
+    void push(const CmdBuf_t & b);
 
-    FTRamG * ramG() const { return m_ramG; }
+    /*!
+     * \brief Load cmdBuffer to EVE cmd FIFO and start processing to copy result to Ram_DL
+     *  \note now this function support only FT/BT81X, because use new FIFO write mechanism. For more information see BRT_AN_033 page 92.
+     */
+    void execute();
 
+    inline void dlStart() { push(CMD_DLSTART); }
+    inline void begin(GraphicPrimitives prim) { push(EVE::begin(prim)); }
+    inline void end() { push(EVE::end()); }
+    void        swap();
+
+    void tag(uint8_t tag) { push(EVE::tag(tag)); }
+    void clearTag() { push(EVE::tag(0)); }
+
+    void clear(bool colorBuf   = true,
+               bool stencilBuf = true,
+               bool tagBuf     = true);
+
+    void clearColorRGB(uint8_t r, uint8_t g, uint8_t b);
+    void clearColorA(uint8_t a);
+    void clearColorARGB(const CmdBuf_t & argb);
+
+    void colorRGB(uint8_t r, uint8_t g, uint8_t b);
+    void colorA(uint8_t a);
+    void colorARGB(const CmdBuf_t & argb);
+
+    inline void pointSize(uint16_t size) { push(EVE::pointSize(size)); }
+    inline void lineWidth(uint16_t width) { push(EVE::lineWidth(width)); }
+
+    //*************************
+    //*********Drawing functions
+    void vertexPointII(uint16_t x,
+                       uint16_t y,
+                       uint16_t handle = 0,
+                       uint16_t cell   = 0);
+
+    void vertexPointF(int16_t x,
+                      int16_t y);
+
+    void point(int16_t  x,
+               int16_t  y,
+               uint16_t size);
+
+    void line(int16_t  x0,
+              int16_t  y0,
+              int16_t  x1,
+              int16_t  y1,
+              uint16_t width);
+
+    void rectangle(int16_t  x,
+                   int16_t  y,
+                   int16_t  width,
+                   int16_t  height,
+                   uint16_t radius = 1);
+    //*************************
+    //*********Drawing Widgets
+    //*****Colors of Widgets
+    inline void fgColor(uint32_t color)
+    {
+        push(CMD_FGCOLOR);
+        push(color);
+    };
+
+    inline void bgColor(uint32_t color)
+    {
+        push(CMD_BGCOLOR);
+        push(color);
+    }
+
+    inline void gradColor(uint32_t color)
+    {
+        push(CMD_GRADCOLOR);
+        push(color);
+    }
+
+    void gradient(int16_t  x0,
+                  int16_t  y0,
+                  uint32_t rgb0,
+                  int16_t  x1,
+                  int16_t  y1,
+                  uint32_t rgb1);
+
+    void gradientA(int16_t  x0,
+                   int16_t  y0,
+                   uint32_t argb0,
+                   int16_t  x1,
+                   int16_t  y1,
+                   uint32_t argb1);
+    //****
+    void text(int16_t             x,
+              int16_t             y,
+              uint16_t            font,
+              const std::string & text,
+              TextOpt             options = TextOpt::CenterXY);
+
+    void button(int16_t             x,
+                int16_t             y,
+                uint16_t            width,
+                uint16_t            height,
+                uint16_t            font    = 27,
+                const std::string & text    = "",
+                ButtonOpt           options = ButtonOpt::_3D);
+
+    void clock(int16_t  x,
+               int16_t  y,
+               uint16_t radius,
+               uint16_t h       = 10,
+               uint16_t m       = 10,
+               uint16_t s       = 0,
+               uint16_t ms      = 0,
+               ClockOpt options = ClockOpt::_3D);
+
+    void gauge(int16_t  x,
+               int16_t  y,
+               uint16_t radius,
+               uint16_t major,
+               uint16_t minor,
+               uint16_t val,
+               uint16_t range,
+               GaugeOpt options = GaugeOpt::_3D);
+
+    void slider(int16_t   x,
+                int16_t   y,
+                uint16_t  width,
+                uint16_t  height,
+                uint16_t  value,
+                uint16_t  range,
+                SliderOpt options = SliderOpt::_3D);
+
+    void progress(int16_t     x,
+                  int16_t     y,
+                  uint16_t    width,
+                  uint16_t    height,
+                  uint16_t    value,
+                  uint16_t    size,
+                  uint16_t    range,
+                  ProgressOpt options = ProgressOpt::_3D);
+
+    void scrollBar(int16_t      x,
+                   int16_t      y,
+                   uint16_t     width,
+                   uint16_t     height,
+                   uint16_t     value,
+                   uint16_t     size,
+                   uint16_t     range,
+                   ScrollBarOpt options = ScrollBarOpt::_3D);
+
+    void dial(int16_t  x,
+              int16_t  y,
+              uint16_t radius,
+              uint16_t value,
+              DialOpt  options = DialOpt::_3D);
+
+    void toggle(int16_t             x,
+                int16_t             y,
+                uint16_t            width,
+                uint16_t            font,
+                uint16_t            state,
+                const std::string & offText = "",
+                const std::string & onText  = "",
+                ToggleOpt           options = ToggleOpt::_3D);
+
+    void keys(int16_t             x,
+              int16_t             y,
+              uint16_t            width,
+              uint16_t            height,
+              uint16_t            font,
+              const std::string & text    = "",
+              KeysOpt             options = KeysOpt::_3D);
+    //*************************
+    //*********Special commands
+
+#if defined(FT81X_ENABLE)
+
+    //Overload function for call with any StoredObjects
+    void append(StoredObject * o);
+
+    void append(const DisplayList * dl);
+    void append(const Snapshot * s,
+                int16_t          x      = -1,
+                int16_t          y      = -1,
+                int16_t          width  = -1,
+                int16_t          height = -1);
+#endif
+
+    //**************************
+
+    //***********Ram G Commands
+    void         ramGInit(uint32_t size = EVE_RAM_G_SAFETY_SIZE);
+    const RamG * ramG();
+    //****************
+
+#if defined(BT81X_ENABLE)
+    //***********Flash commands
+    uint8_t flashInit(uint32_t size);
+        //****************
+#endif
+
+    /*!
+     * \brief setBacklight - set the backlight PWM duty cycle
+     * \param value - value from 0(off) to 128(full)
+     */
+    void setBacklight(uint8_t value);
+    //****************************************************************
+
+//***Next commands works only if MBED Thread and EventQueue enabled
+#if defined(EVE_CAP_TOUCH)
+
+    void track(int16_t  x,
+               int16_t  y,
+               uint16_t width,
+               uint16_t height,
+               uint8_t  tag);
     /*!
      * \brief touchCalibrate - function for calibrate touchscreen
      * \param factory - if true - load factory calibration, else - start new calibration
@@ -124,12 +345,20 @@ public:
     const FT8xx::TouchCalibrationResult & touchCalibrate(bool factory = true);
 
     /*!
-     * \brief setBacklight - set the backlight PWM duty cycle
-     * \param value - value from 0(off) to 128(full)
+     * \brief animate - change value with specific range, speed, and easing
+     * \param value - value to animate
+     * \param from - start of animation
+     * \param to - end of animation
+     * \param duration - time to animation in ms
+     * \param fadeType - easing
+     * \param delay - delay between every steps of animation in ms. Decrease this value for smooth or increace for performance
      */
-    void setBacklight(uint8_t value);
-//*************************************************************************************
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
+    void animate(int32_t * value,
+                 int32_t   from,
+                 int32_t   to,
+                 uint32_t  duration = 1000,
+                 FadeType  fadeType = Linear,
+                 uint8_t   delay    = 10);
 
     /*!
      * \brief backlightFade - change screen backlight PWM duty cycle with specific time and easing
@@ -154,45 +383,49 @@ public:
      */
     void attach(mbed::Callback<void(uint8_t)> f, uint8_t flag);
 
-    inline void attachPageSwapCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_SWAP); }
-    inline void attachTouchDetectedCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_TOUCH); }
-    inline void attachTouchTagCallback(mbed::Callback<void(uint8_t)> f) { attach(f, EVE_INT_TAG); }
+    inline void attachPageSwapCallback(mbed::Callback<void(uint8_t)> f)
+    {
+        attach(f, EVE_INT_SWAP);
+    }
+    inline void attachTouchDetectedCallback(mbed::Callback<void(uint8_t)> f)
+    {
+        attach(f, EVE_INT_TOUCH);
+    }
+
     inline void attachTouchConversionsCallback(mbed::Callback<void(uint8_t)> f)
     {
         attach(f, EVE_INT_CONVCOMPLETE);
     }
 
     /*!
-     * \brief attachToTag. attach callback to all tags. Passing tag number as parameter to callback function.
-     * \param f - callback function attached to all tags (1-254)
-     */
-    void attachToTags(mbed::Callback<void(uint8_t)> f);
-
-    /*!
-     * \brief attachToTag. Attach calback to specific tag number.
-     * Do not use this method both with setCallbackToTag(mbed::Callback<void(uint8_t)> f)
-     * \param f - callback function will be attached to tag
-     * \param tag - tag number (1-254)
-     */
-    void attachToTag(mbed::Callback<void(uint8_t)> f, uint8_t tag);
-
-    /*!
-     * \brief deattachFromTag. Remove callback from tag. This function remove all callbacks from tag, if many callbacks attached to one tag.
+     * \brief deattachFromTag. Remove callback from tag. This function remove all callbacks and trackers from tag, if many callbacks attached to one tag.
      * \param tag - tag number.
      */
     void deattachFromTag(uint8_t tag);
 
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag
-     * \param f - callback function will be attached to tag
+     * \brief setCallbackToTag. Attach callback to tag
+     * \param f - callback function will be attached to tag. Last argument in function must be uint8_t for passing tag number
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
      * \return Tag number
      */
-    uint8_t setCallbackToTag(mbed::Callback<void(uint8_t)> f);
+    template<typename F, typename... Args>
+    uint8_t setCallbackToTag(F && f, uint8_t tag = 0, Args... args)
+    {
+        auto * fp = new tagCB(
+            [f, args...](uint8_t tag) -> void {
+                (f)(args..., tag);
+            });
+        return setCallback(fp, tag);
+    }
 
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag. Last argument in function must be uint8_t for pushing tag number
+     * \brief setCallbackToTag. Attach member function for callback to tag. Last argument in function must be uint8_t for passing tag number.
      * \param obj - pointer to object
      * \param method - pointer to  member callback function will be attached to tag
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
      * \return Tag number
      */
     template<typename R,
@@ -205,37 +438,24 @@ public:
                             uint8_t>::type
     setCallbackToTag(U * obj,
                      R (T::*method)(Types...),
+                     uint8_t tag = 0,
                      Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
-
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
-            (obj->*method)(args..., tag);
-        });
-
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
-            findFirstEmptyTag(),
-            cb,
-            fp};
-
-        m_tagCallbacksPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new tagCB(
+            [obj, method, args...](uint8_t tag) -> void {
+                (obj->*method)(args..., tag);
+            });
+        return setCallback(fp, tag);
     }
-
+    /*!
+     * \brief setCallbackToTag. Attach member function for callback to tag.
+     * \param obj - pointer to object
+     * \param method - pointer to  member callback function will be attached to tag
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
+     * \return Tag number
+     */
     template<typename R,
              typename T,
              typename U,
@@ -246,195 +466,145 @@ public:
                             uint8_t>::type
     setCallbackToTag(U * obj,
                      R (T::*method)(Types...),
+                     uint8_t tag = 0,
                      Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
-
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([=](uint8_t tag) -> void {
-            (obj->*method)(args...);
-        });
-
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
-            findFirstEmptyTag(),
-            cb,
-            fp};
-
-        m_tagCallbacksPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new tagCB(
+            [obj, method, args...](uint8_t) -> void {
+                (obj->*method)(args...);
+            });
+        return setCallback(fp, tag);
     }
 
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
-     * \param f - pointer to callback function will be attached to tag
+     * \brief setCallbackToTag. Attach function for callback to tag.
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
      * \return Tag number
      */
     template<typename F,
              typename... Types,
              typename... Args>
-    typename std::enable_if<(sizeof...(Types) == sizeof...(Args)), uint8_t>::type
+    typename std::enable_if<(sizeof...(Types)
+                             == sizeof...(Args)),
+                            uint8_t>::type
     setCallbackToTag(F (*f)(Types...),
+                     uint8_t tag = 0,
                      Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t tag) -> void {
-            (*f)(args...);
-        });
-
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
-            findFirstEmptyTag(),
-            cb,
-            fp};
-
-        m_tagCallbacksPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new tagCB(
+            [f, args...](uint8_t) -> void {
+                (*f)(args...);
+            });
+        return setCallback(fp, tag);
     }
 
+    //*******************
     /*!
-     * \brief setCallbackToTag. Automatic attach callback to next empty tag.
-     * \param f - pointer to callback function will be attached to tag
-     * \return Tag number
+     * \brief setTrackingToTag. Attach callback to tag.
+     * \param f - callback function will be attached to tag. Last argument in function must be uint16_t for passing tracking value
+     * \param tag - tag number for adding. if it is 0 - automatic add callback to first empty tag
+     * \param args - arguments of callback, if provided
+     * \return tag number
      */
-    template<typename F,
+    template<typename F, typename... Args>
+    uint8_t setTrackingToTag(F &&    f,
+                             uint8_t tag = 0,
+                             Args... args)
+    {
+        auto * fp = new trackCB(
+            [f, args...](uint16_t value) -> void {
+                (f)(args..., value);
+            });
+        return setTracking(fp, tag);
+    }
+
+    template<typename R,
+             typename T,
+             typename U,
              typename... Types,
              typename... Args>
-    typename std::enable_if<!(sizeof...(Types) == sizeof...(Args)), uint8_t>::type
-    setCallbackToTag(F (*f)(Types...),
-                     Args... args)
+    uint8_t setTrackingToTag(U * obj,
+                             R (T::*method)(Types...),
+                             uint8_t tag = 0,
+                             Args... args)
     {
-        //Switch on tag interrupt if this a first call
-        if(m_tagCallbacksPool.size() == 0)
-            enableTagInterrupt();
-
-        //Check tag pool size
-        if(m_tagCallbacksPool.size() > 254)
-        {
-            debug("TagPool is full");
-            return 0;
-        }
         //Wrap callback with different args type
-        auto * fp = new std::function<void(uint8_t)>([f, args...](uint8_t tag) -> void {
-            (*f)(args..., tag);
-        });
-
-        mbed::Callback<void(uint8_t)> cb([fp](uint8_t tag) {
-            fp->operator()(tag);
-        });
-
-        TagCallback cbs{
-            findFirstEmptyTag(),
-            cb,
-            fp};
-
-        m_tagCallbacksPool.push_back(cbs);
-        return cbs.tagNumber;
+        auto * fp = new trackCB(
+            [obj, method, args...](uint16_t value) -> void {
+                (obj->*method)(args..., value);
+            });
+        return setTracking(fp, tag);
     }
+
 #endif
-    //**********************************************************************
-    //Drawing functions
-    void drawVertexPointF(float x1,
-                          float y1)
-    {
-        switch(m_pixelPrecision)
-        {
-        case FT8xx::Div_1:
-            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1),
-                                static_cast<uint32_t>(y1)));
-            break;
-        case FT8xx::Div_2:
-            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 2),
-                                static_cast<uint32_t>(y1 * 2)));
-            break;
-        case FT8xx::Div_4:
-            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 4),
-                                static_cast<uint32_t>(y1 * 4)));
-            break;
-        case FT8xx::Div_8:
-            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 8),
-                                static_cast<uint32_t>(y1 * 8)));
-            break;
-        case FT8xx::Div_16:
-            EVE_cmd_dl(VERTEX2F(static_cast<uint32_t>(x1 * 16),
-                                static_cast<uint32_t>(y1 * 16)));
-            break;
-        }
-    }
+    //**************************************************************
 
 private:
-    EVE_HAL *      m_hal{nullptr};
-    FTRamG *       m_ramG{nullptr};
-    PixelPrecision m_pixelPrecision{Div_16};
+    EVE_HAL * m_hal{nullptr};
+    RamG *    m_ramG{nullptr};
+#if defined(BT81X_ENABLE)
+    Flash * m_flash{nullptr};
+#endif
+    PixelPrecision        m_pixelPrecision{Div_16};
+    std::vector<CmdBuf_t> m_cmdBuffer;
+    uint16_t              m_ramDLobserver{0};
+    EventFlags            m_eventFlags;
 
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
-    void    enableTagInterrupt();
+    void rebootCoPro();
+    void writeString(const string & text);
+#if defined(FT81X_ENABLE)
+    void append(uint32_t address, uint32_t count);
+#endif
+    //**********************************
+
+#if defined(EVE_CAP_TOUCH)
     void    interruptFound();
     uint8_t findFirstEmptyTag();
 
-    struct BacklightFade
+    uint8_t setCallback(tagCB * f, uint8_t tag);
+    uint8_t setTracking(trackCB * f, uint8_t tag);
+
+    struct Fade
     {
         float    cycCount;
         int32_t  duration;
-        int16_t  range;
-        uint8_t  start;
-        uint8_t  value;
+        int32_t  range;
+        int32_t  start;
         uint8_t  freq;
         FadeType fadeType;
     };
 
-    struct TagCallback
+    struct TagCB
     {
-        uint8_t                        tagNumber;
-        mbed::Callback<void(uint8_t)>  callback{nullptr};
-        std::function<void(uint8_t)> * cbPonter{nullptr};
+        uint8_t                tagNumber;
+        std::vector<tagCB *>   tagCBs;
+        std::vector<trackCB *> trackCBs;
 
-        bool operator<(const TagCallback & c) const
+        bool operator<(const TagCB & c) const
         {
             return (tagNumber < c.tagNumber);
         }
     };
 
-    void p_backlightFade(BacklightFade bf);
+    void p_backlightFade(uint8_t * value, Fade * fade);
+    void p_animate(int32_t * value, Fade * fade);
 
     bool         m_fadeBlock{false};
     InterruptIn  m_interrupt;
     Thread *     m_eventThread{nullptr};
     EventQueue * m_queue{nullptr};
-    //Calbacks for interrupt events
+
+    //Callbacks for interrupt events
     mbed::Callback<void(uint8_t)> m_pageSwapCallback{nullptr};
     mbed::Callback<void(uint8_t)> m_touchDetectedCallback{nullptr};
-    mbed::Callback<void(uint8_t)> m_touchTagCallback{nullptr};
     mbed::Callback<void(uint8_t)> m_touchConvCompCallback{nullptr};
 
-    mbed::Callback<void(uint8_t)> m_tagNumberCallback{nullptr};
-    std::vector<TagCallback>      m_tagCallbacksPool;
+    std::vector<TagCB> m_tagCBPool;
 #endif
 };
+}    // namespace EVE
 
 #endif    // FT8XX_H

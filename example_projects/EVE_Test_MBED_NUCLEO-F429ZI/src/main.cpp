@@ -10,7 +10,6 @@ int main()
     //Set backlight
     //    m_screen.setBacklight(100);
 
-#if(MBED_VERSION >= MBED_ENCODE_VERSION(5, 8, 0)) && MBED_CONF_EVENTS_PRESENT
     //**Uncomment any required callbacks
     //    m_screen.attach([&](uint8_t f){printf("EVE_INT_SWAP: %04x \n", f);}, EVE_INT_SWAP);
     //    m_screen.attach([&](uint8_t f){printf("EVE_INT_TOUCH: %04x \n", f);}, EVE_INT_TOUCH);
@@ -57,29 +56,34 @@ int main()
     {
         ThisThread::sleep_for(100);
 
+        //        loadDynamicDL(&screen);
+        screen.swap();
+        screen.execute();
+        ThisThread::sleep_for(10);
+
         //**Example Backlight fade conrol
         //        //Linear
-        //        m_screen.backlightFade(0, 128, 500);
+        //        screen.backlightFade(0, 128, 500);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500);
+        //        screen.backlightFade(128, 0, 500);
         //        ThisThread::sleep_for(1000);
         //        loadTestDL();
         //        //Quad
-        //        m_screen.backlightFade(0, 128, 500, FT8xx::Quad);
+        //        screen.backlightFade(0, 128, 500, FT8xx::Quad);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500, FT8xx::Quad);
+        //        screen.backlightFade(128, 0, 500, FT8xx::Quad);
         //        ThisThread::sleep_for(1000);
         //        loadTestDL();
         //        //Cubic
-        //        m_screen.backlightFade(0, 128, 500, FT8xx::Cubic);
+        //        screen.backlightFade(0, 128, 500, FT8xx::Cubic);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500, FT8xx::Cubic);
+        //        screen.backlightFade(128, 0, 500, FT8xx::Cubic);
         //        ThisThread::sleep_for(1000);
         //        loadTestDL();
         //        //Quart
-        //        m_screen.backlightFade(0, 128, 500, FT8xx::Quart);
+        //        screen.backlightFade(0, 128, 500, FT8xx::Quart);
         //        ThisThread::sleep_for(1000);
-        //        m_screen.backlightFade(128, 0, 500, FT8xx::Quart);
+        //        screen.backlightFade(128, 0, 500, FT8xx::Quart);
         //        ThisThread::sleep_for(1000);
         //*********
     }
