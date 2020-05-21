@@ -282,6 +282,14 @@ public:
                 const std::string & offText = "",
                 const std::string & onText  = "",
                 ToggleOpt           options = ToggleOpt::_3D);
+
+    void keys(int16_t             x,
+              int16_t             y,
+              uint16_t            width,
+              uint16_t            height,
+              uint16_t            font,
+              const std::string & text    = "",
+              KeysOpt             options = KeysOpt::_3D);
     //*************************
     //*********Special commands
 

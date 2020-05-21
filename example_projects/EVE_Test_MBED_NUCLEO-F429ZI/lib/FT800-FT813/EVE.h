@@ -328,6 +328,13 @@ enum class ToggleOpt : uint16_t
     Flat = 256,
 };
 
+enum class KeysOpt : uint16_t
+{
+    _3D      = 0,
+    Flat     = 256,
+    CenterXY = 512 | 1024,
+};
+
 /* Defines related to inbuilt font */
 #define EVE_NUMCHAR_PERFONT    (128L)      /* number of font characters per bitmap handle */
 #define EVE_FONT_TABLE_SIZE    (148L)      /* size of the font table - utilized for loopup by the graphics engine */

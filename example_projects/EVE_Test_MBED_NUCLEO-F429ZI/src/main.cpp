@@ -150,30 +150,41 @@ int main()
     loadStaticDL2(&screen);
     loadStaticDL3(&screen);
 
-    int32_t val = 0;
+    //    int32_t val = 0;
 
     //    uint8_t tag = screen.setCallbackToTag([&](uint8_t) -> void {
     //        //        val < 65535
     //        //            ? screen.animate(&val, 0, 65535, 400, FT8xx::Cubic)
     //        //            : screen.animate(&val, 65535, 0, 400, FT8xx::Quart);
     //    });
-    uint8_t tag = screen.setTrackingToTag(
-        [&](uint16_t value) {
-            val = value;
-        });
+    //    uint8_t tag = screen.setTrackingToTag(
+    //        [&](uint16_t value) {
+    //            val = value;
+    //        });
+    screen.setCallbackToTag(
+        [](uint8_t t) {
+            debug("q");
+        },
+        static_cast<uint8_t>('q'));
+    screen.setCallbackToTag(
+        [](uint8_t t) {
+            debug("w");
+        },
+        static_cast<uint8_t>('w'));
 
     while(1)
     {
         screen.dlStart();
         screen.clearColorARGB(0xFF000000);
         screen.clear();
-        screen.tag(tag);
-        screen.track(20, 20, 200, 30, tag);
-        screen.toggle(20, 20, 200, 28, val, "no", "yes", ToggleOpt::Flat);
-        for(const auto l : screen.ramG()->pool())
-        {
-            screen.append(l);
-        }
+        screen.keys(10, 60, 150, 50, 26, "qwer", KeysOpt::Flat);
+        //        screen.tag(tag);
+        //        screen.track(20, 20, 200, 30, tag);
+        //        screen.toggle(20, 20, 200, 28, val, "no", "yes", ToggleOpt::Flat);
+        //        for(const auto l : screen.ramG()->pool())
+        //        {
+        //            screen.append(l);
+        //        }
 
         //        loadDynamicDL(&screen);
         screen.swap();

@@ -976,6 +976,21 @@ void FT8xx::toggle(int16_t        x,
     writeString(offText + "\xff" + onText);
 }
 
+void FT8xx::keys(int16_t        x,
+                 int16_t        y,
+                 uint16_t       width,
+                 uint16_t       height,
+                 uint16_t       font,
+                 const string & text,
+                 KeysOpt        options)
+{
+    push(CMD_KEYS);
+    push({x, y});
+    push({static_cast<int16_t>(width), static_cast<int16_t>(height)});
+    push({static_cast<int16_t>(font), static_cast<int16_t>(options)});
+    writeString(text);
+}
+
 void FT8xx::append(uint32_t address, uint32_t count)
 {
     push(CMD_APPEND);
