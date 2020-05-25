@@ -1,4 +1,4 @@
-﻿/**
+/**
 @file    ft8xx.cpp
 @brief   EVE - HMI solution library for based on FT-BT8xx chip
 @version 0.1
@@ -234,7 +234,7 @@ FT8xx::FT8xx(
     }
     else
     {
-        m_queue = new EventQueue(6 * EVENTS_EVENT_SIZE);
+        m_queue = new EventQueue(10 * EVENTS_EVENT_SIZE);
         m_eventThread->start(callback(m_queue, &EventQueue::dispatch_forever));
     }
 
@@ -483,6 +483,7 @@ void FT8xx::animate(int32_t * value,
                     FadeType  fadeType,
                     uint8_t   delay)
 {
+    debug_if(duration % delay != 0, "duration %% delay must be equal 0\n");
     auto fade = new Fade{
         0,
         static_cast<int32_t>(duration),
@@ -1219,6 +1220,11 @@ void FT8xx::deattachFromTag(uint8_t tag)
                 return false;
             }),
         m_tagCBPool.end());
+}
+
+EVE_HAL * FT8xx::hal() const
+{
+    return m_hal;
 }
 
 uint8_t FT8xx::findFirstEmptyTag()

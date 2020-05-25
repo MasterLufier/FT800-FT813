@@ -106,7 +106,7 @@ public:
         PinName               interrupt,
         EVE_HAL::SPIFrequency spiFrequency     = EVE_HAL::F_20M,
         bool                  sharedEventQueue = false,
-        uint32_t              threadStackSize  = (3 * 512),
+        uint32_t              threadStackSize  = (4 * 512),
         const char *          threadName       = "FT8xxThrd");
 #else
     FT8xx(PinName               mosi,
@@ -144,6 +144,7 @@ public:
                bool tagBuf     = true);
 
     void clearColorRGB(uint8_t r, uint8_t g, uint8_t b);
+    void clearColorRGB(uint32_t rgb);
     void clearColorA(uint8_t a);
     void clearColorARGB(const CmdBuf_t & argb);
 
@@ -346,7 +347,8 @@ public:
     const FT8xx::TouchCalibrationResult & touchCalibrate(bool factory = true);
 
     /*!
-     * \brief animate - change value with specific range, speed, and easing
+     * \brief animate - change value with specific range, speed, and easing.
+     * \note duration % delay must be equal 0
      * \param value - value to animate
      * \param from - start of animation
      * \param to - end of animation
@@ -363,6 +365,7 @@ public:
 
     /*!
      * \brief backlightFade - change screen backlight PWM duty cycle with specific time and easing
+     * \note duration % delay must be equal 0
      * \param from - start value. Must be <= 128
      * \param to - end value. Must be <= 128
      * \param duration - total time in ms
@@ -542,6 +545,8 @@ public:
 
 #endif
     //**************************************************************
+
+    EVE_HAL * hal() const;
 
 private:
     EVE_HAL * m_hal{nullptr};
