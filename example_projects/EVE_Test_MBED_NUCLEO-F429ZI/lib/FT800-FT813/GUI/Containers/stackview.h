@@ -33,14 +33,14 @@ class StackView : public Widget
 public:
     StackView(Widget * parent);
 
-    void show() override;
-
     void push();
     void pop();
     void setIndex(uint8_t index);
+    void addWidget(Widget * widget) override;
 
 private:
-    uint8_t m_index{0};
+    uint8_t    m_index{0};
+    EventFlags m_indexChange;
 };
 }    // namespace FTGUI
 

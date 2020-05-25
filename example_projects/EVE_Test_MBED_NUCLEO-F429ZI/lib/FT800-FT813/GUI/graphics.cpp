@@ -48,101 +48,101 @@ void Rectangle::show()
     if(checkPositionInScreen() == false)
         return;
     //Add touchTag
-    EVE_cmd_dl(TAG(m_touchTag));
+    m_driver->tag(m_touchTag);
     //Draw shadow
     if(m_z != 0)
     {
-        EVE_cmd_dl(DL_COLOR_RGB | 0x040404);
-        EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
-        EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
-        EVE_cmd_dl(BEGIN(EVE_RECTS));
+        m_driver->colorRGB(0x040404);
+        m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+        m_driver->lineWidth(24 + ((m_radius - 1) * 16));
+        m_driver->begin(Rects);
         float shadow = (m_color.a() < 48 ? m_color.a() : 48);
         for(uint8_t i = m_z; i > 0; --i)
         {
-            EVE_cmd_dl(COLOR_A(static_cast<uint8_t>(shadow / i)));
+            m_driver->colorA(static_cast<uint8_t>(shadow / i));
             //Draw ambient light shadow
-            m_driver->drawVertexPointF(absX() + m_radius - i,
-                                       absY() + m_radius - i);
-            m_driver->drawVertexPointF(absX() + m_width - m_radius + i - 1,
-                                       absY() + m_height - m_radius + i - 1);
+            m_driver->vertexPointF(absX() + m_radius - i,
+                                   absY() + m_radius - i);
+            m_driver->vertexPointF(absX() + m_width - m_radius + i - 1,
+                                   absY() + m_height - m_radius + i - 1);
             //Draw key light shadow
-            m_driver->drawVertexPointF(absX() + m_radius,
-                                       absY() + m_radius);
-            m_driver->drawVertexPointF(absX() + m_width - m_radius - 1,
-                                       absY() + m_height - m_radius + i - 1);
+            m_driver->vertexPointF(absX() + m_radius,
+                                   absY() + m_radius);
+            m_driver->vertexPointF(absX() + m_width - m_radius - 1,
+                                   absY() + m_height - m_radius + i - 1);
         }
         //        EVE_cmd_dl(END());
         //        EVE_cmd_dl(BEGIN(EVE_RECTS));
     }
     else
     {
-        EVE_cmd_dl(BEGIN(EVE_RECTS));
+        m_driver->begin(Rects);
     }
     //Draw border if provided
     if(m_borderWidth != 0)
     {
-        EVE_cmd_dl(DL_COLOR_RGB | (m_borderColor.hex()));
+        m_driver->colorRGB(m_borderColor.hex());
         //Fix subpixel line opacity
         if(m_radius == 0)
         {
             if(m_borderColor.a() == 255)
             {
-                EVE_cmd_dl(BLEND_FUNC(EVE_ONE, EVE_ZERO));
-                EVE_cmd_dl(LINE_WIDTH(1));
+                m_driver->push(BLEND_FUNC(EVE_ONE, EVE_ZERO));
+                m_driver->lineWidth(1);
             }
             else
             {
-                EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
-                EVE_cmd_dl(COLOR_A(m_borderColor.a()));
-                EVE_cmd_dl(LINE_WIDTH(8));
+                m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+                m_driver->colorA(m_borderColor.a());
+                m_driver->lineWidth(8);
             }
-            m_driver->drawVertexPointF(absX(),
-                                       absY());
-            m_driver->drawVertexPointF(absX() + m_width - 1,
-                                       absY() + m_height - 1);
+            m_driver->vertexPointF(absX(),
+                                   absY());
+            m_driver->vertexPointF(absX() + m_width - 1,
+                                   absY() + m_height - 1);
         }
         else
         {
-            EVE_cmd_dl(COLOR_A(m_borderColor.a()));
-            EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
-            EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
-            m_driver->drawVertexPointF(absX() + m_radius,
-                                       absY() + m_radius);
-            m_driver->drawVertexPointF(absX() + m_width - m_radius - 1,
-                                       absY() + m_height - m_radius - 1);
+            m_driver->colorA(m_borderColor.a());
+            m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+            m_driver->lineWidth(24 + ((m_radius - 1) * 16));
+            m_driver->vertexPointF(absX() + m_radius,
+                                   absY() + m_radius);
+            m_driver->vertexPointF(absX() + m_width - m_radius - 1,
+                                   absY() + m_height - m_radius - 1);
         }
     }
     //Draw body
-    EVE_cmd_dl(DL_COLOR_RGB | (m_color.hex()));
+    m_driver->colorRGB(m_color.hex());
     //Fix subpixel line opacity
     if(m_radius == 0)
     {
         if(m_color.a() == 255)
         {
-            EVE_cmd_dl(BLEND_FUNC(EVE_ONE, EVE_ZERO));
-            EVE_cmd_dl(LINE_WIDTH(1));
+            m_driver->push(BLEND_FUNC(EVE_ONE, EVE_ZERO));
+            m_driver->lineWidth(1);
         }
         else
         {
-            EVE_cmd_dl(COLOR_A(m_color.a()));
-            EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
-            EVE_cmd_dl(LINE_WIDTH(8));
+            m_driver->colorA(m_color.a());
+            m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+            m_driver->lineWidth(8);
         }
     }
     else
     {
-        EVE_cmd_dl(COLOR_A(m_borderColor.a()));
-        EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
-        EVE_cmd_dl(LINE_WIDTH(24 + ((m_radius - 1) * 16)));
+        m_driver->colorA(m_borderColor.a());
+        m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+        m_driver->lineWidth(24 + ((m_radius - 1) * 16));
     }
 
-    m_driver->drawVertexPointF(absX() + m_borderWidth + m_radius,
-                               absY() + m_borderWidth + m_radius);
+    m_driver->vertexPointF(absX() + m_borderWidth + m_radius,
+                           absY() + m_borderWidth + m_radius);
 
-    m_driver->drawVertexPointF(absX() + m_width - m_borderWidth - m_radius - 1,
-                               absY() + m_height - m_borderWidth - m_radius - 1);
+    m_driver->vertexPointF(absX() + m_width - m_borderWidth - m_radius - 1,
+                           absY() + m_height - m_borderWidth - m_radius - 1);
 
-    EVE_cmd_dl(END());
+    m_driver->end();
 
     Widget::show();
 }
@@ -278,51 +278,51 @@ void Label::show()
 {
     if(checkPositionInScreen() == false)
         return;
-    EVE_cmd_dl(TAG(m_touchTag));
-    EVE_cmd_dl(DL_COLOR_RGB | (m_color.hex()));
-    EVE_cmd_dl(COLOR_A(m_color.a()));
-    EVE_cmd_dl(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+    m_driver->tag(m_touchTag);
+    m_driver->colorARGB(m_color.hexa());
+    m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
     //TODO: Add font scaling to target size
     //    EVE_cmd_dl(CMD_LOADIDENTITY);
     //    EVE_cmd_scale(65536 / 2, 65536 / 2);
     //    EVE_cmd_dl(CMD_SETMATRIX);
     if(m_fillWidth == true)
     {
-        EVE_cmd_dl(CMD_FILLWIDTH | m_width);
+        m_driver->push(CMD_FILLWIDTH);
+        m_driver->push(m_width);
         if(m_verticalAlignment == Bottom)
         {
-            EVE_cmd_text(absX(),
-                         absY() - m_font.fontHeight(),
-                         m_font.fontNumber(),
-                         EVE_OPT_FILL,
-                         m_text.c_str());
+            m_driver->text(absX(),
+                           absY() - m_font.fontHeight(),
+                           m_font.fontNumber(),
+                           m_text.c_str(),
+                           TextOpt::Fill);
         }
         else
         {
-            EVE_cmd_text(absX(),
-                         absY(),
-                         m_font.fontNumber(),
-                         m_verticalAlignment | m_horizontalAlignment,
-                         m_text.c_str());
+            m_driver->text(absX(),
+                           absY(),
+                           m_font.fontNumber(),
+                           m_text.c_str(),
+                           TextOpt::Fill /*static_cast<TextOpt>(m_verticalAlignment | m_horizontalAlignment)*/);
         }
     }
     else
     {
         if(m_verticalAlignment == Bottom)
         {
-            EVE_cmd_text(absX(),
-                         absY() - m_font.fontHeight(),
-                         m_font.fontNumber(),
-                         Top | m_horizontalAlignment,
-                         m_text.c_str());
+            m_driver->text(absX(),
+                           absY() - m_font.fontHeight(),
+                           m_font.fontNumber(),
+                           m_text.c_str(),
+                           static_cast<TextOpt>(Top | m_horizontalAlignment));
         }
         else
         {
-            EVE_cmd_text(absX(),
-                         absY(),
-                         m_font.fontNumber(),
-                         m_verticalAlignment | m_horizontalAlignment,
-                         m_text.c_str());
+            m_driver->text(absX(),
+                           absY(),
+                           m_font.fontNumber(),
+                           m_text.c_str(),
+                           static_cast<TextOpt>(m_verticalAlignment | m_horizontalAlignment));
         }
     }
     Widget::show();

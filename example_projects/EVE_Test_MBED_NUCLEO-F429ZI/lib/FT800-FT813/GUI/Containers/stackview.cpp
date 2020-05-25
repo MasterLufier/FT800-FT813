@@ -30,20 +30,7 @@ StackView::StackView(Widget * parent) :
     Widget(parent)
 {
     m_name = "StackView";
-}
-
-void StackView::show()
-{
-    uint8_t i = -m_index;
-    for(const auto & w : m_container)
-    {
-        w->setGeometry((i * (m_width + 1)),
-                       0,
-                       m_width,
-                       m_height);
-        ++i;
-    }
-    Widget::show();
+    m_indexChange.set(1);
 }
 
 void StackView::push()
@@ -51,7 +38,18 @@ void StackView::push()
     if(m_index < m_container.size() - 1)
     {
         m_index++;
-        update();
+        queue()->call([&]() {
+            m_indexChange.wait_all(1, Duration);
+            int8_t i = -m_index;
+            for(const auto & w : m_container)
+            {
+                w->translateX(i * (m_width + 1));
+                ++i;
+            }
+            queue()->call_in(AnimationOpt::Duration, [&]() {
+                m_indexChange.set(1);
+            });
+        });
     }
 }
 
@@ -60,7 +58,18 @@ void StackView::pop()
     if(m_index > 0)
     {
         m_index--;
-        update();
+        queue()->call([&]() {
+            m_indexChange.wait_all(1, Duration);
+            int8_t i = -m_index;
+            for(const auto & w : m_container)
+            {
+                w->translateX(i * (m_width + 1));
+                ++i;
+            }
+            queue()->call_in(AnimationOpt::Duration, [&]() {
+                m_indexChange.set(1);
+            });
+        });
     }
 }
 
@@ -70,5 +79,19 @@ void StackView::setIndex(uint8_t index)
         return;
     m_index = index;
     update();
+}
+
+void StackView::addWidget(Widget * widget)
+{
+    Widget::addWidget(widget);
+    int8_t i = -m_index;
+    for(const auto & w : m_container)
+    {
+        w->setGeometry((i * (m_width + 1)),
+                       0,
+                       m_width,
+                       m_height);
+        ++i;
+    }
 }
 }    // namespace FTGUI

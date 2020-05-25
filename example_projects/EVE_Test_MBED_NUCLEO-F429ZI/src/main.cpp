@@ -7,21 +7,6 @@
 
 int main()
 {
-    //Set backlight
-    //    m_screen.setBacklight(100);
-
-    //**Uncomment any required callbacks
-    //    m_screen.attach([&](uint8_t f){printf("EVE_INT_SWAP: %04x \n", f);}, EVE_INT_SWAP);
-    //    m_screen.attach([&](uint8_t f){printf("EVE_INT_TOUCH: %04x \n", f);}, EVE_INT_TOUCH);
-    //    m_screen.attach([&](uint8_t f){printf("EVE_INT_TAG: %04x \n", f);}, EVE_INT_TAG);
-    //    m_screen.attach([&](uint8_t f){printf("EVE_INT_CONVCOMPLETE: %04x \n", f);}, EVE_INT_CONVCOMPLETE);
-    //Attach one callback to all Touch_tag events
-    //    m_screen.attachToTags([&](uint8_t f){printf("TAG_NUMBER: %04x \n", f);});
-    //Attach callback to specific tag
-    //    m_screen.attachToTag([&](uint8_t tag){printf("TAG_NUMBER 10: %u \n", tag);}, 10);
-    //     m_screen.attachToTag([&](uint8_t tag){printf("TAG_NUMBER 11: %u \n", tag);}, 11);
-    //**************
-    //
     //**************
     auto a = new FTGUI::ApplicationWindow(new FTGUI::Dark);
 
@@ -41,6 +26,8 @@ int main()
     FTGUI::Page r2(&layout);
 
     FTGUI::Label l1("Reaaaally, reaaaaaally, loooooooooong looooooooong teeeeeext.", r1.contentItem());
+    l1.setWidth(l1.parent()->width());
+    l1.setFillWidth(true);
 
     FTGUI::Label l2("I Love Atom Audio more!", r2.contentItem());
 
@@ -50,16 +37,10 @@ int main()
     b2.setCallback(&layout,
                    &FTGUI::StackView::push);
     a->show();
-#endif
-    printf("%u\n", EVE_report_cmdoffset());
+
     while(1)
     {
         ThisThread::sleep_for(100);
-
-        //        loadDynamicDL(&screen);
-        screen.swap();
-        screen.execute();
-        ThisThread::sleep_for(10);
 
         //**Example Backlight fade conrol
         //        //Linear

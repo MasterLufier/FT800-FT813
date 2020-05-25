@@ -43,7 +43,14 @@ public:
     void hide() override;
 
 protected:
-    bool m_renderLock{false};
+    void animationStarted(uint32_t duration = Duration,
+                          uint8_t  delay    = Delay) override;
+    void update() override;
+
+    bool    m_renderLock{false};
+    uint8_t m_animationCounter{0};
+    int32_t m_updateEventId{0};
+    Thread  m_thread{osPriorityNormal, 1024, nullptr, "GUIThread"};
 };
 }    // namespace FTGUI
 

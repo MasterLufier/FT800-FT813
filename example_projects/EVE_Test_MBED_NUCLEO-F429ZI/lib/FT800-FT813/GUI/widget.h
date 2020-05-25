@@ -30,6 +30,8 @@
 
 namespace FTGUI
 {
+using namespace EVE;
+
 class Widget
 {
 public:
@@ -41,7 +43,7 @@ public:
            uint16_t height,
            Widget * parent);
 
-    void addWidget(Widget * widget);
+    virtual void addWidget(Widget * widget);
 
     template<typename... Tail>
     void addWidgets(Widget * widget, Tail... tail)
@@ -50,7 +52,7 @@ public:
         addWidgets(tail...);
     }
 
-    void removeWidget(Widget * widget);
+    virtual void removeWidget(Widget * widget);
 
     virtual ~Widget();
 
@@ -64,12 +66,12 @@ public:
 
     const string & name() const;
 
-    Theme * theme() const;
-
     Widget * parent() const;
     void     setParent(Widget * parent);
 
-    FT8xx * driver() const;
+    FT8xx *      driver() const;
+    Theme *      theme() const;
+    EventQueue * queue() const;
 
     ScreenOrientation orientation() const;
 
@@ -112,14 +114,37 @@ public:
     int32_t absX() const;
     int32_t absY() const;
 
+    //*****animation
+
+    void translateX(int32_t newX)
+    {
+        animation(&m_x, m_x, newX);
+    }
+
 protected:
+    enum AnimationOpt : uint32_t
+    {
+        Duration = 400,
+        Delay    = 20
+    };
     virtual void update();
+    virtual void animationStarted(uint32_t duration = AnimationOpt::Duration,
+                                  uint8_t  delay    = AnimationOpt::Delay);
+
     virtual void translateTouchEvent();
     bool         checkPositionInScreen();
 
-    Widget * m_parent{nullptr};
-    Theme *  m_theme{nullptr};
-    FT8xx *  m_driver{nullptr};
+    virtual void animation(int32_t *       value,
+                           int32_t         from,
+                           int32_t         to,
+                           uint32_t        duration = AnimationOpt::Duration,
+                           FT8xx::FadeType fadeType = FT8xx::Quad,
+                           uint8_t         delay    = AnimationOpt::Delay);
+
+    Widget *     m_parent{nullptr};
+    Theme *      m_theme{nullptr};
+    FT8xx *      m_driver{nullptr};
+    EventQueue * m_queue{nullptr};
 
     ScreenOrientation     m_orientation{};
     std::vector<Widget *> m_container;

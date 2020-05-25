@@ -41,6 +41,8 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
                              EVE_SPI_SSEL,
                              EVE_PD,
                              EVE_INTRPT);
+    m_queue = new EventQueue(48 * EVENTS_EVENT_SIZE);
+    m_thread.start(mbed::callback(m_queue, &EventQueue::dispatch_forever));
     m_orientation = screenOrientation;
     if(theme)
         m_theme = theme;
@@ -58,8 +60,10 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
 
 ApplicationWindow::~ApplicationWindow()
 {
+    m_thread.terminate();
     delete m_theme;
     delete m_driver;
+    delete m_queue;
 }
 
 void ApplicationWindow::show()
@@ -71,18 +75,42 @@ void ApplicationWindow::show()
 
     if(m_visible != true)
         setVisible(true);
-    EVE_cmd_dl(CMD_DLSTART);
-    EVE_cmd_dl(DL_CLEAR_RGB | m_theme->background().hex());
-    EVE_cmd_dl(CLEAR(1, 1, 1));
+    m_driver->dlStart();
+    m_driver->clearColorRGB(m_theme->background().hex());
+    m_driver->clear();
     Widget::show();
-    EVE_cmd_dl(DL_DISPLAY);
-    EVE_cmd_dl(CMD_SWAP);
-    EVE_cmd_execute();
+    m_driver->swap();
+    m_driver->execute();
     m_renderLock = false;
 }
 
 void ApplicationWindow::hide()
 {
     Widget::hide();
+}
+
+void ApplicationWindow::animationStarted(uint32_t duration,
+                                         uint8_t  delay)
+{
+    if(m_animationCounter == 0)
+    {
+        m_updateEventId = queue()->call_every(delay, this, &ApplicationWindow::update);
+    }
+
+    queue()->call_in((duration + duration / 2), [&]() {
+        if(--m_animationCounter == 0)
+        {
+            queue()->cancel(m_updateEventId);
+        }
+    });
+    m_animationCounter++;
+}
+
+void ApplicationWindow::update()
+{
+    if(m_visible == true)
+        show();
+    else
+        hide();
 }
 }    // namespace FTGUI

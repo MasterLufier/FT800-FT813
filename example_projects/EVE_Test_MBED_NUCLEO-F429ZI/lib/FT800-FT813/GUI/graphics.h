@@ -114,8 +114,11 @@ public:
         Monospace
     };
 
-    LFont(uint8_t fontSize, FontType type = Antialiased) :
-        m_fontTargetSize(fontSize)
+    LFont(FT8xx *  driver,
+          uint8_t  fontSize,
+          FontType type = Antialiased) :
+        m_fontTargetSize(fontSize),
+        m_driver(driver)
     {
         switch(type)
         {
@@ -184,22 +187,23 @@ private:
     uint16_t m_fontTargetSize{0};
     FontType m_fontType{Antialiased};
     uint8_t  m_fontNumber{16};
+    FT8xx *  m_driver{nullptr};
     //Legacy fonts params
     void getFontParams()
     {
-        uint32_t fPointer = EVE_memRead32(EVE_ROM_FONT_ADDR);
+        uint32_t fPointer = m_driver->hal()->rd32(EVE_ROM_FONT_ADDR);
         uint32_t fontIt   = fPointer + (148 * (m_fontNumber - 16));
         uint16_t i        = 0;
         while(i < 128)
         {
-            width.push_back(EVE_memRead8(fontIt + i));
+            width.push_back(m_driver->hal()->rd8(fontIt + i));
             ++i;
         }
-        format      = EVE_memRead32(fontIt + 128);
-        lineStride  = EVE_memRead32(fontIt + 132);
-        pixelWidth  = EVE_memRead8(fontIt + 136);
-        pixelHeight = EVE_memRead8(fontIt + 140);
-        gptr        = EVE_memRead32(fontIt + 144);
+        format      = m_driver->hal()->rd32(fontIt + 128);
+        lineStride  = m_driver->hal()->rd32(fontIt + 132);
+        pixelWidth  = m_driver->hal()->rd8(fontIt + 136);
+        pixelHeight = m_driver->hal()->rd8(fontIt + 140);
+        gptr        = m_driver->hal()->rd32(fontIt + 144);
     }
 
     uint32_t             format{0};
@@ -217,14 +221,14 @@ public:
     enum HAlignment : uint16_t
     {
         Left    = 0,
-        Right   = EVE_OPT_RIGHTX,
-        HCenter = EVE_OPT_CENTERX,
+        Right   = static_cast<uint16_t>(TextOpt::RightX),
+        HCenter = static_cast<uint16_t>(TextOpt::CenterX)
     };
     enum VAlignment : uint16_t
     {
         Top     = 0,
         Bottom  = 1,
-        VCenter = EVE_OPT_CENTERY,
+        VCenter = static_cast<uint16_t>(TextOpt::CenterY)
     };
 
     Label(std::string text   = "",
@@ -261,7 +265,7 @@ private:
     HAlignment  m_horizontalAlignment{Left};
     std::string m_text{};
     Color       m_color{m_theme->onPrimary()};
-    LFont       m_font{20};
+    LFont       m_font{m_driver, 20};
 };
 }    // namespace FTGUI
 #endif    // GRAPHICS_H

@@ -39,7 +39,6 @@ public:
                        uint16_t height) override;
 
     Widget * contentItem() const;
-    //    void     show() override;
 
 protected:
     uint8_t     m_padding{5};

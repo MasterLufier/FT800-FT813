@@ -42,7 +42,6 @@ Widget::Widget(int32_t  x,
     m_y      = y;
     m_width  = width;
     m_height = height;
-
     if(parent)
     {
         //if parent is empty
@@ -113,16 +112,15 @@ void Widget::hide()
 
 void Widget::update()
 {
+    m_parent->update();
+}
+
+void Widget::animationStarted(uint32_t duration,
+                              uint8_t  delay)
+{
     if(m_parent != this)
     {
-        m_parent->update();
-    }
-    else
-    {
-        if(m_visible == true)
-            show();
-        else
-            hide();
+        m_parent->animationStarted(duration, delay);
     }
 }
 
@@ -166,6 +164,7 @@ void Widget::setParent(Widget * parent)
     m_driver      = m_parent->driver();
     m_orientation = m_parent->orientation();
     m_theme       = m_parent->theme();
+    m_queue       = m_parent->queue();
 }
 
 FT8xx * Widget::driver() const
@@ -221,6 +220,28 @@ bool Widget::checkPositionInScreen()
         return false;
     }
     return true;
+}
+
+void Widget::animation(int32_t *       value,
+                       int32_t         from,
+                       int32_t         to,
+                       uint32_t        duration,
+                       FT8xx::FadeType fadeType,
+                       uint8_t         delay)
+{
+    m_driver->animate(
+        value,
+        from,
+        to,
+        duration,
+        fadeType,
+        delay);
+    animationStarted(duration, delay);
+}
+
+EventQueue * Widget::queue() const
+{
+    return m_queue;
 }
 
 int32_t Widget::absX() const
