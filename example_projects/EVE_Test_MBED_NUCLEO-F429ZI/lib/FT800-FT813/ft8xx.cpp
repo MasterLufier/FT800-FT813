@@ -476,6 +476,11 @@ void FT8xx::track(int16_t  x,
     push({static_cast<int8_t>(tag), 0, 0, 0});
 }
 
+int32_t FT8xx::touchXY()
+{
+    return static_cast<int32_t>(m_hal->rd32(REG_TOUCH_SCREEN_XY));
+}
+
 void FT8xx::animate(int32_t * value,
                     int32_t   from,
                     int32_t   to,

@@ -340,6 +340,13 @@ public:
                uint16_t width,
                uint16_t height,
                uint8_t  tag);
+
+    /*!
+     * \brief touchXY read touch screen XY register
+     * \return touch coordinate or 0x80008000 if no touch present
+     */
+    int32_t touchXY();
+
     /*!
      * \brief touchCalibrate - function for calibrate touchscreen
      * \param factory - if true - load factory calibration, else - start new calibration
@@ -382,7 +389,7 @@ public:
     /*!
      * \brief attach one callback to any number of interrupt flags
      * \param f - callback function void(uint8_t flag) f;
-     * \param flag - one of the possible interrupt mas bit
+     * \param flag - one of the possible interrupt mask bit
      * for more information see EVE.h Interrupt bits and BT81X (815/6) datasheet pg 19
      */
     void attach(mbed::Callback<void(uint8_t)> f, uint8_t flag);
