@@ -47,8 +47,6 @@ void Rectangle::show()
 {
     if(checkPositionInScreen() == false)
         return;
-    //Add touchTag
-    m_driver->tag(m_touchTag);
     //Draw shadow
     if(m_z != 0)
     {
@@ -278,7 +276,6 @@ void Label::show()
 {
     if(checkPositionInScreen() == false)
         return;
-    m_driver->tag(m_touchTag);
     m_driver->colorARGB(m_color.hexa());
     m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
     //TODO: Add font scaling to target size

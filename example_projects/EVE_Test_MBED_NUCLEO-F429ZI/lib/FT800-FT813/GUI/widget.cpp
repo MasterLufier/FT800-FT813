@@ -79,8 +79,12 @@ void Widget::removeWidget(Widget * widget)
 
 Widget::~Widget()
 {
-    if(m_touchTag != 0)
-        m_driver->deattachFromTag(m_touchTag);
+    if(m_onPressed)
+        delete m_onPressed;
+    if(m_onChanged)
+        delete m_onChanged;
+    if(m_onReleased)
+        delete m_onReleased;
     for(auto & w : m_container)
     {
         delete w;
@@ -122,16 +126,6 @@ void Widget::animationStarted(uint32_t duration,
     {
         m_parent->animationStarted(duration, delay);
     }
-}
-
-uint8_t Widget::touchTag() const
-{
-    return m_touchTag;
-}
-
-void Widget::setTouchTag(const uint8_t & touchTag)
-{
-    m_touchTag = touchTag;
 }
 
 Widget & Widget::setGeometry(int32_t  x,
@@ -180,33 +174,6 @@ ScreenOrientation Widget::orientation() const
 void Widget::setTheme(Theme * theme)
 {
     m_theme = theme;
-}
-
-bool Widget::touchEnable() const
-{
-    return m_touchEnable;
-}
-
-void Widget::removeCallback()
-{
-    m_driver->deattachFromTag(m_touchTag);
-    m_touchTag = 0;
-    for(const auto & w : m_container)
-    {
-        w->m_touchTag    = m_touchTag;
-        w->m_touchEnable = false;
-    }
-    m_touchEnable = false;
-}
-
-void Widget::translateTouchEvent()
-{
-    for(const auto & w : m_container)
-    {
-        w->m_touchTag    = m_touchTag;
-        w->m_touchEnable = true;
-        w->translateTouchEvent();
-    }
 }
 
 bool Widget::checkPositionInScreen()
@@ -304,24 +271,24 @@ Widget & Widget::setWidth(uint16_t width)
 Widget & Widget::setY(int32_t y)
 {
     m_y = y;
-    if(m_visible != false)
-        update();
+    //    if(m_visible != false)
+    //        update();
     return *this;
 }
 
 Widget & Widget::setX(int32_t x)
 {
     m_x = x;
-    if(m_visible != false)
-        update();
+    //    if(m_visible != false)
+    //        update();
     return *this;
 }
 
 Widget & Widget::setZ(uint16_t z)
 {
     m_z = z;
-    if(m_visible != false)
-        update();
+    //    if(m_visible != false)
+    //        update();
     return *this;
 }
 

@@ -27,6 +27,7 @@
 
 #include <colors.h>
 #include <ft8xx.h>
+#include <type_traits>
 
 namespace FTGUI
 {
@@ -90,22 +91,87 @@ public:
     virtual Widget & setWidth(uint16_t width);
     virtual Widget & setHeight(uint16_t height);
 
-    bool         touchEnable() const;
-    virtual void removeCallback();
-
-    template<typename... Args>
-    void setCallback(Args... args)
+    //***Touchscreen
+    virtual bool touchPressed(int16_t x, int16_t y)
     {
-        m_touchTag    = m_driver->setCallbackToTag(args...);
-        m_touchEnable = true;
-        translateTouchEvent();
-
-        if(m_visible == true)
-            update();
+        if(x > absX()
+           && x < absX() + m_width
+           && y > absY()
+           && y < absY() + m_height)
+        {
+            if(m_onPressed)
+                m_onPressed->operator()(x, y);
+            for(const auto & w : m_container)
+            {
+                w->touchPressed(x, y);
+            }
+            //            debug("%s pressed %i:%i\n", m_name.c_str(), x, y);
+            return true;
+        }
+        return false;
     }
 
-    uint8_t touchTag() const;
-    void    setTouchTag(const uint8_t & touchTag);
+    virtual bool touchChanged(int16_t x, int16_t y)
+    {
+        if(x > absX()
+           && x < absX() + m_width
+           && y > absY()
+           && y < absY() + m_height)
+        {
+            if(m_onChanged)
+                m_onChanged->operator()(x, y);
+            for(const auto & w : m_container)
+            {
+                w->touchChanged(x, y);
+            }
+            //            debug("%s changed %i:%i\n", m_name.c_str(), x, y);
+            return true;
+        }
+        return false;
+    }
+
+    virtual bool touchReleased(int16_t x, int16_t y)
+    {
+        if(x > absX()
+           && x < absX() + m_width
+           && y > absY()
+           && y < absY() + m_height)
+        {
+            if(m_onReleased)
+                m_onReleased->operator()(x, y);
+            for(const auto & w : m_container)
+            {
+                w->touchReleased(x, y);
+            }
+            //            debug("%s released %i:%i\n", m_name.c_str(), x, y);
+            return true;
+        }
+        return false;
+    }
+
+    template<typename... Args>
+    void onPressed(Args &&... args)
+    {
+        if(m_onPressed)
+            delete m_onPressed;
+        m_onPressed = wrapCB<uint16_t, uint16_t>(args...);
+    }
+
+    template<typename... Args>
+    void onChanged(Args &&... args)
+    {
+        if(m_onChanged)
+            delete m_onChanged;
+        m_onChanged = wrapCB<uint16_t, uint16_t>(args...);
+    }
+
+    template<typename... Args>
+    void onReleased(Args &&... args)
+    {
+        if(m_onReleased)
+            delete m_onReleased;
+        m_onReleased = wrapCB<uint16_t, uint16_t>(args...);
+    }
 
     bool visible() const;
     void setVisible(bool visible);
@@ -131,8 +197,7 @@ protected:
     virtual void animationStarted(uint32_t duration = AnimationOpt::Duration,
                                   uint8_t  delay    = AnimationOpt::Delay);
 
-    virtual void translateTouchEvent();
-    bool         checkPositionInScreen();
+    bool checkPositionInScreen();
 
     virtual void animation(int32_t *       value,
                            int32_t         from,
@@ -146,11 +211,12 @@ protected:
     FT8xx *      m_driver{nullptr};
     EventQueue * m_queue{nullptr};
 
-    ScreenOrientation     m_orientation{};
-    std::vector<Widget *> m_container;
-    bool                  m_visible{false};
-    bool                  m_touchEnable{false};
-    uint8_t               m_touchTag{0};
+    ScreenOrientation                         m_orientation{};
+    std::vector<Widget *>                     m_container;
+    bool                                      m_visible{false};
+    std::function<void(uint16_t, uint16_t)> * m_onPressed{nullptr};
+    std::function<void(uint16_t, uint16_t)> * m_onChanged{nullptr};
+    std::function<void(uint16_t, uint16_t)> * m_onReleased{nullptr};
 
     string m_name{"Widget"};
 
@@ -159,6 +225,102 @@ protected:
     uint16_t m_z{0},
         m_width{0},
         m_height{0};
+
+private:
+    template<typename... ArgsFn,
+             typename F,
+             typename... Args,
+             std::enable_if_t<!std::is_invocable<F, Args...>::value, int> = 0>
+    std::function<void(ArgsFn...)> * wrapCB(F && f, Args &&... args)
+    {
+        return new std::function<void(ArgsFn...)>(
+            [f, args...](ArgsFn &&... argsFn) -> void {
+                (f)(args..., argsFn...);
+            });
+    }
+
+    template<typename... ArgsFn,
+             typename F,
+             typename... Args,
+             std::enable_if_t<std::is_invocable<F, Args...>::value, int> = 0>
+    std::function<void(ArgsFn...)> * wrapCB(F && f, Args &&... args)
+    {
+        return new std::function<void(ArgsFn...)>(
+            [f, args...](ArgsFn &&...) -> void {
+                (f)(args...);
+            });
+    }
+
+    template<typename... ArgsFn,
+             typename R,
+             typename T,
+             typename U,
+             typename... Types,
+             typename... Args,
+             std::enable_if_t<!(sizeof...(Types)
+                                == sizeof...(Args)),
+                              int> = 0>
+    std::function<void(ArgsFn...)> * wrapCB(U * obj,
+                                            R (T::*method)(Types...),
+                                            Args &&... args)
+    {
+        return new std::function<void(ArgsFn...)>(
+            [obj, method, args...](ArgsFn &&... argsFn) -> void {
+                (obj->*method)(args..., argsFn...);
+            });
+    }
+
+    template<typename... ArgsFn,
+             typename R,
+             typename T,
+             typename U,
+             typename... Types,
+             typename... Args,
+             std::enable_if_t<(sizeof...(Types)
+                               == sizeof...(Args)),
+                              int> = 0>
+    std::function<void(ArgsFn...)> * wrapCB(U * obj,
+                                            R (T::*method)(Types...),
+                                            Args &&... args)
+    {
+        return new std::function<void(ArgsFn...)>(
+            [obj, method, args...](ArgsFn &&...) -> void {
+                (obj->*method)(args...);
+            });
+    }
+
+    template<typename FnR,
+             typename... ArgsFn,
+             typename F,
+             typename... Types,
+             typename... Args,
+             std::enable_if_t<!(sizeof...(Types)
+                                == sizeof...(Args)),
+                              int> = 0>
+    std::function<FnR(ArgsFn...)> * wrapCB(F && (*f)(Types...),
+                                           Args &&... args)
+    {
+        return new std::function<FnR(ArgsFn...)>(
+            [f, args...](ArgsFn &&... argsFn) -> FnR {
+                (*f)(args..., argsFn...);
+            });
+    }
+
+    template<typename... ArgsFn,
+             typename F,
+             typename... Types,
+             typename... Args,
+             std::enable_if_t<(sizeof...(Types)
+                               == sizeof...(Args)),
+                              int> = 0>
+    std::function<void(ArgsFn...)> * wrapCB(F && (*f)(Types...),
+                                            Args &&... args)
+    {
+        return new std::function<void(ArgsFn...)>(
+            [f, args...](ArgsFn &&...) -> void {
+                (*f)(args...);
+            });
+    }
 };
 }    // namespace FTGUI
 

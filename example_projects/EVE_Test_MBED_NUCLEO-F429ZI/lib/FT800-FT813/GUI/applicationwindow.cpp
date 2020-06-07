@@ -27,20 +27,18 @@
 namespace FTGUI
 {
 ApplicationWindow::ApplicationWindow(Theme *           theme,
-                                     ScreenOrientation screenOrientation,
-                                     FT8xx *           driver) :
+                                     ScreenOrientation screenOrientation) :
     Widget(0, 0, EVE_HSIZE, EVE_VSIZE, this)
 {
     m_name = "ApplicationWidow";
-    if(driver)
-        m_driver = driver;
-    else
-        m_driver = new FT8xx(EVE_SPI_MOSI,
-                             EVE_SPI_MISO,
-                             EVE_SPI_CLK,
-                             EVE_SPI_SSEL,
-                             EVE_PD,
-                             EVE_INTRPT);
+
+    m_driver = new FT8xx(EVE_SPI_MOSI,
+                         EVE_SPI_MISO,
+                         EVE_SPI_CLK,
+                         EVE_SPI_SSEL,
+                         EVE_PD,
+                         EVE_INTRPT);
+
     m_queue = new EventQueue(48 * EVENTS_EVENT_SIZE);
     m_thread.start(mbed::callback(m_queue, &EventQueue::dispatch_forever));
     m_orientation = screenOrientation;
@@ -54,6 +52,78 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
 
     //Initialize Touchscreen
     m_driver->touchCalibrate();
+
+    //set touch callbacks
+    m_driver->attachTouchDetectedCallback([&](uint8_t) {
+        FT8xx::CmdBuf_t xy = m_driver->touchXY();
+        m_xFifo.push_back(xy.halfWord[1]);
+        m_yFifo.push_back(xy.halfWord[0]);
+        m_touchPressed = true;
+    });
+
+    m_driver->attachTouchConversionsCallback([&](uint8_t) {
+        FT8xx::CmdBuf_t xy = m_driver->touchXY();
+        //        debug("XY: %i:%i\n", xy.halfWord[1], xy.halfWord[0]);
+        //NOTE: Check filtering parameters after assembly!!!
+        if(xy.word == (int32_t)0x80008000)
+        {
+            m_queue->call([&, x = m_prevX, y = m_prevY]() {
+                touchReleased(x, y);
+            });
+            m_xFifo.clear();
+            m_yFifo.clear();
+            m_prevX = 0;
+            m_prevY = 0;
+            return;
+        }
+
+        m_xFifo.push_back(xy.halfWord[1]);
+        m_yFifo.push_back(xy.halfWord[0]);
+
+        if(m_xFifo.size() > 12)
+        {
+            std::sort(m_xFifo.begin(),
+                      m_xFifo.end());
+            std::sort(m_yFifo.begin(),
+                      m_yFifo.end());
+
+            m_xFifo.pop_front();
+            m_yFifo.pop_front();
+            m_xFifo.pop_front();
+            m_yFifo.pop_front();
+            m_xFifo.pop_front();
+            m_yFifo.pop_front();
+
+            m_xFifo.pop_back();
+            m_yFifo.pop_back();
+            m_xFifo.pop_back();
+            m_yFifo.pop_back();
+            m_xFifo.pop_back();
+            m_yFifo.pop_back();
+
+            if(m_touchPressed)
+            {
+                m_prevX = m_xFifo[3];
+                m_prevY = m_yFifo[3];
+                m_queue->call([&, x = m_prevX, y = m_prevY]() {
+                    touchPressed(x, y);
+                });
+                m_touchPressed = false;
+                return;
+            }
+
+            //check if touch point changed
+            if(abs(m_prevX - m_xFifo[3]) > 1
+               || abs(m_prevY - m_yFifo[3]) > 1)
+            {
+                m_prevX = m_xFifo[3];
+                m_prevY = m_yFifo[3];
+                m_queue->call([&, x = m_prevX, y = m_prevY]() {
+                    touchChanged(x, y);
+                });
+            }
+        }
+    });
     //Switch on Backlight
     m_driver->backlightFade(0, 128);
 }

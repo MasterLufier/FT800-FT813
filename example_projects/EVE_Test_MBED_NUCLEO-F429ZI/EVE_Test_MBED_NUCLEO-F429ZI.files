@@ -5,6 +5,8 @@ lib/FT800-FT813/EVE_commands.h
 lib/FT800-FT813/EVE_config.h
 lib/FT800-FT813/EVE_target.cpp
 lib/FT800-FT813/EVE_target.h
+lib/FT800-FT813/GUI/Containers/list.cpp
+lib/FT800-FT813/GUI/Containers/list.h
 lib/FT800-FT813/GUI/Containers/page.cpp
 lib/FT800-FT813/GUI/Containers/page.h
 lib/FT800-FT813/GUI/Containers/stackview.cpp

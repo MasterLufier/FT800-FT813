@@ -25,6 +25,7 @@
 #ifndef APPLICATIONWINDOW_H
 #define APPLICATIONWINDOW_H
 
+#include <deque>
 #include <graphics.h>
 #include <widget.h>
 
@@ -35,8 +36,7 @@ class ApplicationWindow : public Widget,
 {
 public:
     ApplicationWindow(Theme *           theme             = nullptr,
-                      ScreenOrientation screenOrientation = Horizontal,
-                      FT8xx *           driver            = nullptr);
+                      ScreenOrientation screenOrientation = Horizontal);
     ~ApplicationWindow() override;
 
     void show() override;
@@ -47,10 +47,13 @@ protected:
                           uint8_t  delay    = Delay) override;
     void update() override;
 
-    bool    m_renderLock{false};
-    uint8_t m_animationCounter{0};
-    int32_t m_updateEventId{0};
-    Thread  m_thread{osPriorityNormal, 1024, nullptr, "GUIThread"};
+    bool                m_renderLock{false}, m_touchPressed{false};
+    int16_t             m_prevX{0}, m_prevY{0};
+    std::deque<int16_t> m_xFifo;
+    std::deque<int16_t> m_yFifo;
+    uint8_t             m_animationCounter{0};
+    int32_t             m_updateEventId{0};
+    Thread              m_thread{osPriorityNormal, 2048, nullptr, "GUIThread"};
 };
 }    // namespace FTGUI
 

@@ -29,6 +29,7 @@
 #include <colors.h>
 #include <control.h>
 #include <ft8xx.h>
+#include <list.h>
 #include <page.h>
 #include <stackview.h>
 #include <widget.h>
