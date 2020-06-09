@@ -9,8 +9,6 @@ lib/FT800-FT813/GUI/Containers/list.cpp
 lib/FT800-FT813/GUI/Containers/list.h
 lib/FT800-FT813/GUI/Containers/page.cpp
 lib/FT800-FT813/GUI/Containers/page.h
-lib/FT800-FT813/GUI/Containers/stackview.cpp
-lib/FT800-FT813/GUI/Containers/stackview.h
 lib/FT800-FT813/GUI/applicationwindow.cpp
 lib/FT800-FT813/GUI/applicationwindow.h
 lib/FT800-FT813/GUI/colors.cpp

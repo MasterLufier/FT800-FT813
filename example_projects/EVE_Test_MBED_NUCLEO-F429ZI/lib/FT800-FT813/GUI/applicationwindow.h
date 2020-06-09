@@ -43,12 +43,32 @@ public:
     void hide() override;
 
 protected:
-    void animationStarted(uint32_t duration = Duration,
+    void animationStarted(void *   value,
+                          uint32_t duration = Duration,
                           uint8_t  delay    = Delay) override;
     void update() override;
 
-    bool                m_renderLock{false}, m_touchPressed{false};
-    int16_t             m_prevX{0}, m_prevY{0};
+    LowPowerTicker m_accelerationTicker;
+
+    void deceleration()
+    {
+        if(m_accelerationX < 0)
+            m_accelerationX++;
+        else if(m_accelerationX > 0)
+            m_accelerationX--;
+
+        if(m_accelerationY < 0)
+            m_accelerationY++;
+        else if(m_accelerationY > 0)
+            m_accelerationY--;
+    }
+
+    bool    m_renderLock{false}, m_touchPressed{false};
+    int16_t m_prevX{0},
+        m_prevY{0},
+        m_accelerationX{0},
+        m_accelerationY{0};
+
     std::deque<int16_t> m_xFifo;
     std::deque<int16_t> m_yFifo;
     uint8_t             m_animationCounter{0};

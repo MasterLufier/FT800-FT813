@@ -27,17 +27,37 @@
 namespace FTGUI
 {
 Page::Page(Widget * parent) :
-    Widget(parent),
-    m_background(new Rectangle(this)),
-    m_contentItem(new Widget(this))
+    Widget(parent)
 {
-    m_name = "Page";
+    m_name        = "Page";
+    m_background  = new Rectangle(this);
+    m_contentItem = new Widget(this);
     m_background->setColor(m_theme->background());
     m_background->setBorderColor(m_theme->onPrimary());
     m_background->setBorderWidth(1);
     m_background->setRadius(5);
 
     //Fix bg and contentItem Geometry initialization
+    setGeometry(m_x, m_y, m_width, m_height);
+}
+
+void Page::addWidget(Widget * widget)
+{
+    if(!m_background)
+    {
+        m_background = reinterpret_cast<Rectangle *>(widget);
+        widget->setParent(this);
+        m_container.push_back(widget);
+        return;
+    }
+    if(!m_contentItem)
+    {
+        m_contentItem = widget;
+        widget->setParent(this);
+        m_container.push_back(widget);
+        return;
+    }
+    m_contentItem->addWidget(widget);
     setGeometry(m_x, m_y, m_width, m_height);
 }
 
@@ -57,10 +77,5 @@ Page & Page::setGeometry(int32_t  x,
                                m_width - m_padding * 2 - m_margins * 2,
                                m_height - m_padding * 2 - m_margins * 2);
     return *this;
-}
-
-Widget * Page::contentItem() const
-{
-    return m_contentItem;
 }
 }    // namespace FTGUI

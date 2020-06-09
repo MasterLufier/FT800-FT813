@@ -33,12 +33,12 @@ class Page : public Widget
 {
 public:
     Page(Widget * parent = nullptr);
+
+    void   addWidget(Widget * widget) override;
     Page & setGeometry(int32_t  x,
                        int32_t  y,
                        uint16_t width,
                        uint16_t height) override;
-
-    Widget * contentItem() const;
 
 protected:
     uint8_t     m_padding{5};

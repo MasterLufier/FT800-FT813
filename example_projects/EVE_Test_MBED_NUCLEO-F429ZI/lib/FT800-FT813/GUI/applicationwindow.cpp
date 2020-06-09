@@ -39,7 +39,7 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
                          EVE_PD,
                          EVE_INTRPT);
 
-    m_queue = new EventQueue(48 * EVENTS_EVENT_SIZE);
+    m_queue = new EventQueue(96 * EVENTS_EVENT_SIZE);
     m_thread.start(mbed::callback(m_queue, &EventQueue::dispatch_forever));
     m_orientation = screenOrientation;
     if(theme)
@@ -67,13 +67,20 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
         //NOTE: Check filtering parameters after assembly!!!
         if(xy.word == (int32_t)0x80008000)
         {
-            m_queue->call([&, x = m_prevX, y = m_prevY]() {
-                touchReleased(x, y);
+            m_queue->call([&,
+                           x    = m_prevX,
+                           y    = m_prevY,
+                           accX = m_accelerationX,
+                           accY = m_accelerationY]() {
+                touchReleased(x, y, accX, accY);
             });
             m_xFifo.clear();
             m_yFifo.clear();
-            m_prevX = 0;
-            m_prevY = 0;
+            m_accelerationTicker.detach();
+            m_accelerationX = 0;
+            m_accelerationY = 0;
+            m_prevX         = 0;
+            m_prevY         = 0;
             return;
         }
 
@@ -107,6 +114,7 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
                 m_prevY = m_yFifo[3];
                 m_queue->call([&, x = m_prevX, y = m_prevY]() {
                     touchPressed(x, y);
+                    m_accelerationTicker.attach(callback(this, &ApplicationWindow::deceleration), 0.1);
                 });
                 m_touchPressed = false;
                 return;
@@ -116,10 +124,18 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
             if(abs(m_prevX - m_xFifo[3]) > 1
                || abs(m_prevY - m_yFifo[3]) > 1)
             {
+                m_accelerationX = m_xFifo[3] - m_prevX;
+                m_accelerationY = m_yFifo[3] - m_prevY;
+                //                debug("prev XY: %i:%i .. %i:%i\n", m_xFifo[3], m_prevX, m_prevY, m_yFifo[3]);
+                //                debug("Accl XY: %i:%i\n", m_accelerationX, m_accelerationY);
+
                 m_prevX = m_xFifo[3];
                 m_prevY = m_yFifo[3];
                 m_queue->call([&, x = m_prevX, y = m_prevY]() {
-                    touchChanged(x, y);
+                    touchChanged(x,
+                                 y,
+                                 &m_accelerationX,
+                                 &m_accelerationY);
                 });
             }
         }
@@ -159,7 +175,8 @@ void ApplicationWindow::hide()
     Widget::hide();
 }
 
-void ApplicationWindow::animationStarted(uint32_t duration,
+void ApplicationWindow::animationStarted(void *   value,
+                                         uint32_t duration,
                                          uint8_t  delay)
 {
     if(m_animationCounter == 0)

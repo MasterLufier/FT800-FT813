@@ -33,8 +33,12 @@ namespace FTGUI
 {
 using namespace EVE;
 
+class List;
+
 class Widget
 {
+    friend class List;
+
 public:
     Widget(Widget * parent);
 
@@ -111,7 +115,10 @@ public:
         return false;
     }
 
-    virtual bool touchChanged(int16_t x, int16_t y)
+    virtual bool touchChanged(int16_t         x,
+                              int16_t         y,
+                              const int16_t * accelerationX,
+                              const int16_t * accelerationY)
     {
         if(x > absX()
            && x < absX() + m_width
@@ -122,7 +129,7 @@ public:
                 m_onChanged->operator()(x, y);
             for(const auto & w : m_container)
             {
-                w->touchChanged(x, y);
+                w->touchChanged(x, y, accelerationX, accelerationY);
             }
             //            debug("%s changed %i:%i\n", m_name.c_str(), x, y);
             return true;
@@ -130,7 +137,10 @@ public:
         return false;
     }
 
-    virtual bool touchReleased(int16_t x, int16_t y)
+    virtual bool touchReleased(int16_t x,
+                               int16_t y,
+                               int16_t accelerationX,
+                               int16_t accelerationY)
     {
         if(x > absX()
            && x < absX() + m_width
@@ -141,7 +151,7 @@ public:
                 m_onReleased->operator()(x, y);
             for(const auto & w : m_container)
             {
-                w->touchReleased(x, y);
+                w->touchReleased(x, y, accelerationX, accelerationY);
             }
             //            debug("%s released %i:%i\n", m_name.c_str(), x, y);
             return true;
@@ -177,14 +187,19 @@ public:
     void setVisible(bool visible);
     bool toggleVisible();
 
-    int32_t absX() const;
-    int32_t absY() const;
+    virtual int32_t absX() const;
+    virtual int32_t absY() const;
 
     //*****animation
 
-    void translateX(int32_t newX)
+    void translateX(int16_t newX)
     {
         animation(&m_x, m_x, newX);
+    }
+
+    void translateY(int16_t newY)
+    {
+        animation(&m_y, m_y, newY);
     }
 
 protected:
@@ -194,7 +209,8 @@ protected:
         Delay    = 20
     };
     virtual void update();
-    virtual void animationStarted(uint32_t duration = AnimationOpt::Duration,
+    virtual void animationStarted(void *   value,
+                                  uint32_t duration = AnimationOpt::Duration,
                                   uint8_t  delay    = AnimationOpt::Delay);
 
     bool checkPositionInScreen();
@@ -210,6 +226,8 @@ protected:
     Theme *      m_theme{nullptr};
     FT8xx *      m_driver{nullptr};
     EventQueue * m_queue{nullptr};
+
+    std::vector<void *> m_animationBlock;
 
     ScreenOrientation                         m_orientation{};
     std::vector<Widget *>                     m_container;

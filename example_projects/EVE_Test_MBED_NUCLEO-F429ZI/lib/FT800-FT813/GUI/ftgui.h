@@ -31,7 +31,6 @@
 #include <ft8xx.h>
 #include <list.h>
 #include <page.h>
-#include <stackview.h>
 #include <widget.h>
 
 #endif    // FTGUI_H

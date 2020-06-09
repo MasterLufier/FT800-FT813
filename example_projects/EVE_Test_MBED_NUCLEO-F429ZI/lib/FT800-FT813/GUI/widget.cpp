@@ -119,12 +119,24 @@ void Widget::update()
     m_parent->update();
 }
 
-void Widget::animationStarted(uint32_t duration,
+void Widget::animationStarted(void *   value,
+                              uint32_t duration,
                               uint8_t  delay)
 {
+    if(value)
+    {
+        queue()->call_in(
+            (duration),
+            [&, value]() {
+                m_animationBlock.erase(
+                    std::find(m_animationBlock.begin(),
+                              m_animationBlock.end(),
+                              value));
+            });
+    }
     if(m_parent != this)
     {
-        m_parent->animationStarted(duration, delay);
+        m_parent->animationStarted(nullptr, duration, delay);
     }
 }
 
@@ -137,8 +149,8 @@ Widget & Widget::setGeometry(int32_t  x,
     m_y      = y;
     m_width  = width;
     m_height = height;
-    if(m_visible != false)
-        update();
+    //    if(m_visible != false)
+    //        update();
     return *this;
 }
 
@@ -196,6 +208,16 @@ void Widget::animation(int32_t *       value,
                        FT8xx::FadeType fadeType,
                        uint8_t         delay)
 {
+    if(std::find(
+           m_animationBlock.begin(),
+           m_animationBlock.end(),
+           value)
+       != m_animationBlock.end())
+    {
+        debug("Blocked\n");
+        return;
+    }
+    m_animationBlock.push_back(value);
     m_driver->animate(
         value,
         from,
@@ -203,7 +225,7 @@ void Widget::animation(int32_t *       value,
         duration,
         fadeType,
         delay);
-    animationStarted(duration, delay);
+    animationStarted(value, duration, delay);
 }
 
 EventQueue * Widget::queue() const
@@ -255,16 +277,16 @@ bool Widget::toggleVisible()
 Widget & Widget::setHeight(uint16_t height)
 {
     m_height = height;
-    if(m_visible != false)
-        update();
+    //    if(m_visible != false)
+    //        update();
     return *this;
 }
 
 Widget & Widget::setWidth(uint16_t width)
 {
     m_width = width;
-    if(m_visible != false)
-        update();
+    //    if(m_visible != false)
+    //        update();
     return *this;
 }
 
