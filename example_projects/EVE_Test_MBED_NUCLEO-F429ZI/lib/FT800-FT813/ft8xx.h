@@ -306,8 +306,8 @@ public:
 
     void append(const DisplayList * dl);
     void append(const Snapshot * s,
-                int16_t          x      = -1,
-                int16_t          y      = -1,
+                int16_t          x      = -999,
+                int16_t          y      = -999,
                 int16_t          width  = -1,
                 int16_t          height = -1);
 #endif

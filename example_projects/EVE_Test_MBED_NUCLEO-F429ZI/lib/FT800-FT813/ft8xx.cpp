@@ -165,7 +165,6 @@ FT8xx::FT8xx(
     m_hal->wr16(REG_VSYNC1, EVE_VSYNC1);   /* end of vertical sync pulse */
     m_hal->wr8(REG_SWIZZLE, EVE_SWIZZLE);  /* FT8xx output to LCD - pin order */
     m_hal->wr8(REG_PCLK_POL, EVE_PCLKPOL); /* LCD data is clocked in on this PCLK edge */
-    m_hal->wr8(REG_CSPREAD, EVE_CSPREAD);  /* helps with noise, when set to 1 fewer signals are changed simultaneously, reset-default: 1 */
 
     /* do not set PCLK yet - wait for just after the first display list */
 
@@ -1058,8 +1057,8 @@ void FT8xx::append(const Snapshot * s,
           0});
 
     begin(Bitmaps);
-    vertexPointII(x < 0 ? s->x() : x,
-                  y < 0 ? s->y() : y);
+    vertexPointF(x == -999 ? s->x() : x,
+                 y == -999 ? s->y() : y);
     this->end();
 }
 
