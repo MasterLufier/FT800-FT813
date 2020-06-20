@@ -51,7 +51,8 @@ void Rectangle::show()
     if(m_z != 0)
     {
         m_driver->colorRGB(0x040404);
-        m_driver->push(BLEND_FUNC(EVE_SRC_ALPHA, EVE_ONE_MINUS_SRC_ALPHA));
+        m_driver->push(blendFunc(AlphaBlending::SrcAlpha,
+                                 AlphaBlending::OneMinusSrcAlpha));
         m_driver->lineWidth(24 + ((m_radius - 1) * 16));
         m_driver->begin(Rects);
         float shadow = (m_color.a() < 48 ? m_color.a() : 48);
@@ -143,42 +144,6 @@ void Rectangle::show()
     m_driver->end();
 
     Widget::show();
-}
-
-Rectangle & Rectangle::setGeometry(int32_t x, int32_t y, uint16_t width, uint16_t height)
-{
-    Widget::setGeometry(x, y, width, height);
-    return *this;
-}
-
-Rectangle & Rectangle::setX(int32_t x)
-{
-    Widget::setX(x);
-    return *this;
-}
-
-Rectangle & Rectangle::setY(int32_t y)
-{
-    Widget::setY(y);
-    return *this;
-}
-
-Rectangle & Rectangle::setZ(uint16_t z)
-{
-    Widget::setZ(z);
-    return *this;
-}
-
-Rectangle & Rectangle::setWidth(uint16_t width)
-{
-    Widget::setWidth(width);
-    return *this;
-}
-
-Rectangle & Rectangle::setHeight(uint16_t height)
-{
-    Widget::setHeight(height);
-    return *this;
 }
 
 const Color & Rectangle::color() const
@@ -412,6 +377,47 @@ void Label::setColor(const Color & color)
 uint8_t LFont::fontNumber() const
 {
     return m_fontNumber;
+}
+
+Scrim::Scrim(Widget * parent) :
+    Rectangle(parent)
+{
+    m_name     = "Scrim";
+    m_snapshot = m_driver->ramG()->saveSnapshot(m_name);
+    setGeometry(0, 0, EVE_HSIZE, EVE_VSIZE);
+    setColor(Main::Black);
+    setOpacity(230);
+}
+
+Scrim::~Scrim()
+{
+    m_driver->ramG()->removeSnapshot(m_snapshot);
+    delete m_snapshot;
+}
+
+void Scrim::show()
+{
+    m_driver->push(blendFunc(AlphaBlending::One,
+                             AlphaBlending::One));
+    m_driver->append(m_snapshot, 0, 0);
+    m_driver->push(blendFunc(AlphaBlending::SrcAlpha,
+                             AlphaBlending::OneMinusSrcAlpha));
+    m_driver->colorA(120);
+    m_driver->append(m_snapshot, 0, -1);
+    m_driver->append(m_snapshot, -1, 0);
+    m_driver->append(m_snapshot, 0, 1);
+    m_driver->append(m_snapshot, 1, 0);
+    m_driver->colorA(30);
+    m_driver->append(m_snapshot, -1, -1);
+    m_driver->append(m_snapshot, -1, -1);
+    m_driver->append(m_snapshot, 1, 1);
+    m_driver->append(m_snapshot, 1, 1);
+    Rectangle::show();
+}
+
+void Scrim::takeSnapshot()
+{
+    m_driver->ramG()->updateSnapshot(m_snapshot);
 }
 
 }    // namespace FTGUI

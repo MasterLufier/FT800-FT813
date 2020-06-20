@@ -26,6 +26,7 @@
 #define APPLICATIONWINDOW_H
 
 #include <deque>
+#include <dialog.h>
 #include <graphics.h>
 #include <widget.h>
 
@@ -42,7 +43,13 @@ public:
     void show() override;
     void hide() override;
 
+    void addWidget(Widget * widget) override;
+
 protected:
+    bool touchPressed(int16_t x, int16_t y) override;
+    bool touchChanged(int16_t x, int16_t y, const int16_t * accelerationX, const int16_t * accelerationY) override;
+    bool touchReleased(int16_t x, int16_t y, int16_t accelerationX, int16_t accelerationY) override;
+
     void animationStarted(void *   value,
                           uint32_t duration = Duration,
                           uint8_t  delay    = Delay) override;
@@ -63,11 +70,15 @@ protected:
             m_accelerationY--;
     }
 
-    bool    m_renderLock{false}, m_touchPressed{false};
+    bool m_renderLock{false},
+        m_touchPressed{false},
+        m_modalOpened{false};
     int16_t m_prevX{0},
         m_prevY{0},
         m_accelerationX{0},
         m_accelerationY{0};
+
+    std::vector<ModalWidget *> m_modalContainer;
 
     std::deque<int16_t> m_xFifo;
     std::deque<int16_t> m_yFifo;

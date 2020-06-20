@@ -34,11 +34,13 @@ class Page : public Widget
 public:
     Page(Widget * parent = nullptr);
 
-    void   addWidget(Widget * widget) override;
-    Page & setGeometry(int32_t  x,
-                       int32_t  y,
-                       uint16_t width,
-                       uint16_t height) override;
+    void addWidget(Widget * widget) override;
+    void setGeometry(int32_t  x,
+                     int32_t  y,
+                     uint16_t width,
+                     uint16_t height) override;
+    void setWidth(uint16_t width) override;
+    void setHeight(uint16_t height) override;
 
 protected:
     uint8_t     m_padding{5};

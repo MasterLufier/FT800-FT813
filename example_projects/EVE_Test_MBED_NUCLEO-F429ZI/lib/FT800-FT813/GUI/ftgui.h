@@ -28,6 +28,8 @@
 #include <applicationwindow.h>
 #include <colors.h>
 #include <control.h>
+#include <dialog.h>
+#include <drawer.h>
 #include <ft8xx.h>
 #include <list.h>
 #include <page.h>

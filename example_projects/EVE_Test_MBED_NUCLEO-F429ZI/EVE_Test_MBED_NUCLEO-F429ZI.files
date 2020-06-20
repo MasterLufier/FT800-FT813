@@ -5,6 +5,10 @@ lib/FT800-FT813/EVE_commands.h
 lib/FT800-FT813/EVE_config.h
 lib/FT800-FT813/EVE_target.cpp
 lib/FT800-FT813/EVE_target.h
+lib/FT800-FT813/GUI/Containers/dialog.cpp
+lib/FT800-FT813/GUI/Containers/dialog.h
+lib/FT800-FT813/GUI/Containers/drawer.cpp
+lib/FT800-FT813/GUI/Containers/drawer.h
 lib/FT800-FT813/GUI/Containers/list.cpp
 lib/FT800-FT813/GUI/Containers/list.h
 lib/FT800-FT813/GUI/Containers/page.cpp
@@ -18,6 +22,8 @@ lib/FT800-FT813/GUI/control.h
 lib/FT800-FT813/GUI/ftgui.h
 lib/FT800-FT813/GUI/graphics.cpp
 lib/FT800-FT813/GUI/graphics.h
+lib/FT800-FT813/GUI/modalwidget.cpp
+lib/FT800-FT813/GUI/modalwidget.h
 lib/FT800-FT813/GUI/widget.cpp
 lib/FT800-FT813/GUI/widget.h
 lib/FT800-FT813/ft8xx.cpp

@@ -13,12 +13,12 @@ public:
     Button(Widget * parent = nullptr) :
         Button("", parent) {}
 
-    Widget & setGeometry(int32_t  x,
-                         int32_t  y,
-                         uint16_t width  = 0,
-                         uint16_t height = 0) override;
-    void     show() override;
-    void     setLabel(std::string text);
+    void setGeometry(int32_t  x,
+                     int32_t  y,
+                     uint16_t width  = 0,
+                     uint16_t height = 0) override;
+    void show() override;
+    void setLabel(std::string text);
 
 protected:
     Rectangle * m_background{nullptr};

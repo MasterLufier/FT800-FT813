@@ -40,16 +40,7 @@ public:
               uint16_t height = 0,
               Widget * parent = nullptr);
 
-    virtual void        show() override;
-    virtual Rectangle & setGeometry(int32_t  x,
-                                    int32_t  y,
-                                    uint16_t width,
-                                    uint16_t height) override;
-    virtual Rectangle & setX(int32_t x) override;
-    virtual Rectangle & setY(int32_t y) override;
-    virtual Rectangle & setZ(uint16_t z) override;
-    virtual Rectangle & setWidth(uint16_t width) override;
-    virtual Rectangle & setHeight(uint16_t height) override;
+    virtual void show() override;
 
     const Color & color() const;
     Rectangle &   setColor(const Color & color);
@@ -266,6 +257,19 @@ private:
     std::string m_text{};
     Color       m_color{m_theme->onPrimary()};
     LFont       m_font{m_driver, 20};
+};
+
+class Scrim : public Rectangle
+{
+public:
+    Scrim(Widget * parent);
+    ;
+    virtual ~Scrim() override;
+    void show() override;
+    void takeSnapshot();
+
+protected:
+    Snapshot * m_snapshot{nullptr};
 };
 }    // namespace FTGUI
 #endif    // GRAPHICS_H

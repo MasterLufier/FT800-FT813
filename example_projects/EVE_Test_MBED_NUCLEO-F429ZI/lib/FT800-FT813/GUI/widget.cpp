@@ -26,8 +26,8 @@
 
 namespace FTGUI
 {
-Widget::Widget(Widget * parent) :
-    Widget(0, 0, 0, 0, parent)
+Widget::Widget(Widget * parent, bool modal) :
+    Widget(0, 0, 0, 0, parent, modal)
 {
 }
 
@@ -35,13 +35,15 @@ Widget::Widget(int32_t  x,
                int32_t  y,
                uint16_t width,
                uint16_t height,
-               Widget * parent) :
-    m_visible(parent != this ? parent->visible() : false)
+               Widget * parent,
+               bool     modal) :
+    m_modal(modal),
+    m_visible(parent != this ? parent->visible() : false),
+    m_x(x),
+    m_y(y),
+    m_width(width),
+    m_height(height)
 {
-    m_x      = x;
-    m_y      = y;
-    m_width  = width;
-    m_height = height;
     if(parent)
     {
         //if parent is empty
@@ -79,13 +81,13 @@ void Widget::removeWidget(Widget * widget)
 
 Widget::~Widget()
 {
-    if(m_onPressed)
-        delete m_onPressed;
-    if(m_onChanged)
-        delete m_onChanged;
-    if(m_onReleased)
-        delete m_onReleased;
-    for(auto & w : m_container)
+    //    if(m_onPressed)
+    delete m_onPressed;
+    //    if(m_onChanged)
+    delete m_onChanged;
+    //    if(m_onReleased)
+    delete m_onReleased;
+    for(auto w : m_container)
     {
         delete w;
     }
@@ -111,7 +113,6 @@ void Widget::hide()
     {
         w->hide();
     }
-    update();
 }
 
 void Widget::update()
@@ -140,18 +141,15 @@ void Widget::animationStarted(void *   value,
     }
 }
 
-Widget & Widget::setGeometry(int32_t  x,
-                             int32_t  y,
-                             uint16_t width,
-                             uint16_t height)
+void Widget::setGeometry(int32_t  x,
+                         int32_t  y,
+                         uint16_t width,
+                         uint16_t height)
 {
     m_x      = x;
     m_y      = y;
     m_width  = width;
     m_height = height;
-    //    if(m_visible != false)
-    //        update();
-    return *this;
 }
 
 Theme * Widget::theme() const
@@ -228,6 +226,11 @@ void Widget::animation(int32_t *       value,
     animationStarted(value, duration, delay);
 }
 
+bool Widget::modal() const
+{
+    return m_modal;
+}
+
 EventQueue * Widget::queue() const
 {
     return m_queue;
@@ -265,53 +268,113 @@ void Widget::setVisible(bool visible)
     {
         w->setVisible(visible);
     }
-    update();
+    //    update();
 }
 
 bool Widget::toggleVisible()
 {
     setVisible(!m_visible);
+    update();
     return m_visible;
 }
 
-Widget & Widget::setHeight(uint16_t height)
+void Widget::setHeight(uint16_t height)
 {
     m_height = height;
-    //    if(m_visible != false)
-    //        update();
-    return *this;
 }
 
-Widget & Widget::setWidth(uint16_t width)
+bool Widget::touchPressed(int16_t x,
+                          int16_t y)
+{
+    if(m_visible == false)
+        return false;
+    if(x > absX()
+       && x < absX() + m_width
+       && y > absY()
+       && y < absY() + m_height)
+    {
+        if(m_onPressed)
+            m_onPressed->operator()(x, y);
+        for(const auto & w : m_container)
+        {
+            w->touchPressed(x, y);
+        }
+        //        debug("%s pressed %i:%i\n", m_name.c_str(), x, y);
+        return true;
+    }
+    return false;
+}
+
+bool Widget::touchChanged(int16_t         x,
+                          int16_t         y,
+                          const int16_t * accelerationX,
+                          const int16_t * accelerationY)
+{
+    if(m_visible == false)
+        return false;
+    if(x > absX()
+       && x < absX() + m_width
+       && y > absY()
+       && y < absY() + m_height)
+    {
+        if(m_onChanged)
+            m_onChanged->operator()(x, y);
+        for(const auto & w : m_container)
+        {
+            w->touchChanged(x, y, accelerationX, accelerationY);
+        }
+        //            debug("%s changed %i:%i\n", m_name.c_str(), x, y);
+        return true;
+    }
+    return false;
+}
+
+bool Widget::touchReleased(int16_t x,
+                           int16_t y,
+                           int16_t accelerationX,
+                           int16_t accelerationY)
+{
+    if(m_visible == false)
+        return false;
+    if(x > absX()
+       && x < absX() + m_width
+       && y > absY()
+       && y < absY() + m_height)
+    {
+        if(m_onReleased)
+            m_onReleased->operator()(x, y);
+        for(const auto & w : m_container)
+        {
+            w->touchReleased(x, y, accelerationX, accelerationY);
+        }
+        //            debug("%s released %i:%i\n", m_name.c_str(), x, y);
+        return true;
+    }
+    return false;
+}
+
+void Widget::setWidth(uint16_t width)
 {
     m_width = width;
-    //    if(m_visible != false)
-    //        update();
-    return *this;
 }
 
-Widget & Widget::setY(int32_t y)
+void Widget::setY(int32_t y)
 {
     m_y = y;
-    //    if(m_visible != false)
-    //        update();
-    return *this;
 }
 
-Widget & Widget::setX(int32_t x)
+void Widget::setX(int32_t x)
 {
     m_x = x;
-    //    if(m_visible != false)
-    //        update();
-    return *this;
 }
 
-Widget & Widget::setZ(uint16_t z)
+void Widget::setZ(uint16_t z)
 {
     m_z = z;
-    //    if(m_visible != false)
-    //        update();
-    return *this;
+    if(m_parent)
+        std::sort(m_parent->m_container.begin(), m_parent->m_container.end(), [](const Widget * w1, const Widget * w2) {
+            return w1->z() < w2->z();
+        });
 }
 
 uint16_t Widget::z() const

@@ -147,6 +147,10 @@ ApplicationWindow::ApplicationWindow(Theme *           theme,
 ApplicationWindow::~ApplicationWindow()
 {
     m_thread.terminate();
+    for(auto w : m_modalContainer)
+    {
+        delete w;
+    }
     delete m_theme;
     delete m_driver;
     delete m_queue;
@@ -158,6 +162,28 @@ void ApplicationWindow::show()
         m_renderLock = true;
     else
         return;
+
+    if(!m_modalContainer.empty())
+    {
+        for(const auto w : m_modalContainer)
+        {
+            if(w->visible())
+            {
+                if(m_animationCounter == 0)
+                    w->prepare();
+                m_modalOpened = true;
+                m_driver->dlStart();
+                m_driver->clearColorRGB(m_theme->background().hex());
+                m_driver->clear();
+                w->show();
+                m_driver->swap();
+                m_driver->execute();
+                m_renderLock = false;
+                return;
+            }
+        }
+        m_modalOpened = false;
+    }
 
     if(m_visible != true)
         setVisible(true);
@@ -173,6 +199,68 @@ void ApplicationWindow::show()
 void ApplicationWindow::hide()
 {
     Widget::hide();
+}
+
+void ApplicationWindow::addWidget(Widget * widget)
+{
+    if(widget->modal())
+    {
+        widget->setParent(this);
+        m_modalContainer.push_back(reinterpret_cast<ModalWidget *>(widget));
+    }
+    else
+        Widget::addWidget(widget);
+}
+
+bool ApplicationWindow::touchPressed(int16_t x, int16_t y)
+{
+    if(m_modalOpened)
+    {
+        for(const auto & w : m_modalContainer)
+        {
+            w->touchPressed(x, y);
+        }
+    }
+    else
+    {
+        Widget::touchPressed(x, y);
+    }
+}
+
+bool ApplicationWindow::touchChanged(int16_t         x,
+                                     int16_t         y,
+                                     const int16_t * accelerationX,
+                                     const int16_t * accelerationY)
+{
+    if(m_modalOpened)
+    {
+        for(const auto & w : m_modalContainer)
+        {
+            w->touchChanged(x, y, accelerationX, accelerationY);
+        }
+    }
+    else
+    {
+        Widget::touchChanged(x, y, accelerationX, accelerationY);
+    }
+}
+
+bool ApplicationWindow::touchReleased(int16_t x,
+                                      int16_t y,
+                                      int16_t accelerationX,
+                                      int16_t accelerationY)
+{
+    if(m_modalOpened)
+    {
+        for(const auto & w : m_modalContainer)
+        {
+            w->touchReleased(x, y, accelerationX, accelerationY);
+        }
+    }
+    else
+    {
+        Widget::touchReleased(x, y, accelerationX, accelerationY);
+    }
 }
 
 void ApplicationWindow::animationStarted(void *   value,

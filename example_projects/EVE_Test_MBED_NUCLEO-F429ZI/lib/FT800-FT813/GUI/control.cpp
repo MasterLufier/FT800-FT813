@@ -15,7 +15,10 @@ Button::Button(string label, Widget * parent) :
     m_label->setColor(m_theme->onPrimary());
 }
 
-Widget & Button::setGeometry(int32_t x, int32_t y, uint16_t width, uint16_t height)
+void Button::setGeometry(int32_t  x,
+                         int32_t  y,
+                         uint16_t width,
+                         uint16_t height)
 {
     m_label->setGeometry(width / 2 - 1,
                          height / 2 - 1,

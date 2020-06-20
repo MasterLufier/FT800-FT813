@@ -33,20 +33,21 @@ namespace FTGUI
 {
 using namespace EVE;
 
-class List;
-
 class Widget
 {
     friend class List;
+    friend class Page;
+    friend class Dialog;
 
 public:
-    Widget(Widget * parent);
+    Widget(Widget * parent, bool modal = false);
 
     Widget(int32_t  x,
            int32_t  y,
            uint16_t width,
            uint16_t height,
-           Widget * parent);
+           Widget * parent,
+           bool     modal = false);
 
     virtual void addWidget(Widget * widget);
 
@@ -57,17 +58,22 @@ public:
         addWidgets(tail...);
     }
 
-    virtual void removeWidget(Widget * widget);
+    virtual Widget * childAt(uint16_t index)
+    {
+        debug_if(index > m_container.size(), "Index out of range");
+        return m_container.at(index);
+    }
 
+    virtual void removeWidget(Widget * widget);
     virtual ~Widget();
 
     virtual void show();
     virtual void hide();
 
-    virtual Widget & setGeometry(int32_t  x,
-                                 int32_t  y,
-                                 uint16_t width,
-                                 uint16_t height);
+    virtual void setGeometry(int32_t  x,
+                             int32_t  y,
+                             uint16_t width,
+                             uint16_t height);
 
     const string & name() const;
 
@@ -89,75 +95,22 @@ public:
     int32_t  x() const;
     uint16_t z() const;
 
-    virtual Widget & setZ(uint16_t z);
-    virtual Widget & setX(int32_t x);
-    virtual Widget & setY(int32_t y);
-    virtual Widget & setWidth(uint16_t width);
-    virtual Widget & setHeight(uint16_t height);
+    virtual void setZ(uint16_t z);
+    virtual void setX(int32_t x);
+    virtual void setY(int32_t y);
+    virtual void setWidth(uint16_t width);
+    virtual void setHeight(uint16_t height);
 
     //***Touchscreen
-    virtual bool touchPressed(int16_t x, int16_t y)
-    {
-        if(x > absX()
-           && x < absX() + m_width
-           && y > absY()
-           && y < absY() + m_height)
-        {
-            if(m_onPressed)
-                m_onPressed->operator()(x, y);
-            for(const auto & w : m_container)
-            {
-                w->touchPressed(x, y);
-            }
-            //            debug("%s pressed %i:%i\n", m_name.c_str(), x, y);
-            return true;
-        }
-        return false;
-    }
-
+    virtual bool touchPressed(int16_t x, int16_t y);
     virtual bool touchChanged(int16_t         x,
                               int16_t         y,
                               const int16_t * accelerationX,
-                              const int16_t * accelerationY)
-    {
-        if(x > absX()
-           && x < absX() + m_width
-           && y > absY()
-           && y < absY() + m_height)
-        {
-            if(m_onChanged)
-                m_onChanged->operator()(x, y);
-            for(const auto & w : m_container)
-            {
-                w->touchChanged(x, y, accelerationX, accelerationY);
-            }
-            //            debug("%s changed %i:%i\n", m_name.c_str(), x, y);
-            return true;
-        }
-        return false;
-    }
-
+                              const int16_t * accelerationY);
     virtual bool touchReleased(int16_t x,
                                int16_t y,
                                int16_t accelerationX,
-                               int16_t accelerationY)
-    {
-        if(x > absX()
-           && x < absX() + m_width
-           && y > absY()
-           && y < absY() + m_height)
-        {
-            if(m_onReleased)
-                m_onReleased->operator()(x, y);
-            for(const auto & w : m_container)
-            {
-                w->touchReleased(x, y, accelerationX, accelerationY);
-            }
-            //            debug("%s released %i:%i\n", m_name.c_str(), x, y);
-            return true;
-        }
-        return false;
-    }
+                               int16_t accelerationY);
 
     template<typename... Args>
     void onPressed(Args &&... args)
@@ -192,15 +145,17 @@ public:
 
     //*****animation
 
-    void translateX(int16_t newX)
+    inline void translateX(int16_t newX)
     {
         animation(&m_x, m_x, newX);
     }
 
-    void translateY(int16_t newY)
+    inline void translateY(int16_t newY)
     {
         animation(&m_y, m_y, newY);
     }
+
+    bool modal() const;
 
 protected:
     enum AnimationOpt : uint32_t
@@ -226,6 +181,7 @@ protected:
     Theme *      m_theme{nullptr};
     FT8xx *      m_driver{nullptr};
     EventQueue * m_queue{nullptr};
+    bool         m_modal{false};
 
     std::vector<void *> m_animationBlock;
 

@@ -26,10 +26,10 @@ void List::addWidget(Widget * widget)
     setGeometry(m_x, m_y, m_width, m_height);
 }
 
-List & List::setGeometry(int32_t  x,
-                         int32_t  y,
-                         uint16_t width,
-                         uint16_t height)
+void List::setGeometry(int32_t  x,
+                       int32_t  y,
+                       uint16_t width,
+                       uint16_t height)
 {
     Widget::setGeometry(x, y, width, height);
     uint16_t i = 0;
@@ -70,7 +70,6 @@ List & List::setGeometry(int32_t  x,
         break;
     }
     }
-    return *this;
 }
 
 List::Orientation List::orientation() const
@@ -131,6 +130,8 @@ bool List::touchChanged(int16_t         x,
         case FTGUI::List::Vertical:
         {
             int8_t diff = x - m_prevPosition;
+            if(diff == 0)
+                return true;
             m_contentItem->setX(m_contentItem->x() + diff);
             this->update();
             m_prevPosition = x;
@@ -139,6 +140,8 @@ bool List::touchChanged(int16_t         x,
         case FTGUI::List::Horizontal:
         {
             int8_t diff = y - m_prevPosition;
+            if(diff == 0)
+                return true;
             m_contentItem->setY(m_contentItem->y() + diff);
             this->update();
             m_prevPosition = y;
@@ -174,25 +177,39 @@ bool List::touchReleased(int16_t x,
             else if(m_contentItem->width() % m_contentItem->x() != 0)
             {
                 int16_t diff = abs(m_contentItem->x() % m_contentItem->m_container.front()->width());
+                if(diff == 0)
+                    return true;
                 if(diff < (m_contentItem->m_container.front()->width() / 2))
                 {
                     if(accelerationX > -10)
+                    {
                         m_contentItem->translateX(m_contentItem->x() + diff);
+                        m_index--;
+                    }
                     else
+                    {
                         m_contentItem->translateX(
                             m_contentItem->x()
                             - (m_contentItem->m_container.front()->width()
                                - diff));
+                        m_index++;
+                    }
                 }
                 else
                 {
                     if(accelerationX < 10)
+                    {
                         m_contentItem->translateX(
                             m_contentItem->x()
                             - (m_contentItem->m_container.front()->width()
                                - diff));
+                        m_index++;
+                    }
                     else
+                    {
                         m_contentItem->translateX(m_contentItem->x() + diff);
+                        m_index--;
+                    }
                 }
             }
             break;
@@ -208,41 +225,51 @@ bool List::touchReleased(int16_t x,
             else if(m_contentItem->height() % m_contentItem->y() != 0)
             {
                 int16_t diff = abs(m_contentItem->y() % m_contentItem->m_container.front()->height());
-                //                int16_t c    = m_contentItem->y() / m_contentItem->m_container.front()->height();
-                //                int16_t d    = m_contentItem->height() / m_contentItem->m_container.size();
-                //                debug("c d:%i.. %i\n", (c + accelerationY) * d, m_contentItem->y());
-                //                int16_t e = (c + accelerationY) * d;
-                //                if(e > 0)
-                //                    m_contentItem->translateY(0);
-                //                else if(e + m_contentItem->height() < m_height)
-                //                    m_contentItem->translateY(-m_contentItem->height() + m_height - 1);
-                //                else
-                //                    m_contentItem->translateY(e);
+                if(diff == 0)
+                    return true;
                 if(diff < (m_contentItem->m_container.front()->height() / 2))
                 {
                     if(accelerationY > -10)
+                    {
                         m_contentItem->translateY(m_contentItem->y() + diff);
+                        m_index--;
+                    }
                     else
+                    {
                         m_contentItem->translateY(
                             m_contentItem->y()
                             - (m_contentItem->m_container.front()->height()
                                - diff));
+                        m_index++;
+                    }
                 }
                 else
                 {
                     if(accelerationY < 10)
+                    {
                         m_contentItem->translateY(
                             m_contentItem->y()
                             - (m_contentItem->m_container.front()->height()
                                - diff));
+                        m_index++;
+                    }
                     else
+                    {
                         m_contentItem->translateY(m_contentItem->y() + diff);
+                        m_index--;
+                    }
                 }
             }
             break;
         }
     }
     return false;
+}
+
+Widget * List::childAt(uint16_t index)
+{
+    debug_if(index > m_contentItem->m_container.size(), "Index out of range");
+    return m_contentItem->m_container.at(index);
 }
 
 void List::push()
@@ -260,6 +287,7 @@ void List::push()
         m_contentItem->translateY(m_contentItem->y() - m_contentItem->m_container.front()->height());
         break;
     }
+    m_index++;
 }
 
 void List::pop()
@@ -277,6 +305,33 @@ void List::pop()
         m_contentItem->translateY(m_contentItem->y() + m_contentItem->m_container.front()->height());
         break;
     }
+    m_index--;
+}
+
+void List::setIndex(uint16_t index)
+{
+    if(m_index == index)
+        return;
+    if(index >= m_contentItem->m_container.size())
+    {
+        debug("Index out of Range\n");
+        return;
+    }
+    m_index = index;
+    switch(m_orientation)
+    {
+    case FTGUI::List::Vertical:
+        m_contentItem->translateX(m_contentItem->m_container.front()->width() * -index);
+        break;
+    case FTGUI::List::Horizontal:
+        m_contentItem->translateY(m_contentItem->m_container.front()->height() * -index);
+        break;
+    }
+}
+
+uint16_t List::index() const
+{
+    return m_index;
 }
 
 bool List::scrollable() const

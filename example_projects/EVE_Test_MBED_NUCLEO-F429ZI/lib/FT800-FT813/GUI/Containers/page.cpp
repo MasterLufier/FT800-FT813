@@ -61,10 +61,10 @@ void Page::addWidget(Widget * widget)
     setGeometry(m_x, m_y, m_width, m_height);
 }
 
-Page & Page::setGeometry(int32_t  x,
-                         int32_t  y,
-                         uint16_t width,
-                         uint16_t height)
+void Page::setGeometry(int32_t  x,
+                       int32_t  y,
+                       uint16_t width,
+                       uint16_t height)
 {
     Widget::setGeometry(x, y, width, height);
     m_background->setGeometry(m_padding,
@@ -76,6 +76,19 @@ Page & Page::setGeometry(int32_t  x,
                                m_padding + m_margins,
                                m_width - m_padding * 2 - m_margins * 2,
                                m_height - m_padding * 2 - m_margins * 2);
-    return *this;
+}
+
+void Page::setWidth(uint16_t width)
+{
+    Widget::setWidth(width);
+    m_background->setWidth(m_width - m_padding * 2);
+    m_contentItem->setWidth(m_width - m_padding * 2 - m_margins * 2);
+}
+
+void Page::setHeight(uint16_t height)
+{
+    Widget::setHeight(height);
+    m_background->setHeight(m_height - m_padding * 2);
+    m_contentItem->setHeight(m_height - m_padding * 2 - m_margins * 2);
 }
 }    // namespace FTGUI
