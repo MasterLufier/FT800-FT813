@@ -70,8 +70,6 @@ void Rectangle::show()
             m_driver->vertexPointF(absX() + m_width - m_radius - 1,
                                    absY() + m_height - m_radius + i - 1);
         }
-        //        EVE_cmd_dl(END());
-        //        EVE_cmd_dl(BEGIN(EVE_RECTS));
     }
     else
     {
@@ -151,28 +149,19 @@ const Color & Rectangle::color() const
     return m_color;
 }
 
-Rectangle & Rectangle::setColor(const Color & color)
+void Rectangle::setColor(const Color & color)
 {
     m_color = color;
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
-Rectangle & Rectangle::setColor(uint32_t rgb)
+void Rectangle::setColor(uint32_t rgb)
 {
     m_color.set(rgb | (m_color.a() << 24));
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
-Rectangle & Rectangle::setColor(uint8_t r, uint8_t g, uint8_t b)
+void Rectangle::setColor(uint8_t r, uint8_t g, uint8_t b)
 {
     m_color.set(r, g, b, m_color.a());
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
 const Color & Rectangle::borderColor() const
@@ -180,35 +169,25 @@ const Color & Rectangle::borderColor() const
     return m_borderColor;
 }
 
-Rectangle & Rectangle::setBorderColor(const Color & borderColor)
+void Rectangle::setBorderColor(const Color & borderColor)
 {
     m_borderColor = borderColor;
-    return *this;
 }
 
-Rectangle & Rectangle::setBorderColor(uint32_t rgb)
+void Rectangle::setBorderColor(uint32_t rgb)
 {
     m_borderColor.set(rgb | (m_borderColor.a() << 24));
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
-Rectangle & Rectangle::setBorderColor(uint8_t r, uint8_t g, uint8_t b)
+void Rectangle::setBorderColor(uint8_t r, uint8_t g, uint8_t b)
 {
     m_borderColor.set(r, g, b, m_borderColor.a());
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
-Rectangle & Rectangle::setOpacity(uint8_t opacity)
+void Rectangle::setOpacity(uint8_t opacity)
 {
     m_color.setA(opacity);
     m_borderColor.setA(opacity);
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
 uint16_t Rectangle::borderWidth() const
@@ -216,12 +195,9 @@ uint16_t Rectangle::borderWidth() const
     return m_borderWidth;
 }
 
-Rectangle & Rectangle::setBorderWidth(uint16_t borderWidth)
+void Rectangle::setBorderWidth(uint16_t borderWidth)
 {
     m_borderWidth = borderWidth;
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
 uint16_t Rectangle::radius() const
@@ -229,12 +205,9 @@ uint16_t Rectangle::radius() const
     return m_radius;
 }
 
-Rectangle & Rectangle::setRadius(uint16_t radius)
+void Rectangle::setRadius(uint16_t radius)
 {
     m_radius = radius;
-    if(m_visible != false)
-        update();
-    return *this;
 }
 
 void Label::show()
@@ -372,6 +345,11 @@ Color Label::color() const
 void Label::setColor(const Color & color)
 {
     m_color = color;
+}
+
+void Label::setOpacity(uint8_t opacity)
+{
+    m_color.setA(opacity);
 }
 
 uint8_t LFont::fontNumber() const

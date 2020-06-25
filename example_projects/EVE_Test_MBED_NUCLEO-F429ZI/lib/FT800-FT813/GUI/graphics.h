@@ -43,26 +43,26 @@ public:
     virtual void show() override;
 
     const Color & color() const;
-    Rectangle &   setColor(const Color & color);
-    Rectangle &   setColor(uint32_t rgb);
-    Rectangle &   setColor(uint8_t r,
+    void          setColor(const Color & color);
+    void          setColor(uint32_t rgb);
+    void          setColor(uint8_t r,
                            uint8_t g,
                            uint8_t b);
 
     const Color & borderColor() const;
-    Rectangle &   setBorderColor(const Color & borderColor);
-    Rectangle &   setBorderColor(uint32_t rgb);
-    Rectangle &   setBorderColor(uint8_t r,
+    void          setBorderColor(const Color & borderColor);
+    void          setBorderColor(uint32_t rgb);
+    void          setBorderColor(uint8_t r,
                                  uint8_t g,
                                  uint8_t b);
 
-    Rectangle & setOpacity(uint8_t opacity);
+    void setOpacity(uint8_t opacity);
 
-    uint16_t    borderWidth() const;
-    Rectangle & setBorderWidth(uint16_t borderWidth);
+    uint16_t borderWidth() const;
+    void     setBorderWidth(uint16_t borderWidth);
 
-    uint16_t    radius() const;
-    Rectangle & setRadius(uint16_t radius);
+    uint16_t radius() const;
+    void     setRadius(uint16_t radius);
 
 protected:
     Color    m_color{m_theme->primary()};
@@ -230,6 +230,8 @@ public:
 
     Color color() const;
     void  setColor(const Color & color);
+
+    void setOpacity(uint8_t opacity);
 
     std::string text() const;
     void        setText(const std::string & label);

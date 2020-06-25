@@ -200,7 +200,6 @@ protected:
         m_width{0},
         m_height{0};
 
-private:
     template<typename... ArgsFn,
              typename F,
              typename... Args,

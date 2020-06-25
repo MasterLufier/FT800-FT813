@@ -169,7 +169,7 @@ void ApplicationWindow::show()
         {
             if(w->visible())
             {
-                if(m_animationCounter == 0)
+                if(m_animationCounter == 0 && !m_modalOpened)
                     w->prepare();
                 m_modalOpened = true;
                 m_driver->dlStart();

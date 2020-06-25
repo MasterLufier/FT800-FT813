@@ -90,8 +90,12 @@ enum ScreenOrientation : uint8_t
 
 struct Main
 {
-    constexpr static Color White{0xffffff}, Black = {0x000000},
-                                            Error = {0xB00020}, Dark = {0x2C2C2C};
+    constexpr static Color
+        White{0xffffff},
+        Black{0x000000},
+        Error{0xB00020},
+        Dark{0x2C2C2C},
+        LightGrey{0x757575};
 };
 
 // struct Red
@@ -177,12 +181,10 @@ public:
           Color  secondaryDark  = Indigo::_800,
           Color  background     = Main::White,
           Color  surface        = Main::White,
-          Color  error          = Main::Error,
           Color  onPrimary      = Main::White,
           Color  onSecondary    = Main::Black,
           Color  onBackground   = Main::Black,
-          Color  onSurface      = Main::Black,
-          Color  onError        = Main::White) :
+          Color  onSurface      = Main::Black) :
         m_name{name},
         m_primary{primary},
         m_primaryLight{primaryLight},
@@ -194,13 +196,11 @@ public:
 
         m_background{background},
         m_surface{surface},
-        m_error{error},
 
         m_onPrimary{onPrimary},
         m_onSecondary{onSecondary},
         m_onBackground{onBackground},
-        m_onSurface{onSurface},
-        m_onError{onError}
+        m_onSurface{onSurface}
     {}
 
     const Color & background() const;
@@ -224,12 +224,10 @@ private:
         m_secondaryDark{},
         m_background{},
         m_surface{},
-        m_error{},
         m_onPrimary{},
         m_onSecondary{},
         m_onBackground{},
-        m_onSurface{},
-        m_onError{};
+        m_onSurface{};
 };
 
 class Dark : public Theme
@@ -245,10 +243,8 @@ public:
               Indigo::_800,
               Main::Black,
               Main::Dark,
-              Main::Error,
               Main::White,
               Main::Black,
-              Main::White,
               Main::White,
               Main::White)
     {}

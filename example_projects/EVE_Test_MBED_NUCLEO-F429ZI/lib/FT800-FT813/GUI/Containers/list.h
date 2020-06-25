@@ -40,17 +40,26 @@ public:
                                    int16_t accelerationX,
                                    int16_t accelerationY) override;
     virtual Widget * childAt(uint16_t index) override;
-    void             push();
-    void             pop();
-    void             setIndex(uint16_t index);
-    uint16_t         index() const;
+
+    template<typename... Args>
+    void onIndexChanged(Args &&... args)
+    {
+        if(m_onIndexChanged)
+            delete m_onIndexChanged;
+        m_onIndexChanged = wrapCB<uint16_t>(args...);
+    }
+    void     push();
+    void     pop();
+    void     setIndex(uint16_t index);
+    uint16_t index() const;
 
 private:
-    Orientation m_orientation{Horizontal};
-    uint16_t    m_visibleItemCount{0}, m_itemCount{0}, m_index{0};
-    uint16_t    m_prevPosition{0};
-    bool        m_scrollable{true};
-    Widget *    m_contentItem{nullptr};
+    Orientation                     m_orientation{Horizontal};
+    uint16_t                        m_visibleItemCount{0}, m_itemCount{0}, m_index{0};
+    uint16_t                        m_prevPosition{0};
+    bool                            m_scrollable{true};
+    Widget *                        m_contentItem{nullptr};
+    std::function<void(uint16_t)> * m_onIndexChanged{nullptr};
 };
 }    // namespace FTGUI
 

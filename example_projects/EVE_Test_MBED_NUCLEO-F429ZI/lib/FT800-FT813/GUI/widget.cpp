@@ -152,6 +152,11 @@ void Widget::setGeometry(int32_t  x,
     m_height = height;
 }
 
+const string & Widget::name() const
+{
+    return m_name;
+}
+
 Theme * Widget::theme() const
 {
     return m_theme;
