@@ -1,3 +1,5 @@
+#include "logoAtom_940x74_ARGB4.h"
+
 #include <ft8xx.h>
 #include <mbed.h>
 #include <mbed_debug.h>
@@ -125,6 +127,7 @@ int main()
     screen.flashInit(8000);
     //** calibrate touchscreen with predefined values
     screen.touchCalibrate(true);
+
     //** or uncomment next block to start calibrate touchscreen and get calibrate values
     //    FT8xx::TouchCalibrationResult tcResult = m_screen.touchCalibrate(false);
     //    printf("TOUCH_TRANSFORM_A: %#08x \n", tcResult.touch_a);
@@ -146,9 +149,9 @@ int main()
 
     //**************
     //Static DL Storage
-    loadStaticDL1(&screen);
-    loadStaticDL2(&screen);
-    loadStaticDL3(&screen);
+    //    loadStaticDL1(&screen);
+    //    loadStaticDL2(&screen);
+    //    loadStaticDL3(&screen);
 
     //    int32_t val = 0;
 
@@ -161,34 +164,38 @@ int main()
     //        [&](uint16_t value) {
     //            val = value;
     //        });
-    screen.setCallbackToTag(
-        [](uint8_t t) {
-            debug("q");
-        },
-        static_cast<uint8_t>('q'));
-    screen.setCallbackToTag(
-        [](uint8_t t) {
-            debug("w");
-        },
-        static_cast<uint8_t>('w'));
+    //    screen.setCallbackToTag(
+    //        [](uint8_t t) {
+    //            debug("q");
+    //        },
+    //        static_cast<uint8_t>('q'));
+    //    screen.setCallbackToTag(
+    //        [](uint8_t t) {
+    //            debug("w");
+    //        },
+    //        static_cast<uint8_t>('w'));
+    screen.attachTouchDetectedCallback([&](uint8_t c) {
+        int32_t xy = screen.touchXY();
+        debug("TD: %i:%i\n", xy & 0xffff, xy >> 16);
+    });
+    screen.attachTouchConversionsCallback([&](uint8_t c) {
+        int32_t xy = screen.touchXY();
+        debug("TC: %i:%i\n", xy & 0xffff, xy >> 16);
+    });
+    auto png = screen.ramG()->loadPNG("logo",
+                                      logoAtom,
+                                      ImagePNGFormat::ARGB4,
+                                      940,
+                                      74);
 
+    screen.dlStart();
+    screen.clearColorARGB(0xFF000000);
+    screen.clear();
+    screen.append(png, -220, 80);
+    screen.swap();
+    screen.execute();
     while(1)
     {
-        screen.dlStart();
-        screen.clearColorARGB(0xFF000000);
-        screen.clear();
-        screen.keys(10, 60, 150, 50, 26, "qwer", KeysOpt::Flat);
-        //        screen.tag(tag);
-        //        screen.track(20, 20, 200, 30, tag);
-        //        screen.toggle(20, 20, 200, 28, val, "no", "yes", ToggleOpt::Flat);
-        //        for(const auto l : screen.ramG()->pool())
-        //        {
-        //            screen.append(l);
-        //        }
-
-        //        loadDynamicDL(&screen);
-        screen.swap();
-        screen.execute();
         ThisThread::sleep_for(10);
 
         //**Example Backlight fade conrol

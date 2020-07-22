@@ -116,7 +116,7 @@ Snapshot * RamG::saveSnapshot(std::string          name,
     m_parent->push(static_cast<uint32_t>(fmt));    //Bitmap Format
     m_parent->push(this->m_currentPosition);       //Pointer to RamG address
     m_parent->push({x, y});                        //Position
-    m_parent->push({fmt == SnapshotBitmapFormat::ARGB8_s
+    m_parent->push({fmt == SnapshotBitmapFormat::ARGB8
                         ? static_cast<int16_t>(width * 2u)
                         : static_cast<int16_t>(width),    //Bitmap Format
                     static_cast<int16_t>(height)});       // Size
@@ -141,12 +141,112 @@ Snapshot * RamG::updateSnapshot(Snapshot * s) const
     m_parent->push(static_cast<uint32_t>(s->format()));    //Bitmap Format
     m_parent->push(s->address());                          //Pointer to RamG address
     m_parent->push({s->x(), s->y()});                      //Position
-    m_parent->push({s->format() == SnapshotBitmapFormat::ARGB8_s
+    m_parent->push({s->format() == SnapshotBitmapFormat::ARGB8
                         ? static_cast<int16_t>(s->width() * 2u)
                         : static_cast<int16_t>(s->width()),    //Bitmap Format
                     static_cast<int16_t>(s->height())});       // Size
     m_parent->execute();                                       //Take a snapsot
     return s;
+}
+
+Sketch * RamG::startSketch(string             name,
+                           SketchBitmapFormat fmt,
+                           int16_t            x,
+                           int16_t            y,
+                           uint16_t           width,
+                           uint16_t           height) const
+{
+    if(m_parent->m_cmdBuffer.size() != 0)
+    {
+        m_parent->m_hal->wr16(REG_CMD_DL, 0);
+        m_parent->execute();
+    }
+    //Correct image size if it more than screen size
+    if(x + width > EVE_HSIZE)
+        width = EVE_HSIZE - x;
+    if(y + height > EVE_VSIZE)
+        height = EVE_VSIZE - y;
+
+    auto sketch = new Sketch(name,
+                             this->m_currentPosition,
+                             x,
+                             y,
+                             width,
+                             height,
+                             fmt);
+    if(sketch->address() + sketch->size() > this->m_size)
+    {
+        error("Sketch more than RamG free space!\n");
+    }
+
+    m_parent->push(CMD_SKETCH);
+    m_parent->push({x, y});
+    m_parent->push({static_cast<int16_t>(width),
+                    static_cast<int16_t>(height)});
+    m_parent->push(sketch->address());
+    m_parent->push(static_cast<int16_t>(fmt));
+    m_parent->execute();
+
+    this->m_currentPosition += sketch->size();
+    m_pool.push_back(sketch);
+    return sketch;
+}
+
+ImagePNG * RamG::loadPNG(string          name,
+                         const uint8_t * src,
+                         ImagePNGFormat  fmt,
+                         uint16_t        width,
+                         uint16_t        height,
+                         LoadImageOpt    opt) const
+{
+    if(m_parent->m_cmdBuffer.size() != 0)
+    {
+        m_parent->m_hal->wr16(REG_CMD_DL, 0);
+        m_parent->execute();
+    }
+#if defined(BT81X_ENABLE)
+    if(((static_cast<uint32_t>(opt)
+         & static_cast<uint32_t>(LoadImageOpt::MediaFIFO))
+        == 0)
+       && ((static_cast<uint32_t>(opt) & static_cast<uint32_t>(LoadImageOpt::Flash)) == 0)) /* direct data, neither by Media-FIFO or from Flash */
+#elif defined(FT81X_ENABLE)
+    if((static_cast<uint32_t>(opt) & static_cast<uint32_t>(LoadImageOpt::MediaFIFO)) == 0) /* direct data, not by Media-FIFO */
+#endif
+    {
+        auto png = new ImagePNG(name,
+                                this->m_currentPosition,
+                                width,
+                                height,
+                                fmt);
+        if(png->address() + png->size() > this->m_size)
+        {
+            error("PNG Image more than RamG free space!\n");
+        }
+        //        uint32_t o = static_cast<uint32_t>(opt);
+        //        debug("\nImage Addr/Size: %i:%i: %i \n", png->address(), png->size(), o);
+        //        //options:
+
+        //        if(width == EVE_HSIZE
+        //           && height == EVE_VSIZE
+        //           && (o & static_cast<uint32_t>(LoadImageOpt::Fullscreen)) == 0)
+        //        {
+        //            o += static_cast<uint32_t>(LoadImageOpt::Fullscreen);
+        //        }
+        //        m_parent->push(o);
+        for(uint32_t i = 0; i < png->size(); ++i)
+        {
+            m_parent->hal()->wr8(png->address() + i, *(src + i));
+        }
+
+        this->m_currentPosition += png->size();
+        m_pool.push_back(png);
+        return png;
+    }
+    else
+    {
+        debug("MediaFIFO and Flash not supported yet");
+        return nullptr;
+    }
 }
 
 void RamG::memCopy(uint32_t dest, uint32_t src, uint32_t num) const
@@ -386,4 +486,59 @@ int16_t Snapshot::y() const
 int16_t Snapshot::x() const
 {
     return m_x;
+}
+
+SketchBitmapFormat Sketch::format() const
+{
+    return m_format;
+}
+
+uint16_t Sketch::width() const
+{
+    return m_width;
+}
+
+uint16_t Sketch::height() const
+{
+    return m_height;
+}
+
+int16_t Sketch::x() const
+{
+    return m_x;
+}
+
+int16_t Sketch::y() const
+{
+    return m_y;
+}
+
+ImageJPEGFormat ImageJPEG::format() const
+{
+    return m_format;
+}
+
+uint16_t ImageJPEG::width() const
+{
+    return m_width;
+}
+
+uint16_t ImageJPEG::height() const
+{
+    return m_height;
+}
+
+ImagePNGFormat ImagePNG::format() const
+{
+    return m_format;
+}
+
+uint16_t ImagePNG::width() const
+{
+    return m_width;
+}
+
+uint16_t ImagePNG::height() const
+{
+    return m_height;
 }

@@ -83,15 +83,49 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 namespace EVE
 {
 #if defined(EVE_CAP_TOUCH)
-//constexpr static void version()
-//{
 MBED_STATIC_ASSERT((MBED_VERSION
                     >= MBED_ENCODE_VERSION(5, 8, 0)),
                    "Too old MBED Version");
 MBED_STATIC_ASSERT(MBED_CONF_EVENTS_PRESENT,
                    "Mbed Events disabled. Touch events won't work");
-//}
 #endif
+
+enum class MemoryMap : uint32_t
+{
+    //Memory start addreses
+    RAM_G          = 0x000000ul,
+    ROM            = 0x200000ul,
+    RAM_DL         = 0x300000ul,
+    RAM_REG        = 0x302000ul,
+    RAM_CMD        = 0x308000ul,
+    Flash          = 0x800000ul,
+    FLASH_POSTBLOB = 0x801000ul,
+
+    //Memory sizes
+    RAM_G_Size          = 1024 * 1024L,
+    ROM_Size            = 1024 * 1024L,
+    RAM_DL_Size         = 8 * 1024L,
+    RAM_REG_Size        = 4 * 1024L,
+    RAM_CMD_Size        = 4 * 1024L,
+    Flash_Size          = EVE_EXT_FLASH_SIZE, /* defined in EVE_config.h */
+    RAM_PNG_BUFFER_SIZE = 0x00A800UL,         /* If the loading image is in PNG format, the top 42K bytes from address 0xF5800 of RAM_G will \
+        be overwritten as temporary data buffer for decoding process.  */
+    RAM_G_SAFETY_SIZE   = RAM_G_Size - RAM_PNG_BUFFER_SIZE - 1,
+
+    //Memory end
+    RAM_G_end   = RAM_G + RAM_G_Size,
+    ROM_end     = ROM + ROM_Size,
+    RAM_DL_end  = RAM_DL + RAM_DL_Size,
+    RAM_REG_end = RAM_REG + RAM_REG_Size,
+    RAM_CMD_end = RAM_CMD + RAM_CMD_Size,
+    Flash_end   = Flash + Flash_Size,
+
+    //Some useful address points
+    ROM_CHIPID     = 0x0C0000UL,
+    ROM_FONT       = 0x1E0000UL,
+    ROM_FONT_ADDR  = 0x2FFFFCUL,
+    RAM_ERR_REPORT = 0x309800UL, /* max 128 bytes null terminated string */
+};
 
 #define DL_CLEAR      0x26000000UL /* requires OR'd arguments */
 #define DL_CLEAR_RGB  0x02000000UL /* requires OR'd arguments */
@@ -105,7 +139,6 @@ MBED_STATIC_ASSERT(MBED_CONF_EVENTS_PRESENT,
 #define CLR_STN 0x2
 #define CLR_TAG 0x1
 
-/* Host commands */
 #define EVE_ACTIVE  0x00 /* place FT8xx in active state */
 #define EVE_STANDBY 0x41 /* place FT8xx in Standby (clk running) */
 #define EVE_SLEEP   0x42 /* place FT8xx in Sleep (clk off) */
@@ -116,6 +149,29 @@ MBED_STATIC_ASSERT(MBED_CONF_EVENTS_PRESENT,
 #define EVE_CLK48M  0x62 /* select 48MHz PLL output */
 #define EVE_CLK36M  0x61 /* select 36MHz PLL output */
 
+/* Host commands */
+enum class HostCommands : uint16_t
+{
+    ACTIVE  = 0x00, /* place FT8xx in active state */
+    STANDBY = 0x41, /* place FT8xx in Standby (clk running) */
+    SLEEP   = 0x42, /* place FT8xx in Sleep (clk off) */
+    PWRDOWN = 0x50, /* place FT8xx in Power Down (core off) */
+    CLKEXT  = 0x44, /* select external clock source */
+    CLKINT  = 0x48, /* select internal clock source */
+    CORERST = 0x68, /* reset core - all registers default and processors reset */
+    CLK48M  = 0x62, /* select 48MHz PLL output */
+    CLK36M  = 0x61, /* select 36MHz PLL output */
+
+#if defined(FT81X_ENABLE)
+
+    /* Host commands */
+    CLKSEL       = 0x61, /* configure system clock */
+    RST_PULSE    = 0x68, /* reset core - all registers default and processors reset */
+    PINDRIVE     = 0x70, /* setup drive strength for various pins */
+    PIN_PD_STATE = 0x71  /* setup how pins behave during power down */
+#endif
+};
+
 /* defines used for graphics commands */
 #define EVE_NEVER    0UL
 #define EVE_LESS     1UL
@@ -125,6 +181,31 @@ MBED_STATIC_ASSERT(MBED_CONF_EVENTS_PRESENT,
 #define EVE_EQUAL    5UL
 #define EVE_NOTEQUAL 6UL
 #define EVE_ALWAYS   7UL
+
+enum TestFunc : uint8_t
+{
+    Never,
+    Less,
+    LEqual,
+    Greater,
+    GEqual,
+    Equal,
+    NotEqual,
+    Always
+};
+
+/* Screen rotation */
+enum ScreenRotation : uint8_t
+{
+    Landscape,
+    LandscapeInverted,
+    Portrait,
+    PortraitInverted,
+    LandscapeMirrored,
+    LandscapeInvertedMirrored,
+    PortraitMirrored,
+    PortraitInvertedMirrored
+};
 
 /* Bitmap formats */
 #define EVE_ARGB1555 0UL
@@ -150,26 +231,114 @@ enum BitmapFormats : uint8_t
     ARGB2    = 5UL,
     ARGB4    = 6UL,
     RGB565   = 7UL,
-    PALETTED = 8UL,
-    TEXT8X8  = 9UL,
-    TEXTVGA  = 10UL,
-    BARGRAPH = 11UL,
+    //    PALETTED     = 8UL,
+    TEXT8X8      = 9UL,
+    TEXTVGA      = 10UL,
+    BARGRAPH     = 11UL,
+    PALETTED565  = 14UL,
+    PALETTED4444 = 15UL,
+    PALETTED8    = 16UL,
+    L2           = 17UL,
+    GLFORMAT     = 31UL
 };
 
-enum SnapshotBitmapFormat : uint8_t
+enum class BitmapExtFormats : uint32_t
 {
-    RGB565_s = RGB565,
-    ARGB4_s  = ARGB4,
-    ARGB8_s  = 0x20    // BT81x support to store snapshoot to ARGB8 format, but doesn't set this format to CMD_SETBITMAP
+    ARGB1555 = 0UL,
+    L1       = 1UL,
+    L4       = 2UL,
+    L8       = 3UL,
+    RGB332   = 4UL,
+    ARGB2    = 5UL,
+    ARGB4    = 6UL,
+    RGB565   = 7UL,
+    //    PALETTED                       = 8UL,
+    TEXT8X8                        = 9UL,
+    TEXTVGA                        = 10UL,
+    BARGRAPH                       = 11UL,
+    PALETTED565                    = 14UL,
+    PALETTED4444                   = 15UL,
+    PALETTED8                      = 16UL,
+    L2                             = 17UL,
+    COMPRESSED_RGBA_ASTC_4x4_KHR   = 37808,    // 8.00
+    COMPRESSED_RGBA_ASTC_5x4_KHR   = 37809,    // 6.40
+    COMPRESSED_RGBA_ASTC_5x5_KHR   = 37810,    // 5.12
+    COMPRESSED_RGBA_ASTC_6x5_KHR   = 37811,    // 4.27
+    COMPRESSED_RGBA_ASTC_6x6_KHR   = 37812,    // 3.56
+    COMPRESSED_RGBA_ASTC_8x5_KHR   = 37813,    // 3.20
+    COMPRESSED_RGBA_ASTC_8x6_KHR   = 37814,    // 2.67
+    COMPRESSED_RGBA_ASTC_8x8_KHR   = 37815,    // 2.56
+    COMPRESSED_RGBA_ASTC_10x5_KHR  = 37816,    // 2.13
+    COMPRESSED_RGBA_ASTC_10x6_KHR  = 37817,    // 2.00
+    COMPRESSED_RGBA_ASTC_10x8_KHR  = 37818,    // 1.60
+    COMPRESSED_RGBA_ASTC_10x10_KHR = 37819,    // 1.28
+    COMPRESSED_RGBA_ASTC_12x10_KHR = 37820,    // 1.07
+    COMPRESSED_RGBA_ASTC_12x12_KHR = 37821,    // 0.89
+};
+
+enum class ImageJPEGFormat : uint16_t
+{
+    L8     = L8,
+    RGB565 = RGB565,
+};
+
+enum class ImagePNGFormat : uint16_t
+{
+    L8           = L8,
+    RGB565       = RGB565,
+    PALETTED565  = PALETTED565,
+    PALETTED4444 = PALETTED4444,
+    ARGB4        = ARGB4
+};
+
+enum class SnapshotBitmapFormat : uint8_t
+{
+    RGB565 = RGB565,
+    ARGB4  = ARGB4,
+    ARGB8  = 0x20    // BT81x support to store snapshoot to ARGB8 format, but doesn't set this format to CMD_SETBITMAP
+};
+
+enum class SketchBitmapFormat : uint8_t
+{
+    L1 = L1,
+    L8 = L8
 };
 
 /* Bitmap filter types */
 #define EVE_NEAREST  0UL
 #define EVE_BILINEAR 1UL
 
+enum BitmapFilter : uint8_t
+{
+    Nearest,
+    Bilinear
+};
+
 /* Bitmap wrap types */
 #define EVE_BORDER 0UL
 #define EVE_REPEAT 1UL
+
+enum BitmapWrap : uint8_t
+{
+    Border,
+    Repeat
+};
+
+enum class BitmapTransformPrecision : uint8_t
+{
+    p8d8  = 0,
+    p1d15 = 1
+};
+
+enum class SwizzleSource : uint8_t
+{
+    ZERO  = 0, /* Set the source channel to zero */
+    ONE   = 1, /* Set the source channel to 1 */
+    RED   = 2, /* Specify RED component as source channel */
+    GREEN = 3, /* Specify GREEN component as source channel */
+    BLUE  = 4, /* Specify BLUE component as source  channel */
+    ALPHA = 5  /* Specify ALPHA component as source channel */
+};
 
 /* Stencil defines */
 #define EVE_KEEP    1UL
@@ -177,6 +346,16 @@ enum SnapshotBitmapFormat : uint8_t
 #define EVE_INCR    3UL
 #define EVE_DECR    4UL
 #define EVE_INVERT  5UL
+
+enum class StencilActions : uint8_t
+{
+    Zero,
+    Keep,
+    Replace,
+    Incr,
+    Decr,
+    Invert
+};
 
 /* Graphics display list swap defines */
 #define EVE_DLSWAP_DONE  0UL
@@ -333,6 +512,31 @@ enum class KeysOpt : uint16_t
     _3D      = 0,
     Flat     = 256,
     CenterXY = 512 | 1024,
+};
+
+enum class SpinnerOpt : uint16_t
+{
+    Circle,
+    Line,
+    Clock,
+    TwoDots
+};
+
+enum class SpinnerScale : uint16_t
+{
+    NoScale,
+    HalfScreen,
+    FullScreen
+};
+
+enum class LoadImageOpt : uint32_t
+{
+    RGB565     = 0,
+    Mono       = 1,
+    NoDL       = 2,
+    Fullscreen = 8,
+    MediaFIFO  = 16,
+    Flash      = 64,
 };
 
 /* Defines related to inbuilt font */
@@ -537,28 +741,134 @@ enum class KeysOpt : uint16_t
 
 /* FT8xx graphics engine specific macros useful for static display list generation */
 #define ALPHA_FUNC(func, ref) ((9UL << 24) | (((func)&7UL) << 8) | (((ref)&255UL) << 0))
-#define BEGIN(prim)           ((31UL << 24) | (((prim)&15UL) << 0))
+static constexpr uint32_t alphaFunc(TestFunc func, uint16_t ref)
+{
+    return ((9UL << 24)
+            | (((func)&7UL) << 8)
+            | (((ref)&255UL) << 0));
+}
+#define BEGIN(prim) ((31UL << 24) | (((prim)&15UL) << 0))
 static constexpr uint32_t begin(GraphicPrimitives prim)
 {
     return ((31UL << 24) | (((prim)&15UL) << 0));
 }
-#define BITMAP_HANDLE(handle)                            ((5UL << 24) | (((handle)&31UL) << 0))
-#define BITMAP_LAYOUT(format, linestride, height)        ((7UL << 24) | (((format)&31UL) << 19) | (((linestride)&1023UL) << 9) | (((height)&511UL) << 0))
+#define BITMAP_HANDLE(handle) ((5UL << 24) | (((handle)&31UL) << 0))
+static constexpr uint32_t bitmapHandle(uint8_t handle)
+{
+    return ((5UL << 24) | (((handle)&31UL) << 0));
+}
+#define BITMAP_LAYOUT(format, linestride, height) ((7UL << 24) | (((format)&31UL) << 19) | (((linestride)&1023UL) << 9) | (((height)&511UL) << 0))
+static constexpr uint32_t bitmapLayout(BitmapFormats format,
+                                       uint16_t      linestride,
+                                       uint16_t      height)
+{
+    return ((7UL << 24)
+            | (((format)&31UL) << 19)
+            | (((linestride)&1023UL) << 9)
+            | (((height)&511UL) << 0));
+}
 #define BITMAP_SIZE(filter, wrapx, wrapy, width, height) ((8UL << 24) | (((filter)&1UL) << 20) | (((wrapx)&1UL) << 19) | (((wrapy)&1UL) << 18) | (((width)&511UL) << 9) | (((height)&511UL) << 0))
-#define BITMAP_TRANSFORM_A(a)                            ((21UL << 24) | (((a)&131071UL) << 0))
-#define BITMAP_TRANSFORM_B(b)                            ((22UL << 24) | (((b)&131071UL) << 0))
-#define BITMAP_TRANSFORM_C(c)                            ((23UL << 24) | (((c)&16777215UL) << 0))
-#define BITMAP_TRANSFORM_D(d)                            ((24UL << 24) | (((d)&131071UL) << 0))
-#define BITMAP_TRANSFORM_E(e)                            ((25UL << 24) | (((e)&131071UL) << 0))
-#define BITMAP_TRANSFORM_F(f)                            ((26UL << 24) | (((f)&16777215UL) << 0))
-#define BLEND_FUNC(src, dst)                             ((11UL << 24) | (((src)&7UL) << 3) | (((dst)&7UL) << 0))
+static constexpr uint32_t bitmapSize(BitmapFilter filter,
+                                     BitmapWrap   wrapx,
+                                     BitmapFilter wrapy,
+                                     uint16_t     width,
+                                     uint16_t     height)
+{
+    return ((8UL << 24)
+            | (((filter)&1UL) << 20)
+            | (((wrapx)&1UL) << 19)
+            | (((wrapy)&1UL) << 18)
+            | (((width)&511UL) << 9)
+            | (((height)&511UL) << 0));
+}
+#if defined(BT81X_ENABLE)
+static constexpr uint32_t bitmapTransformA(int16_t                  v,
+                                           BitmapTransformPrecision p = BitmapTransformPrecision::p8d8)
+{
+    return ((21UL << 24)
+            | ((static_cast<uint8_t>(p) & 1UL) << 17)
+            | (((v)&131071UL) << 0));
+}
+
+static constexpr uint32_t bitmapTransformB(int16_t                  v,
+                                           BitmapTransformPrecision p = BitmapTransformPrecision::p8d8)
+{
+    return ((22UL << 24)
+            | ((static_cast<uint8_t>(p) & 1UL) << 17)
+            | (((v)&131071UL) << 0));
+}
+
+static constexpr uint32_t bitmapTransformD(int16_t                  v,
+                                           BitmapTransformPrecision p = BitmapTransformPrecision::p8d8)
+{
+    return ((24UL << 24)
+            | ((static_cast<uint8_t>(p) & 1UL) << 17)
+            | (((v)&131071UL) << 0));
+}
+
+static constexpr uint32_t bitmapTransformE(int16_t                  v,
+                                           BitmapTransformPrecision p = BitmapTransformPrecision::p8d8)
+{
+    return ((25UL << 24)
+            | ((static_cast<uint8_t>(p) & 1UL) << 17)
+            | (((v)&131071UL) << 0));
+}
+#else
+    #define BITMAP_TRANSFORM_A(a) ((21UL << 24) | (((a)&131071UL) << 0))
+static constexpr uint32_t bitmapTransformA(int16_t a)
+{
+    return ((21UL << 24) | (((a)&131071UL) << 0));
+}
+    #define BITMAP_TRANSFORM_B(b) ((22UL << 24) | (((b)&131071UL) << 0))
+static constexpr uint32_t bitmapTransformB(int16_t b)
+{
+    return ((22UL << 24) | (((b)&131071UL) << 0));
+}
+    #define BITMAP_TRANSFORM_C(c) ((23UL << 24) | (((c)&16777215UL) << 0))
+
+    #define BITMAP_TRANSFORM_D(d) ((24UL << 24) | (((d)&131071UL) << 0))
+static constexpr uint32_t bitmapTransformD(int16_t d)
+{
+    return ((24UL << 24) | (((d)&131071UL) << 0));
+}
+    #define BITMAP_TRANSFORM_E(e) ((25UL << 24) | (((e)&131071UL) << 0))
+static constexpr uint32_t bitmapTransformE(int16_t e)
+{
+    return ((25UL << 24) | (((e)&131071UL) << 0));
+}
+    #define BITMAP_TRANSFORM_F(f) ((26UL << 24) | (((f)&16777215UL) << 0))
+
+#endif
+
+static constexpr uint32_t bitmapTransformC(int16_t c)
+{
+    return ((23UL << 24) | (((c)&16777215UL) << 0));
+}
+
+static constexpr uint32_t bitmapTransformF(int16_t f)
+{
+    return ((26UL << 24) | (((f)&16777215UL) << 0));
+}
+
+#define BLEND_FUNC(src, dst) ((11UL << 24) | (((src)&7UL) << 3) | (((dst)&7UL) << 0))
 static constexpr uint32_t blendFunc(AlphaBlending src, AlphaBlending dst)
 {
     return ((11UL << 24) | (((src)&7UL) << 3) | (((dst)&7UL) << 0));
 }
-#define CALL(dest)           ((29UL << 24) | (((dest)&65535UL) << 0))
-#define CELL(cell)           ((6UL << 24) | (((cell)&127UL) << 0))
-#define CLEAR(c, s, t)       ((38UL << 24) | (((c)&1UL) << 2) | (((s)&1UL) << 1) | (((t)&1UL) << 0))
+#define CALL(dest) ((29UL << 24) | (((dest)&65535UL) << 0))
+static constexpr uint32_t call(uint32_t dest)
+{
+    return ((29UL << 24) | (((dest)&65535UL) << 0));
+}
+#define CELL(cell)     ((6UL << 24) | (((cell)&127UL) << 0))
+#define CLEAR(c, s, t) ((38UL << 24) | (((c)&1UL) << 2) | (((s)&1UL) << 1) | (((t)&1UL) << 0))
+static constexpr uint32_t clear(bool c, bool t, bool s)
+{
+    return ((38UL << 24)
+            | (((c)&1UL) << 2)
+            | (((s)&1UL) << 1)
+            | (((t)&1UL) << 0));
+}
 #define CLEAR_COLOR_A(alpha) ((15UL << 24) | (((alpha)&255UL) << 0))
 static constexpr uint32_t clearColorA(uint8_t a)
 {
@@ -576,13 +886,33 @@ static constexpr uint32_t clearColorRGB(uint8_t r,
             | (((b)&255UL) << 0));
 }
 #define CLEAR_STENCIL(s) ((17UL << 24) | (((s)&255UL) << 0))
-#define CLEAR_TAG(s)     ((18UL << 24) | (((s)&255UL) << 0))
-#define COLOR_A(alpha)   ((16UL << 24) | (((alpha)&255UL) << 0))
+static constexpr uint32_t clearStencil(bool s)
+{
+    return ((17UL << 24) | (((s)&255UL) << 0));
+}
+
+#define CLEAR_TAG(s) ((18UL << 24) | (((s)&255UL) << 0))
+static constexpr uint32_t clearTag(bool s)
+{
+    return ((18UL << 24) | (((s)&255UL) << 0));
+}
+#define COLOR_A(alpha) ((16UL << 24) | (((alpha)&255UL) << 0))
 static constexpr uint32_t colorA(uint8_t a)
 {
     return ((16UL << 24) | (((a)&255UL) << 0));
 }
-#define COLOR_MASK(r, g, b, a)      ((32UL << 24) | (((r)&1UL) << 3) | (((g)&1UL) << 2) | (((b)&1UL) << 1) | (((a)&1UL) << 0))
+#define COLOR_MASK(r, g, b, a) ((32UL << 24) | (((r)&1UL) << 3) | (((g)&1UL) << 2) | (((b)&1UL) << 1) | (((a)&1UL) << 0))
+static constexpr uint32_t colorMask(uint8_t r,
+                                    uint8_t g,
+                                    uint8_t b,
+                                    uint8_t a)
+{
+    return ((32UL << 24)
+            | (((r)&1UL) << 3)
+            | (((g)&1UL) << 2)
+            | (((b)&1UL) << 1)
+            | (((a)&1UL) << 0));
+}
 #define COLOR_RGB(red, green, blue) ((4UL << 24) | (((red)&255UL) << 16) | (((green)&255UL) << 8) | (((blue)&255UL) << 0))
 static constexpr uint32_t colorRGB(uint8_t r,
                                    uint8_t g,
@@ -596,25 +926,53 @@ static constexpr uint32_t end()
 {
     return ((33UL << 24));
 }
-#define JUMP(dest)        ((30UL << 24) | (((dest)&65535UL) << 0))
+#define JUMP(dest) ((30UL << 24) | (((dest)&65535UL) << 0))
+static constexpr uint32_t jump(uint32_t dest)
+{
+    return ((30UL << 24) | (((dest)&65535UL) << 0));
+}
 #define LINE_WIDTH(width) ((14UL << 24) | (((width)&4095UL) << 0))
 static constexpr uint32_t lineWidth(uint32_t width)
 {
     return ((14UL << 24) | (((width)&4095UL) << 0));
 }
-#define MACRO(m)         ((37UL << 24) | (((m)&1UL) << 0))
+#define MACRO(m) ((37UL << 24) | (((m)&1UL) << 0))
+static constexpr uint32_t macro(uint8_t m)
+{
+    return ((37UL << 24) | (((m)&1UL) << 0));
+}
 #define POINT_SIZE(size) ((13UL << 24) | (((size)&8191UL) << 0))
 static constexpr uint32_t pointSize(uint32_t size)
 {
     return ((13UL << 24) | (((size)&8191UL) << 0));
 }
-#define RESTORE_CONTEXT()             ((35UL << 24))
-#define RETURN()                      ((36UL << 24))
-#define SAVE_CONTEXT()                ((34UL << 24))
+#define RESTORE_CONTEXT() ((35UL << 24))
+static constexpr uint32_t RestoreContext = ((35UL << 24));
+#define RETURN() ((36UL << 24))
+static constexpr uint32_t Return = ((36UL << 24));
+#define SAVE_CONTEXT() ((34UL << 24))
+static constexpr uint32_t SaveContext = ((34UL << 24));
 #define STENCIL_FUNC(func, ref, mask) ((10UL << 24) | (((func)&7UL) << 16) | (((ref)&255UL) << 8) | (((mask)&255UL) << 0))
-#define STENCIL_MASK(mask)            ((19UL << 24) | (((mask)&255UL) << 0))
-#define STENCIL_OP(sfail, spass)      ((12UL << 24) | (((sfail)&7UL) << 3) | (((spass)&7UL) << 0))
-#define TAG(s)                        ((3UL << 24) | (((s)&255UL) << 0))
+static constexpr uint32_t stencilFunc(TestFunc func, uint8_t ref, uint8_t mask)
+{
+    return ((10UL << 24)
+            | (((func)&7UL) << 16)
+            | (((ref)&255UL) << 8)
+            | (((mask)&255UL) << 0));
+}
+#define STENCIL_MASK(mask) ((19UL << 24) | (((mask)&255UL) << 0))
+static constexpr uint32_t stencilMask(uint8_t mask)
+{
+    return ((19UL << 24) | (((mask)&255UL) << 0));
+}
+#define STENCIL_OP(sfail, spass) ((12UL << 24) | (((sfail)&7UL) << 3) | (((spass)&7UL) << 0))
+static constexpr uint32_t stencilOp(StencilActions sfail, StencilActions spass)
+{
+    return ((12UL << 24)
+            | (((static_cast<uint16_t>(sfail)) & 7UL) << 3)
+            | (((static_cast<uint16_t>(spass)) & 7UL) << 0));
+}
+#define TAG(s) ((3UL << 24) | (((s)&255UL) << 0))
 static constexpr uint32_t tag(uint8_t tag)
 {
     return ((3UL << 24) | (((tag)&255UL) << 0));
@@ -740,26 +1098,42 @@ enum FlashInitResult : uint32_t
     #define REG_COPRO_PATCH_DTR    0x309162UL
 
     /* BT81x graphics engine specific macros */
-    #define BITMAP_EXT_FORMAT(format)          ((46UL << 24) | (((format)&65535UL) << 0))
-    #define BITMAP_SWIZZLE(r, g, b, a)         ((47UL << 24) | (((r)&7UL) << 9) | (((g)&7UL) << 6) | (((b)&7UL) << 3) | (((a)&7UL) << 0))
-    #define BITMAP_SOURCE2(flash_or_ram, addr) ((1UL << 24) | ((flash_or_ram) << 23) | (((addr)&8388607UL) << 0))
-    #define INT_FRR()                          ((48UL << 24))
+    #define BITMAP_EXT_FORMAT(format) ((46UL << 24) | (((format)&65535UL) << 0))
+static constexpr uint32_t bitmapExtFormat(BitmapExtFormats format)
+{
+    return ((46UL << 24)
+            | (((static_cast<uint32_t>(format)) & 65535UL) << 0));
+}
+    #define BITMAP_SWIZZLE(r, g, b, a) ((47UL << 24) | (((r)&7UL) << 9) | (((g)&7UL) << 6) | (((b)&7UL) << 3) | (((a)&7UL) << 0))
+static constexpr uint32_t bitmapSwizzle(SwizzleSource r,
+                                        SwizzleSource g,
+                                        SwizzleSource b,
+                                        SwizzleSource a)
+{
+    return ((47UL << 24)
+            | ((static_cast<uint8_t>(r) & 7UL) << 9)
+            | ((static_cast<uint8_t>(g) & 7UL) << 6)
+            | ((static_cast<uint8_t>(b) & 7UL) << 3)
+            | ((static_cast<uint8_t>(a) & 7UL) << 0));
+}
+    #if defined(BT81X_ENABLE)
+//        #define BITMAP_SOURCE2(flash_or_ram, addr) ((1UL << 24) | ((flash_or_ram) << 23) | (((addr)&8388607UL) << 0))
+static constexpr uint32_t bitmapSource(MemoryMap targetMemory,
+                                       uint32_t  addr)
+{
+    return ((1UL << 24)
+            | (static_cast<uint8_t>(targetMemory) << 23)
+            | (((addr)&8388607UL) << 0));
+}
+    #else
+//        #define BITMAP_SOURCE(addr) ((1UL << 24) | (((addr)&4194303UL) << 0))
+static constexpr uint32_t bitmapSource(uint32_t addr)
+{
+    return ((1UL << 24) | (((addr)&4194303UL) << 0));
+}
+    #endif
 
-    #undef BITMAP_TRANSFORM_A
-    #undef BITMAP_TRANSFORM_B
-    #undef BITMAP_TRANSFORM_D
-    #undef BITMAP_TRANSFORM_E
-
-    #define BITMAP_TRANSFORM_A_EXT(p, v) ((21UL << 24) | (((p)&1UL) << 17) | (((v)&131071UL) << 0))
-    #define BITMAP_TRANSFORM_B_EXT(p, v) ((22UL << 24) | (((p)&1UL) << 17) | (((v)&131071UL) << 0))
-    #define BITMAP_TRANSFORM_D_EXT(p, v) ((24UL << 24) | (((p)&1UL) << 17) | (((v)&131071UL) << 0))
-    #define BITMAP_TRANSFORM_E_EXT(p, v) ((25UL << 24) | (((p)&1UL) << 17) | (((v)&131071UL) << 0))
-
-    #define BITMAP_TRANSFORM_A(a) BITMAP_TRANSFORM_A_EXT(0, a)
-    #define BITMAP_TRANSFORM_B(b) BITMAP_TRANSFORM_B_EXT(0, b)
-    #define BITMAP_TRANSFORM_D(d) BITMAP_TRANSFORM_D_EXT(0, d)
-    #define BITMAP_TRANSFORM_E(e) BITMAP_TRANSFORM_E_EXT(0, e)
-
+    #define INT_FRR() ((48UL << 24))
 #endif
 
 /* ----------------- FT81x / BT81x exclusive definitions -----------------*/
@@ -944,9 +1318,21 @@ enum FlashInitResult : uint32_t
 
     /* beware, these are different to FTDIs implementation as these take the original values as parameters and not only the upper bits */
     #define BITMAP_LAYOUT_H(linestride, height) ((40UL << 24) | ((((linestride & 0xC00) >> 10) & 3UL) << 2) | ((((height & 0x600) >> 9) & 3UL) << 0))
-    #define BITMAP_SIZE_H(width, height)        ((41UL << 24) | ((((width & 0x600) >> 9) & 3UL) << 2) | ((((height & 0x600) >> 9) & 3UL) << 0))
+static constexpr uint32_t bitmapLayoutH(int16_t linestride,
+                                        int16_t height)
+{
+    return ((40UL << 24)
+            | ((((linestride & 0xC00) >> 10) & 3UL) << 2)
+            | ((((height & 0x600) >> 9) & 3UL) << 0));
+}
+    #define BITMAP_SIZE_H(width, height) ((41UL << 24) | ((((width & 0x600) >> 9) & 3UL) << 2) | ((((height & 0x600) >> 9) & 3UL) << 0))
+static constexpr uint32_t bitmapSizeH(uint16_t width, uint16_t height)
+{
+    return ((41UL << 24)
+            | ((((width & 0x600) >> 9) & 3UL) << 2)
+            | ((((height & 0x600) >> 9) & 3UL) << 0));
+}
 
-    #define BITMAP_SOURCE(addr) ((1UL << 24) | (((addr)&4194303UL) << 0))
     //#define NOP() ((45UL<<24))
     #define PALETTE_SOURCE(addr)        ((42UL << 24) | (((addr)&4194303UL) << 0))
     #define SCISSOR_SIZE(width, height) ((28UL << 24) | (((width)&4095UL) << 12) | (((height)&4095UL) << 0))

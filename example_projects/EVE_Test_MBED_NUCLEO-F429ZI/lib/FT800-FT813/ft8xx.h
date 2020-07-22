@@ -114,6 +114,18 @@ public:
 #endif
     ~FT8xx();
 
+    //*********Low level cmd
+    uint16_t cmdFifoFreeSpace()
+    {
+        uint16_t fullness, retval, wp;
+
+        wp = m_hal->rd16(REG_CMD_WRITE);
+
+        fullness = (wp - m_hal->rd16(REG_CMD_READ)) & static_cast<uint16_t>(MemoryMap::RAM_CMD_Size);
+        retval   = (static_cast<uint16_t>(MemoryMap::RAM_CMD_Size) - 4) - fullness;
+        return (retval);
+    }
+
     //*********Basic Commands
     /*!
      * \brief Push command to cmdBuffer
@@ -127,13 +139,27 @@ public:
      */
     void execute();
 
+    /*!
+     * \brief setRotate - Apply screen rotation
+     * \param rotation
+     */
+    inline void setRotate(ScreenRotation rotation)
+    {
+        push(CMD_SETROTATE);
+        push(rotation);
+    }
+
     inline void dlStart() { push(CMD_DLSTART); }
     inline void begin(GraphicPrimitives prim) { push(EVE::begin(prim)); }
     inline void end() { push(EVE::end()); }
-    void        swap();
+    inline void swap()
+    {
+        push(DL_DISPLAY);
+        push(CMD_SWAP);
+    }
 
-    void tag(uint8_t tag) { push(EVE::tag(tag)); }
-    void clearTag() { push(EVE::tag(0)); }
+    inline void tag(uint8_t tag) { push(EVE::tag(tag)); }
+    inline void clearTag() { push(EVE::tag(0)); }
 
     void clear(bool colorBuf   = true,
                bool stencilBuf = true,
@@ -177,6 +203,54 @@ public:
                    int16_t  width,
                    int16_t  height,
                    uint16_t radius = 1);
+
+//********Bitmap commands:
+#if defined(BT81X_ENABLE)
+    inline void bitmapSource(MemoryMap targetMemory = MemoryMap::RAM_G,
+                             int32_t   ptr          = 0)
+    {
+        push(EVE::bitmapSource(targetMemory, ptr));
+    }
+#else
+    inline void bitmapSource(int32_t ptr = 0)
+    {
+        push(EVE::bitmapSource(ptr));
+    }
+#endif
+#if defined(FT81X_ENABLE)
+    void setBitmap(uint32_t         addr,
+                   BitmapExtFormats fmt,
+                   uint16_t         width,
+                   uint16_t         height);
+#endif
+
+    inline void bitmapLayout(BitmapFormats format,
+                             uint16_t      linestride,
+                             uint16_t      height)
+    {
+        push(EVE::bitmapLayout(format, linestride, height));
+    }
+
+    //********Bitmap transform commands:
+    inline void loadIdentity() { push(CMD_LOADIDENTITY); };
+    inline void setMatrix() { push(CMD_SETMATRIX); };
+    void        getMatrix(int32_t a,
+                          int32_t b,
+                          int32_t c,
+                          int32_t d,
+                          int32_t e,
+                          int32_t f);
+
+    void translate(int32_t tx, int32_t ty);
+    void scale(int32_t sx, int32_t sy);
+    void rotate(int32_t ang);
+
+#if defined(BT81X_ENABLE)
+    void rotateAround(int32_t x,
+                      int32_t y,
+                      int32_t angle,
+                      int32_t scale);
+#endif
     //*************************
     //*********Drawing Widgets
     //*****Colors of Widgets
@@ -292,18 +366,42 @@ public:
               uint16_t            font,
               const std::string & text    = "",
               KeysOpt             options = KeysOpt::_3D);
+
+    void spinner(int16_t      x     = EVE_HSIZE / 2,
+                 int16_t      y     = EVE_VSIZE / 2,
+                 SpinnerOpt   style = SpinnerOpt::Circle,
+                 SpinnerScale scale = SpinnerScale::NoScale);
+
+    inline void stop() { push(CMD_STOP); }
     //*************************
     //*********Special commands
 
-#if defined(FT81X_ENABLE)
+    inline void interrupt(uint32_t ms)
+    {
+        push(CMD_INTERRUPT);
+        push(ms);
+    }
 
+#if defined(FT81X_ENABLE)
     //Overload function for call with any StoredObjects
-    void append(StoredObject * o);
+    void append(const StoredObject * o);
 
     void append(const DisplayList * dl);
     void append(const Snapshot * s,
                 int16_t          x      = -1,
                 int16_t          y      = -1,
+                int16_t          width  = -1,
+                int16_t          height = -1);
+
+    void append(const Sketch * s,
+                int16_t        x      = -1,
+                int16_t        y      = -1,
+                int16_t        width  = -1,
+                int16_t        height = -1);
+
+    void append(const ImagePNG * i,
+                int16_t          x,
+                int16_t          y,
                 int16_t          width  = -1,
                 int16_t          height = -1);
 #endif
