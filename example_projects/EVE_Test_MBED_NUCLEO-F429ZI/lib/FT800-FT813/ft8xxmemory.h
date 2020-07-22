@@ -6,12 +6,15 @@
 
 namespace EVE
 {
-enum StoredObjectType
+enum class StoredObjectType : uint8_t
 {
-    UnknowType,
-    DisplayListType,
-    SnapshotType,
-    ImageType
+    Unknow,
+    DisplayList,
+    Snapshot,
+    ImageJPEG,
+    ImagePNG,
+    CompressedImage,
+    Sketch
 };
 
 class StoredObject
@@ -44,7 +47,7 @@ protected:
     std::string      m_name{};
     uint32_t         m_address{0};
     uint32_t         m_size{0};
-    StoredObjectType m_type{UnknowType};
+    StoredObjectType m_type{StoredObjectType::Unknow};
 };
 
 class DisplayList : public StoredObject
@@ -55,7 +58,7 @@ public:
                 uint32_t size) :
         StoredObject(name, address, size)
     {
-        m_type = StoredObjectType::DisplayListType;
+        m_type = StoredObjectType::DisplayList;
     }
 };
 
@@ -76,15 +79,15 @@ public:
         m_width(width),
         m_height(height)
     {
-        m_type = StoredObjectType::SnapshotType;
+        m_type = StoredObjectType::Snapshot;
         //Calculate Snapshot byte size
         switch(format)
         {
-        case EVE::RGB565_s:    //16 bit per pixel
-        case EVE::ARGB4_s:     //16 bit per pixel
+        case SnapshotBitmapFormat::RGB565:    //16 bit per pixel
+        case SnapshotBitmapFormat::ARGB4:     //16 bit per pixel
             m_size = width * height * 2;
             break;
-        case EVE::ARGB8_s:    //32 bit per pixel
+        case SnapshotBitmapFormat::ARGB8:    //32 bit per pixel
             m_size = width * height * 4;
             break;
         }
@@ -92,9 +95,8 @@ public:
     SnapshotBitmapFormat format() const;
     uint16_t             width() const;
     uint16_t             height() const;
-
-    int16_t y() const;
-    int16_t x() const;
+    int16_t              y() const;
+    int16_t              x() const;
 
 protected:
     SnapshotBitmapFormat m_format;
@@ -102,6 +104,124 @@ protected:
     int16_t m_x{0},
         m_y{0};
     uint16_t m_width{0},
+        m_height{0};
+};
+
+class Sketch : public StoredObject
+{
+public:
+    Sketch(string             name,
+           uint32_t           address,
+           int16_t            x,
+           int16_t            y,
+           uint16_t           width,
+           uint16_t           height,
+           SketchBitmapFormat format) :
+        StoredObject(name, address, 0),
+        m_format(format),
+        m_x(x),
+        m_y(y),
+        m_width(width),
+        m_height(height)
+    {
+        m_type = StoredObjectType::Sketch;
+        switch(format)
+        {
+        case SketchBitmapFormat::L1:    //1 bit per pixel
+            m_size = width * height / 8;
+            break;
+        case SketchBitmapFormat::L8:    //8 bit per pixel
+            m_size = width * height;
+            break;
+        }
+    }
+
+    SketchBitmapFormat format() const;
+    uint16_t           width() const;
+    uint16_t           height() const;
+    int16_t            x() const;
+    int16_t            y() const;
+
+protected:
+    SketchBitmapFormat m_format;
+
+    int16_t m_x{0},
+        m_y{0};
+    uint16_t m_width{0},
+        m_height{0};
+};
+
+class ImageJPEG : public StoredObject
+{
+public:
+    ImageJPEG(string          name,
+              uint32_t        address,
+              uint16_t        width,
+              uint16_t        height,
+              ImageJPEGFormat format) :
+        StoredObject(name, address, 0),
+        m_format(format),
+        m_width(width),
+        m_height(height)
+    {
+        m_type = StoredObjectType::ImageJPEG;
+
+        switch(format)
+        {
+        case ImageJPEGFormat::L8:    //8 bit per pixel
+            m_size = width * height;
+            break;
+        case ImageJPEGFormat::RGB565:    //16 bit per pixel
+            m_size = width * height * 2;
+            break;
+        }
+    }
+
+    ImageJPEGFormat format() const;
+    uint16_t        width() const;
+    uint16_t        height() const;
+
+protected:
+    ImageJPEGFormat m_format;
+    uint16_t        m_width{0},
+        m_height{0};
+};
+
+class ImagePNG : public StoredObject
+{
+public:
+    ImagePNG(string         name,
+             uint32_t       address,
+             uint16_t       width,
+             uint16_t       height,
+             ImagePNGFormat format) :
+        StoredObject(name, address, 0),
+        m_format(format),
+        m_width(width),
+        m_height(height)
+    {
+        m_type = StoredObjectType::ImagePNG;
+        switch(format)
+        {
+        case ImagePNGFormat::L8:    //8 bit per pixel
+            m_size = width * height;
+            break;
+        case ImagePNGFormat::RGB565:          //16 bit per pixel
+        case ImagePNGFormat::ARGB4:           //16 bit per pixel
+        case ImagePNGFormat::PALETTED565:     //16 bit per pixel
+        case ImagePNGFormat::PALETTED4444:    //16 bit per pixel
+            m_size = width * height * 2;
+            break;
+        }
+    }
+
+    ImagePNGFormat format() const;
+    uint16_t       width() const;
+    uint16_t       height() const;
+
+protected:
+    ImagePNGFormat m_format;
+    uint16_t       m_width{0},
         m_height{0};
 };
 
@@ -126,10 +246,12 @@ public:
     {
         removeStoredObject(name);
     }
+
     DisplayList * updateDisplayList(DisplayList * list) const;
 
+    //**********
     Snapshot * saveSnapshot(string               name,
-                            SnapshotBitmapFormat fmt    = ARGB4_s,
+                            SnapshotBitmapFormat fmt    = SnapshotBitmapFormat::ARGB4,
                             int16_t              x      = 0,
                             int16_t              y      = 0,
                             uint16_t             width  = EVE_HSIZE,
@@ -139,12 +261,46 @@ public:
     {
         removeStoredObject(sn);
     }
-    void removeSnapshot(std::string name) const
+    inline void removeSnapshot(std::string name) const
     {
         removeStoredObject(name);
     }
     Snapshot * updateSnapshot(Snapshot * s) const;
+    //**********
+    Sketch * startSketch(string             name,
+                         SketchBitmapFormat fmt    = SketchBitmapFormat::L1,
+                         int16_t            x      = 0,
+                         int16_t            y      = 0,
+                         uint16_t           width  = EVE_HSIZE,
+                         uint16_t           height = EVE_VSIZE) const;
 
+    inline void removeSketch(Sketch * s) const
+    {
+        removeStoredObject(s);
+    }
+
+    inline void removeSketch(std::string name) const
+    {
+        removeStoredObject(name);
+    }
+    //**********
+    ImagePNG * loadPNG(string          name,
+                       const uint8_t * src,
+                       ImagePNGFormat  fmt,
+                       uint16_t        width  = EVE_HSIZE,
+                       uint16_t        height = EVE_VSIZE,
+                       LoadImageOpt    opt    = LoadImageOpt::NoDL) const;
+
+    inline void removePNG(ImagePNG * i)
+    {
+        removeStoredObject(i);
+    }
+
+    inline void removePNG(std::string name) const
+    {
+        removeStoredObject(name);
+    }
+    //**********
     const std::vector<StoredObject *> & pool() const;
 
 private:

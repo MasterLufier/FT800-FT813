@@ -67,16 +67,16 @@ FT8xx::FT8xx(
     DELAY_MS(21); /* minimum time to allow from rising PD_N to first access is 20ms */
 
     #if defined(EVE_HAS_CRYSTAL)
-    m_hal->cmdWrite(EVE_CLKEXT, 0); /* setup EVE for external clock */
+    m_hal->cmdWrite(static_cast<uint8_t>(HostCommands::CLKEXT), 0); /* setup EVE for external clock */
     #else
-    EVE_cmdWrite(EVE_CLKINT, 0);    /* setup EVE for internal clock */
+    EVE_cmdWrite(static_cast<uint8_t>(HostCommands::CLKINT), 0); /* setup EVE for internal clock */
     #endif
 
     #if defined(BT81X_ENABLE)
-    m_hal->cmdWrite(EVE_CLKSEL, 0x46); /* set clock to 72 MHz */
+    m_hal->cmdWrite(static_cast<uint8_t>(HostCommands::CLKSEL), 0x46); /* set clock to 72 MHz */
     #endif
 
-    m_hal->cmdWrite(EVE_ACTIVE, 0); /* start EVE */
+    m_hal->cmdWrite(static_cast<uint8_t>(HostCommands::ACTIVE), 0); /* start EVE */
 
     /* BRT AN033 BT81X_Series_Programming_Guide V1.2 had a small change to chapter 2.4 "Initialization Sequence during Boot Up" */
     /* Send Host command ?ACTIVE? and wait for at least 300 milliseconds. */
@@ -149,7 +149,7 @@ FT8xx::FT8xx(
     #if defined(EVE_ADAM101)
     m_hal->wr8(REG_PWM_DUTY, 0x80); /* turn off backlight for Glyn ADAM101 module, it uses inverted values */
     #else
-    m_hal->wr8(REG_PWM_DUTY, 0);    /* turn off backlight for any other module */
+    m_hal->wr8(REG_PWM_DUTY, 0);                                 /* turn off backlight for any other module */
     #endif
 
     /* Initialize Display */
@@ -190,7 +190,7 @@ FT8xx::FT8xx(
     #if defined(EVE_ADAM101)
     m_hal->wr8(REG_PWM_DUTY, 0x60); /* turn on backlight to 25% for Glyn ADAM101 module, it uses inverted values */
     #else
-    m_hal->wr8(REG_PWM_DUTY, 0x20); /* turn on backlight to 25% for any other module */
+    m_hal->wr8(REG_PWM_DUTY, 0x20);                              /* turn on backlight to 25% for any other module */
     #endif
 
     //    timeout = 0;
@@ -519,6 +519,14 @@ uint8_t FT8xx::flashInit(uint32_t size)
 
 void FT8xx::rebootCoPro()
 {
+    debug("CoPro error. Reboot started!\n");
+    std::string smsg;
+    for(uint8_t i = 0; i < 128; ++i)
+    {
+        smsg.push_back(m_hal->rd8(EVE_RAM_ERR_REPORT + i));
+        //        debug("%c", m_hal->rd8(EVE_RAM_ERR_REPORT + i));
+    }
+    debug("%s\n", smsg.c_str());
 /* we have a co-processor fault, make EVE play with us again */
 #if defined(BT81X_ENABLE)
     uint16_t copro_patch_pointer = m_hal->rd16(REG_COPRO_PATCH_DTR);
@@ -565,6 +573,7 @@ void FT8xx::rebootCoPro()
 
     DELAY_MS(5) /* just to be safe */
 #endif
+    debug("EVE Reboot compleated!\n");
 }
 
 void FT8xx::writeString(const string & text)
@@ -592,6 +601,11 @@ void FT8xx::push(const CmdBuf_t & command)
     m_eventFlags.wait_all(EVEeventFlags::CmdBufBusy, osWaitForever, false);
     m_ramDLobserver += 4;
     m_cmdBuffer.push_back(command);
+    if(m_ramDLobserver + 4 > EVE_RAM_DL_SIZE)
+    {
+        execute();
+        return;
+    }
 }
 
 void FT8xx::execute()
@@ -641,9 +655,7 @@ void FT8xx::execute()
     //If CoPro commands fault reboot it
     if(m_hal->rd16(REG_CMD_READ) == 0xFFF)
     {
-        debug("CoPro error. Reboot started!\n");
         rebootCoPro();
-        debug("EVE Reboot compleated!\n");
         m_eventFlags.set(EVEeventFlags::CoProBusy);
         return;
     }
@@ -657,10 +669,9 @@ void FT8xx::execute()
     {
         if(m_hal->rd16(REG_CMDB_SPACE) == 4092)
             break;
-        ThisThread::sleep_for(1);
+        ThisThread::sleep_for(10);
         if(i == 99)
         {
-            debug("CoPro error. Reboot started!\n");
             rebootCoPro();
             m_eventFlags.set(EVEeventFlags::CoProBusy);
             return;
@@ -670,17 +681,12 @@ void FT8xx::execute()
     m_eventFlags.set(EVEeventFlags::CoProBusy);
 }
 
-void FT8xx::swap()
-{
-    push(DL_DISPLAY);
-    push(CMD_SWAP);
-}
-
 void FT8xx::clear(bool colorBuf, bool stencilBuf, bool tagBuf)
 {
-    push(CLEAR(static_cast<uint8_t>(colorBuf),
-               static_cast<uint8_t>(stencilBuf),
-               static_cast<uint8_t>(tagBuf)));
+    //    push(CLEAR(static_cast<uint8_t>(colorBuf),
+    //               static_cast<uint8_t>(stencilBuf),
+    //               static_cast<uint8_t>(tagBuf)));
+    push(EVE::clear(colorBuf, stencilBuf, tagBuf));
 }
 
 void FT8xx::clearColorRGB(uint8_t r, uint8_t g, uint8_t b)
@@ -823,6 +829,65 @@ void FT8xx::rectangle(int16_t  x,
     vertexPointF(x, y);
     vertexPointF(x + width - 1, y + height - 1);
     end();
+}
+
+void FT8xx::setBitmap(uint32_t         addr,
+                      BitmapExtFormats fmt,
+                      uint16_t         width,
+                      uint16_t         height)
+{
+    push(CMD_SETBITMAP);
+    push(addr);
+    push({static_cast<int16_t>(fmt), static_cast<int16_t>(width)});
+    push({static_cast<int16_t>(height), 0});
+}
+
+void FT8xx::getMatrix(int32_t a,
+                      int32_t b,
+                      int32_t c,
+                      int32_t d,
+                      int32_t e,
+                      int32_t f)
+{
+    push(CMD_GETMATRIX);
+    push(a);
+    push(b);
+    push(c);
+    push(d);
+    push(e);
+    push(f);
+}
+
+void FT8xx::translate(int32_t tx, int32_t ty)
+{
+    push(CMD_TRANSLATE);
+    push(tx);
+    push(ty);
+}
+
+void FT8xx::scale(int32_t sx, int32_t sy)
+{
+    push(CMD_SCALE);
+    push(sx);
+    push(sy);
+}
+
+void FT8xx::rotate(int32_t ang)
+{
+    push(CMD_ROTATE);
+    push(ang);
+}
+
+void FT8xx::rotateAround(int32_t x,
+                         int32_t y,
+                         int32_t angle,
+                         int32_t scale)
+{
+    push(CMD_ROTATEAROUND);
+    push(x);
+    push(y);
+    push(angle);
+    push(scale);
 }
 
 void FT8xx::gradient(int16_t  x0,
@@ -1006,6 +1071,17 @@ void FT8xx::keys(int16_t        x,
     writeString(text);
 }
 
+void FT8xx::spinner(int16_t      x,
+                    int16_t      y,
+                    SpinnerOpt   style,
+                    SpinnerScale scale)
+{
+    push(CMD_SPINNER);
+    push({x, y});
+    push({static_cast<int16_t>(style),
+          static_cast<int16_t>(scale)});
+}
+
 void FT8xx::append(uint32_t address, uint32_t count)
 {
     push(CMD_APPEND);
@@ -1014,20 +1090,23 @@ void FT8xx::append(uint32_t address, uint32_t count)
     m_ramDLobserver += count - 12;
 }
 
-void FT8xx::append(StoredObject * o)
+void FT8xx::append(const StoredObject * o)
 {
     switch(o->type())
     {
-    case EVE::UnknowType:
+    case StoredObjectType::Unknow:
         debug("Unknow Type\n");
         break;
-    case EVE::DisplayListType:
-        append(reinterpret_cast<DisplayList *>(o));
+    case StoredObjectType::DisplayList:
+        append(reinterpret_cast<const DisplayList *>(o));
         break;
-    case EVE::SnapshotType:
-        append(reinterpret_cast<Snapshot *>(o));
+    case StoredObjectType::Snapshot:
+        append(reinterpret_cast<const Snapshot *>(o));
         break;
-    case EVE::ImageType:
+    case StoredObjectType::Sketch:
+        append(reinterpret_cast<const Sketch *>(o));
+    case StoredObjectType::ImagePNG:
+    case StoredObjectType::ImageJPEG:
         debug("ImageType not supported yet\n");
         break;
     }
@@ -1044,22 +1123,54 @@ void FT8xx::append(const Snapshot * s,
                    int16_t          width,
                    int16_t          height)
 {
-    if(s->format() == SnapshotBitmapFormat::ARGB8_s)
+    if(s->format() == SnapshotBitmapFormat::ARGB8)
     {
         debug("You don't load snapshot stored in ARGB8_s format \n");
         return;
     }
-    push(CMD_SETBITMAP);
-    push(s->address());
-    push({static_cast<int16_t>(s->format()),
-          width < 0 ? static_cast<int16_t>(s->width()) : width});
-    push({height < 0 ? static_cast<int16_t>(s->height()) : height,
-          0});
+
+    setBitmap(s->address(),
+              static_cast<BitmapExtFormats>(s->format()),
+              width < 0 ? static_cast<int16_t>(s->width()) : width,
+              height < 0 ? static_cast<int16_t>(s->height()) : height);
 
     begin(Bitmaps);
     vertexPointF(x == -999 ? s->x() : x,
                  y == -999 ? s->y() : y);
     this->end();
+}
+
+void FT8xx::append(const Sketch * s,
+                   int16_t        x,
+                   int16_t        y,
+                   int16_t        width,
+                   int16_t        height)
+{
+    setBitmap(s->address(),
+              static_cast<BitmapExtFormats>(s->format()),
+              width < 0 ? static_cast<int16_t>(s->width()) : width,
+              height < 0 ? static_cast<int16_t>(s->height()) : height);
+
+    begin(Bitmaps);
+    vertexPointII(x < 0 ? s->x() : x,
+                  y < 0 ? s->y() : y);
+    end();
+}
+
+void FT8xx::append(const ImagePNG * i,
+                   int16_t          x,
+                   int16_t          y,
+                   int16_t          width,
+                   int16_t          height)
+{
+    setBitmap(i->address(),
+              static_cast<BitmapExtFormats>(i->format()),
+              width < 0 ? static_cast<int16_t>(i->width()) : width,
+              height < 0 ? static_cast<int16_t>(i->height()) : height);
+    begin(Bitmaps);
+    vertexPointF(x,
+                 y);
+    end();
 }
 
 void FT8xx::ramGInit(uint32_t size)

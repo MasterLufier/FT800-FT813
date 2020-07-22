@@ -30,6 +30,7 @@ lib/FT800-FT813/ft8xx.cpp
 lib/FT800-FT813/ft8xx.h
 lib/FT800-FT813/ft8xxmemory.cpp
 lib/FT800-FT813/ft8xxmemory.h
+lib/FT800-FT813/logoAtom_940x74_ARGB4.h
 lib/FT800-FT813/mbed_lib.json
 lib/README
 mbed_app.json
