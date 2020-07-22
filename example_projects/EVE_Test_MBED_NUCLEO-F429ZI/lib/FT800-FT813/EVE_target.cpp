@@ -40,20 +40,6 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 #include <EVE_target.h>
 #include <stm32f4xx_ll_gpio.h>
 using namespace EVE;
-EVE_HAL * EVE_HAL::_ptr = nullptr;
-EVE_HAL * EVE_HAL::instance()
-{
-    if(!_ptr)
-        error("EVE_HAL is not initialized");
-    return _ptr;
-}
-
-EVE_HAL * EVE_HAL::instance(PinName mosi, PinName miso, PinName sclk, PinName ssel, PinName pd)
-{
-    if(!_ptr)
-        _ptr = new EVE_HAL(mosi, miso, sclk, ssel, pd);
-    return _ptr;
-}
 
 void EVE_HAL::setSPIfrequency(EVE_HAL::SPIFrequency frequency)
 {
@@ -77,7 +63,6 @@ EVE_HAL::EVE_HAL(PinName mosi,
     m_pd(pd)
 {
     pdnSet();
-    //    csSet();
     ThisThread::sleep_for(100);
     m_spi.format(8, 0);
     this->setSPIfrequency(F_1M);
@@ -85,7 +70,6 @@ EVE_HAL::EVE_HAL(PinName mosi,
     LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_8, LL_GPIO_SPEED_FREQ_LOW);
     LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_7, LL_GPIO_SPEED_FREQ_LOW);
     LL_GPIO_SetPinSpeed(GPIOF, LL_GPIO_PIN_12, LL_GPIO_SPEED_FREQ_LOW);
-    _ptr = this;
 }
 
 //*********Basic communication functions
@@ -201,49 +185,4 @@ void EVE_HAL::wrByteBuffer(uint32_t address, const uint8_t * buffer, uint16_t le
         m_spi.write(static_cast<uint8_t>(*buffer + count));
     }
     csClear();
-}
-
-//********************************************************************
-void EVE_cs_set()
-{
-    EVE_HAL::instance()->csSet();
-}
-
-void EVE_cs_clear()
-{
-    EVE_HAL::instance()->csClear();
-}
-
-void spi_transmit(uint8_t data)
-{
-    EVE_HAL::instance()->transmit(data);
-}
-
-int spi_receive(uint8_t data)
-{
-    return EVE_HAL::instance()->receive(data);
-}
-
-uint8_t fetch_flash_byte(const uint8_t * data)
-{
-    return *data;
-}
-
-void EVE_pdn_set()
-{
-    return EVE_HAL::instance()->pdnSet();
-}
-
-void EVE_pdn_clear()
-{
-    return EVE_HAL::instance()->pdnClear();
-}
-
-void spi_transmit_async(uint8_t data)
-{
-#if defined(EVE_DMA)
-    //TODO: Implement DMA
-#else
-    EVE_HAL::instance()->transmit(data);
-#endif
 }

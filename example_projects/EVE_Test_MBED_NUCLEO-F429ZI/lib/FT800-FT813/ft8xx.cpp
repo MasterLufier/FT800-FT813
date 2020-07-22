@@ -46,18 +46,18 @@ FT8xx::FT8xx(
     EVE_HAL::SPIFrequency spiFrequency,
     bool                  sharedEventQueue,
     uint32_t              threadStackSize,
-    const char *          threadName)
-
-    :
+    const char *          threadName) :
     m_interrupt(interrupt),
-    m_eventThread(new Thread(osPriorityNormal, threadStackSize, nullptr, threadName))
+    m_eventThread(new Thread(osPriorityNormal,
+                             threadStackSize,
+                             nullptr,
+                             threadName))
 
 {
     m_interrupt.mode(PullUp);
 
-    m_hal = EVE_HAL::instance(mosi, miso, sclk, ssel, pd);
+    m_hal = new EVE_HAL(mosi, miso, sclk, ssel, pd);
     //Initialize Screen
-    //    EVE_init();
     uint8_t  chipid  = 0;
     uint16_t timeout = 0;
 
@@ -684,9 +684,6 @@ void FT8xx::execute()
 
 void FT8xx::clear(bool colorBuf, bool stencilBuf, bool tagBuf)
 {
-    //    push(CLEAR(static_cast<uint8_t>(colorBuf),
-    //               static_cast<uint8_t>(stencilBuf),
-    //               static_cast<uint8_t>(tagBuf)));
     push(EVE::clear(colorBuf, stencilBuf, tagBuf));
 }
 
@@ -1107,8 +1104,11 @@ void FT8xx::append(const StoredObject * o)
     case StoredObjectType::Sketch:
         append(reinterpret_cast<const Sketch *>(o));
     case StoredObjectType::ImagePNG:
+        append(reinterpret_cast<const ImagePNG *>(o));
+        return;
     case StoredObjectType::ImageJPEG:
-        debug("ImageType not supported yet\n");
+    case StoredObjectType::CompressedImage:
+        debug("ImageJPEG not supported yet\n");
         break;
     }
 }

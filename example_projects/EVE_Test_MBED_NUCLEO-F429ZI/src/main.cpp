@@ -110,21 +110,15 @@ void loadDynamicDL(FT8xx * screen)
     screen->colorRGB((rand() % 255), (rand() % 255), (rand() % 255));
 
     screen->point((rand() % EVE_HSIZE), (rand() % EVE_VSIZE), 20);
-    //    screen->point((rand() % 480), (rand() % 270), 320);
-    //    screen->point((rand() % 480), (rand() % 270), 320);
-    //    screen->point((rand() % 480), (rand() % 270), 320);
-    //    screen->point((rand() % 480), (rand() % 270), 320);
-
-    //    return screen->ramG()->saveDisplayList("DL4");
 }
 
 int main()
 {
     //**Initialize screen
-    FT8xx screen(PF_9, PF_8, PF_7, PF_12, PB_2, PD_15);
+    FT8xx screen;    //(PF_9, PF_8, PF_7, PF_12, PB_2, PD_15);
     //**Initialize DL storage in RamG
     screen.ramGInit();
-    screen.flashInit(8000);
+    //    screen.flashInit(8000);
     //** calibrate touchscreen with predefined values
     screen.touchCalibrate(true);
 
@@ -160,20 +154,7 @@ int main()
     //        //            ? screen.animate(&val, 0, 65535, 400, FT8xx::Cubic)
     //        //            : screen.animate(&val, 65535, 0, 400, FT8xx::Quart);
     //    });
-    //    uint8_t tag = screen.setTrackingToTag(
-    //        [&](uint16_t value) {
-    //            val = value;
-    //        });
-    //    screen.setCallbackToTag(
-    //        [](uint8_t t) {
-    //            debug("q");
-    //        },
-    //        static_cast<uint8_t>('q'));
-    //    screen.setCallbackToTag(
-    //        [](uint8_t t) {
-    //            debug("w");
-    //        },
-    //        static_cast<uint8_t>('w'));
+
     screen.attachTouchDetectedCallback([&](uint8_t c) {
         int32_t xy = screen.touchXY();
         debug("TD: %i:%i\n", xy & 0xffff, xy >> 16);

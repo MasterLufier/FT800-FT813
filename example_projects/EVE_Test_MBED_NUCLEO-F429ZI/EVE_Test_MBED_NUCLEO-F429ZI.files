@@ -1,7 +1,5 @@
 include/README
 lib/FT800-FT813/EVE.h
-lib/FT800-FT813/EVE_commands.cpp
-lib/FT800-FT813/EVE_commands.h
 lib/FT800-FT813/EVE_config.h
 lib/FT800-FT813/EVE_target.cpp
 lib/FT800-FT813/EVE_target.h
