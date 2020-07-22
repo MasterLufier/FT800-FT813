@@ -97,41 +97,22 @@ public:
         return static_cast<uint8_t>(m_spi.write(data));
     }
 
-    static EVE_HAL * instance();
-    static EVE_HAL * instance(PinName mosi,
-                              PinName miso,
-                              PinName sclk,
-                              PinName ssel,
-                              PinName pd);
-
-    ~EVE_HAL() { _ptr = nullptr; }
-
     void setSPIfrequency(SPIFrequency frequency);
-
-private:
-    EVE_HAL();
     EVE_HAL(PinName mosi = EVE_SPI_MOSI,
             PinName miso = EVE_SPI_MISO,
             PinName sclk = EVE_SPI_CLK,
             PinName ssel = EVE_SPI_SSEL,
             PinName pd   = EVE_PD);
 
+private:
+    EVE_HAL();
+
     EVE_HAL(const EVE_HAL & other) = delete;
     EVE_HAL(EVE_HAL && other)      = delete;
 
-    SPI              m_spi;
-    DigitalOut       m_ssel;
-    DigitalOut       m_pd;
-    static EVE_HAL * _ptr;
+    SPI        m_spi;
+    DigitalOut m_ssel;
+    DigitalOut m_pd;
 };
 }    // namespace EVE
-extern "C" void    EVE_cs_set();
-extern "C" void    EVE_cs_clear();
-extern "C" void    spi_transmit(uint8_t data);
-extern "C" int     spi_receive(uint8_t data);
-extern "C" uint8_t fetch_flash_byte(const uint8_t * data);
-extern "C" void    EVE_pdn_set();
-extern "C" void    EVE_pdn_clear();
-extern "C" void    spi_transmit_async(uint8_t data);
-
 #endif /* EVE_TARGET_H_ */

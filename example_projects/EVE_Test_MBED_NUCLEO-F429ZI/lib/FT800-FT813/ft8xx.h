@@ -44,7 +44,6 @@ namespace EVE
 #if defined(EVE_CAP_TOUCH)
 typedef std::function<void(uint8_t)>  tagCB;
 typedef std::function<void(uint16_t)> trackCB;
-//typedef std::function<void(uint16_t, uint16_t)> touchCB;
 #endif
 class FT8xx : private NonCopyable<FT8xx>
 {
@@ -98,12 +97,12 @@ public:
         Quart};
 
     FT8xx(
-        PinName               mosi,
-        PinName               miso,
-        PinName               sclk,
-        PinName               ssel,
-        PinName               pd,
-        PinName               interrupt,
+        PinName               mosi             = EVE_SPI_MOSI,
+        PinName               miso             = EVE_SPI_MISO,
+        PinName               sclk             = EVE_SPI_CLK,
+        PinName               ssel             = EVE_SPI_SSEL,
+        PinName               pd               = EVE_PD,
+        PinName               interrupt        = EVE_INTRPT,
         EVE_HAL::SPIFrequency spiFrequency     = EVE_HAL::F_20M,
         bool                  sharedEventQueue = false,
         uint32_t              threadStackSize  = (4 * 512),
