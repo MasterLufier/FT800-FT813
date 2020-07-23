@@ -1,9 +1,9 @@
 #ifndef DIALOG_H
 #define DIALOG_H
 
+#include <Containers/page.h>
 #include <graphics.h>
 #include <modalwidget.h>
-#include <page.h>
 
 namespace FTGUI
 {

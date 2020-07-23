@@ -25,8 +25,8 @@
 #ifndef APPLICATIONWINDOW_H
 #define APPLICATIONWINDOW_H
 
+#include <Containers/dialog.h>
 #include <deque>
-#include <dialog.h>
 #include <graphics.h>
 #include <widget.h>
 

@@ -25,14 +25,14 @@
 #ifndef FTGUI_H
 #define FTGUI_H
 
+#include <Containers/dialog.h>
+#include <Containers/drawer.h>
+#include <Containers/list.h>
+#include <Containers/page.h>
 #include <applicationwindow.h>
 #include <colors.h>
 #include <control.h>
-#include <dialog.h>
-#include <drawer.h>
 #include <ft8xx.h>
-#include <list.h>
-#include <page.h>
 #include <widget.h>
 
 #endif    // FTGUI_H
