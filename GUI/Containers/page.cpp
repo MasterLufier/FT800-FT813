@@ -91,4 +91,9 @@ void Page::setHeight(uint16_t height)
     m_background->setHeight(m_height - m_padding * 2);
     m_contentItem->setHeight(m_height - m_padding * 2 - m_margins * 2);
 }
+
+Widget *Page::contentItem() const
+{
+    return m_contentItem;
+}
 }    // namespace FTGUI

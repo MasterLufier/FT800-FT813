@@ -42,6 +42,8 @@ public:
     void setWidth(uint16_t width) override;
     void setHeight(uint16_t height) override;
 
+    Widget * contentItem() const;
+
 protected:
     uint8_t     m_padding{5};
     uint8_t     m_margins{3};

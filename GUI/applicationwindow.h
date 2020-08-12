@@ -84,7 +84,7 @@ protected:
     std::deque<int16_t> m_yFifo;
     uint8_t             m_animationCounter{0};
     int32_t             m_updateEventId{0};
-    Thread              m_thread{osPriorityNormal, 2048, nullptr, "GUIThread"};
+    Thread              m_thread{osPriorityNormal, (3 * 1024), nullptr, "GUIThread"};
 };
 }    // namespace FTGUI
 

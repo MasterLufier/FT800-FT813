@@ -37,11 +37,11 @@ void List::setGeometry(int32_t  x,
     {
     case FTGUI::List::Vertical:
     {
-        uint16_t fWidth = (m_width / m_itemCount) - 1;
+        uint16_t fWidth = (m_width / m_itemCount);
         m_contentItem->setHeight(height);
         for(const auto w : m_contentItem->m_container)
         {
-            w->setGeometry(i * fWidth + 1,
+            w->setGeometry(i * fWidth,
                            0,
                            fWidth,
                            m_height);
@@ -54,12 +54,12 @@ void List::setGeometry(int32_t  x,
     }
     case FTGUI::List::Horizontal:
     {
-        uint16_t fHeight = (m_height / m_itemCount) - 1;
+        uint16_t fHeight = (m_height / m_itemCount);
         m_contentItem->setWidth(width);
         for(const auto w : m_contentItem->m_container)
         {
             w->setGeometry(0,
-                           i * fHeight + 1,
+                           i * fHeight,
                            m_width,
                            fHeight);
             ++i;
