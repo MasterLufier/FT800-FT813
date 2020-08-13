@@ -5,6 +5,29 @@
 
 namespace FTGUI
 {
+class RangeController
+{
+public:
+    enum Type
+    {
+        Linear,
+        Logarithmic
+    };
+    RangeController() {}
+
+    float min() const;
+    void  setMin(float min);
+
+    float max() const;
+    void  setMax(float max);
+
+    float value() const;
+    void  setValue(float value);
+
+protected:
+    float m_min{0}, m_max{0}, m_value{0};
+};
+
 class Button : public Rectangle
 {
 public:

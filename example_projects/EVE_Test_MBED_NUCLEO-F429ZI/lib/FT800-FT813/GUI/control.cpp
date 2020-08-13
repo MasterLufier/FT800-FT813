@@ -235,4 +235,34 @@ void ButtonGroup::setPadding(const uint8_t & padding)
     m_padding = padding;
 }
 
+float RangeController::min() const
+{
+    return m_min;
+}
+
+void RangeController::setMin(float min)
+{
+    m_min = min;
+}
+
+float RangeController::max() const
+{
+    return m_max;
+}
+
+void RangeController::setMax(float max)
+{
+    m_max = max;
+}
+
+float RangeController::value() const
+{
+    return m_value;
+}
+
+void RangeController::setValue(float value)
+{
+    m_value = value;
+}
+
 }    // namespace FTGUI
