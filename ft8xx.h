@@ -248,6 +248,15 @@ public:
     void scale(int32_t sx, int32_t sy);
     void rotate(int32_t ang);
 
+    inline void scissor(uint16_t x      = 0,
+                        uint16_t y      = 0,
+                        uint16_t width  = 2048,
+                        uint16_t height = 2048)
+    {
+        push(SCISSOR_XY(x, y));
+        push(SCISSOR_SIZE(width, height));
+    }
+
 #if defined(BT81X_ENABLE)
     void rotateAround(int32_t x,
                       int32_t y,
@@ -421,6 +430,8 @@ public:
     uint8_t flashInit(uint32_t size);
         //****************
 #endif
+
+    uint8_t backlight();
 
     /*!
      * \brief setBacklight - set the backlight PWM duty cycle

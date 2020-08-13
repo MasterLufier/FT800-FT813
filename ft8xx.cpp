@@ -452,6 +452,11 @@ const FT8xx::TouchCalibrationResult & FT8xx::touchCalibrate(bool factory)
 }
 #endif
 
+uint8_t FT8xx::backlight()
+{
+    return m_hal->rd8(REG_PWM_DUTY);
+}
+
 void FT8xx::setBacklight(uint8_t value)
 {
 #if defined(EVE_ADAM101)
