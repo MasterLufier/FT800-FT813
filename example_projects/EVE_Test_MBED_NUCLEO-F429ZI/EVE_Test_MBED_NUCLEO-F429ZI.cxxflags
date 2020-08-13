@@ -1,3 +1,0 @@
--std=gnu++17
--std=c++17
--Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic
