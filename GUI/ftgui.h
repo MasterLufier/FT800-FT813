@@ -29,10 +29,11 @@
 #include <Containers/drawer.h>
 #include <Containers/list.h>
 #include <Containers/page.h>
-#include <applicationwindow.h>
-#include <colors.h>
-#include <control.h>
+#include <GUI/applicationwindow.h>
+#include <GUI/colors.h>
+#include <GUI/control.h>
+#include <GUI/loudmeter.h>
+#include <GUI/widget.h>
 #include <ft8xx.h>
-#include <widget.h>
 
 #endif    // FTGUI_H

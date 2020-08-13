@@ -95,7 +95,10 @@ struct Main
         Black{0x000000},
         Error{0xB00020},
         Dark{0x2C2C2C},
-        LightGrey{0x757575};
+        LightGrey{0x757575},
+        Red{0xff0000},
+        Yellow{0xffff00},
+        Green{0x00ff00};
 };
 
 // struct Red
