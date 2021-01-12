@@ -45,6 +45,8 @@ public:
 
     void addWidget(Widget * widget) override;
 
+    void removeWidget(Widget * widget) override;
+
 protected:
     bool touchPressed(int16_t x, int16_t y) override;
     bool touchChanged(int16_t x, int16_t y, const int16_t * accelerationX, const int16_t * accelerationY) override;

@@ -95,6 +95,12 @@ Widget::~Widget()
 
 void Widget::show()
 {
+    if(toDelete())
+    {
+        parent()->removeWidget(this);
+        delete this;
+        return;
+    }
     if(checkPositionInScreen() == false)
         return;
     for(const auto & w : m_container)
@@ -229,6 +235,16 @@ void Widget::animation(int32_t *       value,
         fadeType,
         delay);
     animationStarted(value, duration, delay);
+}
+
+bool Widget::toDelete() const
+{
+    return m_toDelete;
+}
+
+void Widget::setToDelete(bool toDelete)
+{
+    m_toDelete = toDelete;
 }
 
 bool Widget::modal() const

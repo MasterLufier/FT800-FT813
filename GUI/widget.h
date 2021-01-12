@@ -157,6 +157,9 @@ public:
 
     bool modal() const;
 
+    bool toDelete() const;
+    void setToDelete(bool toDelete);
+
 protected:
     enum AnimationOpt : uint32_t
     {
@@ -182,6 +185,7 @@ protected:
     FT8xx *      m_driver{nullptr};
     EventQueue * m_queue{nullptr};
     bool         m_modal{false};
+    bool         m_toDelete{false};
 
     std::vector<void *> m_animationBlock;
 

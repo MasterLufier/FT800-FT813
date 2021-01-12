@@ -167,6 +167,14 @@ void ApplicationWindow::show()
     {
         for(const auto w : m_modalContainer)
         {
+            if(w->toDelete())
+            {
+                this->removeWidget(w);
+                delete w;
+            }
+        }
+        for(const auto w : m_modalContainer)
+        {
             if(w->visible())
             {
                 if(m_animationCounter == 0 && !m_modalOpened)
@@ -210,6 +218,22 @@ void ApplicationWindow::addWidget(Widget * widget)
     }
     else
         Widget::addWidget(widget);
+}
+
+void ApplicationWindow::removeWidget(Widget * widget)
+{
+    if(widget->modal())
+    {
+        m_modalContainer.erase(
+            std::remove(m_modalContainer.begin(),
+                        m_modalContainer.end(),
+                        widget),
+            m_modalContainer.end());
+    }
+    else
+    {
+        Widget::removeWidget(widget);
+    }
 }
 
 bool ApplicationWindow::touchPressed(int16_t x, int16_t y)

@@ -370,7 +370,7 @@ Scrim::Scrim(Widget * parent) :
 Scrim::~Scrim()
 {
     m_driver->ramG()->removeSnapshot(m_snapshot);
-    delete m_snapshot;
+    //    delete m_snapshot;
 }
 
 void Scrim::show()

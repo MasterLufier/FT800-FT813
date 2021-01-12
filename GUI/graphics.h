@@ -108,8 +108,27 @@ public:
     LFont(FT8xx *  driver,
           uint8_t  fontSize,
           FontType type = Antialiased) :
-        m_fontTargetSize(fontSize),
+        //        m_fontTargetSize(fontSize),
         m_driver(driver)
+    {
+        setFont(fontSize, type);
+    }
+
+    uint8_t charWidth(char c) const
+    {
+        if(c <= 128)
+            return width.at(c);
+        else
+            return 0;
+    }
+    uint8_t fontHeight() const
+    {
+        return pixelHeight;
+    }
+
+    uint8_t fontNumber() const;
+    void    setFont(uint8_t         fontSize,
+                    LFont::FontType type = LFont::Antialiased)
     {
         switch(type)
         {
@@ -160,22 +179,8 @@ public:
         getFontParams();
     }
 
-    uint8_t charWidth(char c) const
-    {
-        if(c <= 128)
-            return width.at(c);
-        else
-            return 0;
-    }
-    uint8_t fontHeight() const
-    {
-        return pixelHeight;
-    }
-
-    uint8_t fontNumber() const;
-
 private:
-    uint16_t m_fontTargetSize{0};
+    //    uint16_t m_fontTargetSize{0};
     FontType m_fontType{Antialiased};
     uint8_t  m_fontNumber{16};
     FT8xx *  m_driver{nullptr};
@@ -244,6 +249,12 @@ public:
 
     VAlignment verticalAlignment() const;
     void       setVerticalAlignment(const VAlignment & verticalAlignment);
+
+    void setFont(uint8_t         size,
+                 LFont::FontType type = LFont::Antialiased)
+    {
+        m_font.setFont(size, type);
+    }
 
 private:
     Label(std::string label  = "",

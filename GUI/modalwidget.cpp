@@ -25,4 +25,14 @@ void ModalWidget::close()
     update();
 }
 
+void ModalWidget::destroy()
+{
+    this->setToDelete(true);
+}
+
+Scrim * ModalWidget::scrim() const
+{
+    return m_scrim;
+}
+
 }    // namespace FTGUI

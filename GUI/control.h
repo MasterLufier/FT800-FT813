@@ -5,7 +5,7 @@
 
 namespace FTGUI
 {
-class RangeController
+class RangeController : public Widget
 {
 public:
     enum Type
@@ -13,7 +13,11 @@ public:
         Linear,
         Logarithmic
     };
-    RangeController() {}
+    RangeController(float min, float max, Widget * parent = nullptr) :
+        Widget(parent),
+        m_min(min),
+        m_max(max),
+        m_range(max - min) {}
 
     float min() const;
     void  setMin(float min);
@@ -24,8 +28,18 @@ public:
     float value() const;
     void  setValue(float value);
 
+    template<typename... Args>
+    void onValueChanged(Args &&... args)
+    {
+        if(m_onValueChanged)
+            delete m_onValueChanged;
+        m_onValueChanged = wrapCB<uint16_t>(args...);
+    }
+
 protected:
-    float m_min{0}, m_max{0}, m_value{0};
+    float m_min{0}, m_max{0}, m_value{0}, m_range{0};
+
+    std::function<void(uint16_t)> * m_onValueChanged{nullptr};
 };
 
 class Button : public Rectangle
@@ -101,6 +115,8 @@ public:
 
     uint8_t padding() const;
     void    setPadding(const uint8_t & padding);
+
+    void setRadius(uint8_t radius);
 
 protected:
     uint16_t                        m_index{0};

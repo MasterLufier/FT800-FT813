@@ -12,6 +12,9 @@ public:
     virtual void prepare();
     virtual void open();
     virtual void close();
+    virtual void destroy();
+
+    Scrim * scrim() const;
 
 protected:
     Scrim *  m_scrim{nullptr};

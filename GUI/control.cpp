@@ -235,6 +235,14 @@ void ButtonGroup::setPadding(const uint8_t & padding)
     m_padding = padding;
 }
 
+void ButtonGroup::setRadius(uint8_t radius)
+{
+    for(uint16_t i = 0; i < m_container.size(); ++i)
+    {
+        childAt(i)->setRadius(radius);
+    }
+}
+
 float RangeController::min() const
 {
     return m_min;
@@ -242,7 +250,8 @@ float RangeController::min() const
 
 void RangeController::setMin(float min)
 {
-    m_min = min;
+    m_min   = min;
+    m_range = m_max - m_min;
 }
 
 float RangeController::max() const
@@ -252,7 +261,8 @@ float RangeController::max() const
 
 void RangeController::setMax(float max)
 {
-    m_max = max;
+    m_max   = max;
+    m_range = m_max - m_min;
 }
 
 float RangeController::value() const
@@ -263,6 +273,9 @@ float RangeController::value() const
 void RangeController::setValue(float value)
 {
     m_value = value;
+    m_onValueChanged->operator()(value);
+    //TODO: Move update from here to global level update function
+    update();
 }
 
 }    // namespace FTGUI
